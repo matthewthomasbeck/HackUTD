@@ -1,5 +1,10 @@
 # Underdog
 
+<p align="center">
+  <img src="images/glasses-view.webp" alt="Rescuer's view through the Even Realities G2 glasses: a new immediate task at 2520 Rutford Ave, 72 m north, breathing 8 per minute, with a direction arrow" width="49%">
+  <img src="images/robot-dog.webp" alt="The Underdog robot dog: legs with 3D-printed mecanum wheels, LiDAR on top, and the electronics in a clear body" width="49%">
+</p>
+
 **An AI-powered drone and robot dog team that searches disaster rubble, finds survivors with thermal imaging, checks if they are breathing, and guides rescuers wearing smart glasses to the people who need help most.**
 
 *Scout first. Reduce human risk.* The drone scouts from above, then the robot dog goes in.
