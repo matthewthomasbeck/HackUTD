@@ -3,26 +3,29 @@
 HackUTD entry by Cayden Hutcheson, Matthew Beck, Eric Lee, and Camille.
 Target tracks: NVIDIA ("Use Nemotron Beyond a Chatbot"), State Farm ("The Worst Day, at Scale"), and SpacetimeDB, which runs the whole backend.
 
-After a disaster, a drone flies over the rubble with a thermal camera, finds warm, person-sized shapes, and hovers over each one to record about 20 seconds of video for a breathing check.
+After a disaster, a **DJI Mini 4 Pro** drone flies over the rubble first and streams live video to a laptop, where computer vision spots people from above.
+A ground rover is then sent in second to each spot: its thermal camera confirms a warm, person-sized shape, and its camera records about 20 seconds of video for a breathing check.
 Every find becomes a survivor with a critical score, on a live dashboard shared by every coordinator, and the most critical people go to rescuers wearing Even Realities G2 smart glasses, which show how many critical people are nearby and point the way to the next one.
 
 ## How it works
 
-1. **Search from above.** The drone flies a grid over the search area. Its thermal camera looks for warm shapes the size of a person.
-2. **Hover and look.** At each candidate it holds still and records about 20 seconds of camera video.
-3. **Signs of life.** A motion signal on the chest region gives a breathing rate with a confidence. The system never labels anyone dead: "no signs of life detected" stays at the top of the list.
-4. **Critical score.** Breathing, how buried the person is, and the thermal reading combine into a triage level with its reasons.
-5. **Report.** The find goes into SpacetimeDB, and every dashboard and pair of glasses sees it at the same moment.
-6. **Coordinate.** Nemotron agents rank survivors, propose the nearest free rescuer, and brief that rescuer; the database enforces the rules, so no one is overlooked even with every agent down.
-7. **Guide.** The rescuer's glasses show "1 critical within 0.3 mi", then an arrow and distance.
-8. **Sent in second.** The ground rover (mecanum wheels, built and calibrated in this repo) can be sent to a find afterwards for a close look where the drone cannot reach.
+1. **Search from above.** The DJI Mini 4 Pro flies over the search area and streams live video from DJI Fly (RTMP) to a laptop. A person detector marks possible survivors and where they are.
+2. **Send the rover in second.** The ground rover (mecanum wheels, built in this repo) drives to a marked spot, by remote control or on its own. Its thermal camera confirms a warm, person-sized shape, picking the closest one by lidar, and it stops about 1 m away.
+3. **Hold still and record.** The rover's camera records about 20 seconds of video. A hovering drone shakes too much for this, so the close look happens on the ground.
+4. **Signs of life.** A motion signal on the chest region gives a breathing rate with a confidence. The system never labels anyone dead: "no signs of life detected" stays at the top of the list.
+5. **Critical score.** Breathing, how buried the person is, and the thermal reading combine into a triage level with its reasons.
+6. **Report.** The find goes into SpacetimeDB, and every dashboard and pair of glasses sees it at the same moment.
+7. **Coordinate.** Nemotron agents rank survivors, propose the nearest free rescuer, and brief that rescuer; the database enforces the rules, so no one is overlooked even with every agent down.
+8. **Guide.** The rescuer's glasses show "1 critical within 0.3 mi", then an arrow and distance.
+
+Why this split: the Mini 4 Pro weighs 249 g, has a regular camera but no thermal camera, and has no payload port, so it cannot carry the Pi, Pico, and sensors. It does what it is good at (seeing a wide area fast), and the rover carries the heavy sensing.
 
 ## Tracks
 
 ### State Farm: Intelligent Catastrophe Response
 
 "The Worst Day, at Scale": when a disaster hits many people at once, find the most urgent needs, coordinate help, and make sure no one is overlooked.
-Rubble Search covers the three stages in one workflow: the drone **discovers** survivors, the critical score **assesses** who needs help first, and the shared board **coordinates** rescuers.
+Rubble Search covers the three stages in one workflow: the drone and rover **discover** survivors, the critical score **assesses** who needs help first, and the shared board **coordinates** rescuers.
 "No one overlooked" is enforced by the database, not by the AI: every survivor stays on the board until a person resolves them, a dropped rescuer releases their assignment at once, and a watchdog assigns the nearest rescuer if no agent does.
 The dashboard headline is "Critical survivors unattended over 60 s: 0".
 
@@ -30,18 +33,18 @@ The dashboard headline is "Critical survivors unattended over 60 s: 0".
 
 Three Nemotron agents plan multi-step work and call tools; none of them is a chatbot:
 
-- **Orchestrator**: ranks survivors, proposes the nearest free rescuer, and plans the drone's next search area.
+- **Orchestrator**: ranks survivors, proposes the nearest free rescuer, and plans where the drone looks next and where the rover goes.
 - **Auditor**: independently checks every proposal (wrong rescuer, unfair load) and gives a verdict with a reason.
 - **Comms agent**: briefs rescuers on their glasses and answers their questions.
 
-The agents talk only through a shared task board in SpacetimeDB (`agent_task`), so every hand-off is logged and replayable, and no agent can fly the drone or resolve a survivor.
+The agents talk only through a shared task board in SpacetimeDB (`agent_task`), so every hand-off is logged and replayable, and no agent can fly the drone, drive the rover, or resolve a survivor.
 See `docs/AGENT_WORKFLOW.md`.
 
 ### SpacetimeDB: Real-Time Rescue Coordination
 
 SpacetimeDB is the whole backend, with no separate web server or API layer, published on Maincloud as `assess-0hw81`:
 
-- **One live board**: survivors, search areas, the drone, missions, assignments, briefings, and the agents' tasks, streamed to every dashboard and pair of glasses through subscriptions.
+- **One live board**: survivors, search areas, the drone and rover, missions, assignments, briefings, and the agents' tasks, streamed to every dashboard and pair of glasses through subscriptions.
 - **Rules in reducers**: the survivor state machine, roles, and the rule that no one is labelled dead.
 - **Timers in schedule tables**: assignment leases, heartbeats, two-level escalation, and the agent watchdog all run inside the database.
 - **Instant disconnect handling**: `client_disconnected` releases a dropped rescuer's assignment, so the survivor goes back in the queue.
@@ -49,9 +52,10 @@ SpacetimeDB is the whole backend, with no separate web server or API layer, publ
 ## What is live and what is simulated
 
 The judged demo is hard-coded (team decision, 2026-11-08): only SpacetimeDB runs live.
-The simulator scripts the drone's flight, the find, the breathing result and critical score, and any rescuer actions.
+The simulator scripts the drone's flight and the rover, the find, the breathing result and critical score, and any rescuer actions.
 The dashboard and the glasses view (on the G2 or the fallback page) are real clients rendering that data live from SpacetimeDB.
-The drone hardware is TBD; the agents, the perception service, and the ground rover are built and tested separately and do not run in the judged demo.
+The DJI Mini 4 Pro video link (DJI Fly RTMP to a laptop) is planned and not yet tested; the agents, the perception service, and the ground rover are built and tested separately and do not run in the judged demo.
+Later, DJI's Mobile SDK v5 (Android, Mini 4 Pro with the RC-N2 controller, from v5.13.0) could also send the drone's live GPS position to the dashboard map.
 
 ## Code
 
@@ -65,7 +69,7 @@ The drone hardware is TBD; the agents, the perception service, and the ground ro
 | `frontend/dashboard/` | Coordinator dashboard |
 | `frontend/glasses/` | Even Hub plugin, fallback page, phone page |
 | `frontend/design-tokens/` | Shared CSS tokens |
-| `raspberrypi/`, `pico/` | Onboard software and sensor firmware: thermal camera, lidars, IMU, wheel drive, Node.js bridge to SpacetimeDB |
+| `raspberrypi/`, `pico/` | The ground rover: Pi program (state machine, safety gate, wheel drive, thermal seek, remote driving) and Pico sensor firmware (thermal camera, lidars, IMU), with a Node.js bridge to SpacetimeDB |
 
 How to run each part is in `backend/README.md`, `frontend/README.md`, and `raspberrypi/README.md`.
 Every client reads `STDB_URI` and `STDB_DATABASE` (`assess-0hw81`); browser apps read `VITE_STDB_URI` and `VITE_STDB_DATABASE`.
