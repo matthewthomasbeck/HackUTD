@@ -71,5 +71,5 @@ What it shows:
 - Behaviors reacting to terrain (slow down, turn toward `steer_bearing_deg`, `FollowPath` waiting on stop): needs the team's go-ahead for motion code.
 - Proposed contract change (robot.md section 18): the `lidar_imu_rules+camera_model` source is rejected by the module, so the robot sends `lidar_imu_rules` until a human decides.
 - The terrain image on a change to `step`, `gap`, or `blocked` (`image_path`) is not saved yet.
-- The dashboard does not show the robot's terrain: `docs/specs/dashboard.md` says the robot card shows the latest class and action, and `TERRAIN_GLYPHS` exists in `src/model/map.ts`, but nothing renders it since the Assess revamp.
+- The dashboard does not show the robot's terrain, by decision (Cayden, 2026-11-08): `dashboard.md` and the demo run of show are updated to match, and the unused `TERRAIN_GLYPHS` in `frontend/dashboard/src/model/map.ts` is left as is.
 - Stepping over or climbing obstacles is a separate COULD HAVE with its own authorization; no terrain class here authorizes a leg move.
