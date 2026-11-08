@@ -15,3 +15,6 @@ spacetime.local.json
 
 # C++ build output
 build/
+
+# Pico firmware images
+pico/*.uf2
