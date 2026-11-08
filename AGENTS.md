@@ -36,6 +36,14 @@ How to run each part is in `backend/README.md` and `frontend/README.md`; integra
 The robot main program is in `raspberrypi/robot/` (C++17, CMake): the state machine, safety gate, threads (main, movement, vision), control socket, and mocks (task R1).
 Build and test it with `cmake -B build && cmake --build build -j && ctest --test-dir build --output-on-failure` inside `raspberrypi/robot/`, and run it on a laptop with `./build/robot --config config/robot.laptop.yaml`; `raspberrypi/README.md` has the dependencies and the `robotctl` commands.
 
+Primary perception and agents are in `backend/perception/` and `backend/agent/`.
+Run `.venv/bin/python -m pytest -q` from `backend/perception/`.
+Run `npm run typecheck` and `npx vitest run --exclude '**/codex-reference/**'` from `backend/agent/`.
+Separate reference implementations remain in their `codex-reference/` subfolders.
+Their setup, public-data commands and measured limitations are in their READMEs
+and `docs/research/breathing-repos.md`; they do not replace the primary services.
+Local tests and fake-database scenarios do not prove live integration.
+
 This is the team repo, https://github.com/matthewthomasbeck/HackUTD (public, branch `main`).
 The planning docs live in `docs/`, next to the code folders.
 Code folders, per `docs/specs/CONTRACTS.md`: `raspberrypi/` (robot C++ program and Node.js bridge), `pico/` (Pico firmware), `backend/` (SpacetimeDB module, bindings, agents, perception service, glasses service, simulator), `frontend/` (dashboard, glasses plugin and fallback page, design tokens), `3d_parts/` (Matthew's robot parts), and `images/`.

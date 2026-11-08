@@ -37,6 +37,16 @@ async function modelLoop(ctx: CycleCtx): Promise<string | null> {
   for (let step = 1; step <= agent.maxSteps; step++) {
     ctx.state.step = step;
     if (deps.clock.now() >= input.deadlineAt) return "cycle deadline reached";
+    const last = step === agent.maxSteps && step > 1 && !!agent.finalTools?.length;
+    const tools = last ? agent.finalTools! : agent.tools;
+    if (last)
+      messages.push({
+        role: "user",
+        content:
+          tools.length === 1
+            ? `Last request this cycle: call ${tools[0]} now with the facts you have.`
+            : `Last request this cycle, only write tools now (${tools.join(", ")}). Call any step still left to do, else reply with your summary.`,
+      });
     let reply;
     try {
       reply = await deps.llm.chat(
@@ -44,10 +54,13 @@ async function modelLoop(ctx: CycleCtx): Promise<string | null> {
           agent: agent.name,
           model: agent.model,
           messages,
-          tools: mode === "native" ? toolDefs(agent.tools) : undefined,
+          tools: mode === "native" ? toolDefs(tools) : undefined,
           maxTokens: agent.maxTokens,
           timeoutMs: agent.timeoutMs,
-          extra: modelExtras(deps.cfg, agent.model),
+          extra: {
+            ...modelExtras(deps.cfg, agent.model),
+            ...(mode === "json" ? { response_format: { type: "json_object" } } : {}),
+          },
         },
         { priority: input.priority, deadlineAt: input.deadlineAt },
       );
@@ -150,7 +163,7 @@ export async function runCycle(ctx: CycleCtx): Promise<void> {
     }
   }
   if (failure || !agent.satisfied(ctx)) {
-    const why = failure ?? "model finished without doing the task";
+    const why = failure ?? (ctx.state.lastRejection ? `model write rejected (${ctx.state.lastRejection})` : "model finished without doing the task");
     deps.log.info(agent.name, `fallback: ${why}`);
     await runFallback(ctx, why);
   }

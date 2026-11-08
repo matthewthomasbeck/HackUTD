@@ -10,9 +10,13 @@ export type LlmMode = "nvidia" | "mock";
 export interface Config {
   NVIDIA_API_KEY: string;
   NVIDIA_BASE_URL: string;
+  /** Where MODEL_NANO is served: the hosted API by default, or our own vLLM on Brev. */
+  NANO_BASE_URL: string;
+  NANO_API_KEY: string;
   MODEL_SUPER: string;
   MODEL_NANO: string;
   MODEL_VISION: string;
+  SUPER_REASONING_EFFORT: "none" | "low" | "high";
   TOOL_MODE: ToolMode;
   TOOL_MODE_SUPER: ToolMode;
   TOOL_MODE_NANO: ToolMode;
@@ -80,9 +84,12 @@ export function loadConfig(env: Env = process.env, opts: { requireKey?: boolean 
   const cfg: Config = {
     NVIDIA_API_KEY: str(env, "NVIDIA_API_KEY", ""),
     NVIDIA_BASE_URL: str(env, "NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"),
+    NANO_BASE_URL: "",
+    NANO_API_KEY: "",
     MODEL_SUPER: str(env, "MODEL_SUPER", "nvidia/nemotron-3.5-super-vl-120b-a12b"),
     MODEL_NANO: str(env, "MODEL_NANO", "nvidia/nemotron-3.5-lightning-30b-a3b"),
     MODEL_VISION: str(env, "MODEL_VISION", "nvidia/nemotron-nano-12b-v2-vl"),
+    SUPER_REASONING_EFFORT: oneOf(env, "SUPER_REASONING_EFFORT", ["none", "low", "high"] as const, "low"),
     TOOL_MODE: toolMode,
     TOOL_MODE_SUPER: oneOf(env, "TOOL_MODE_SUPER", ["native", "json"] as const, toolMode),
     TOOL_MODE_NANO: oneOf(env, "TOOL_MODE_NANO", ["native", "json"] as const, toolMode),
@@ -109,6 +116,9 @@ export function loadConfig(env: Env = process.env, opts: { requireKey?: boolean 
   };
   if (cfg.RPM_BUDGET < 1) throw new ConfigError("RPM_BUDGET must be at least 1");
   const requireKey = opts.requireKey ?? true;
+  // Our own server (Brev) gets a placeholder key, never the NVIDIA key.
+  cfg.NANO_BASE_URL = str(env, "NANO_BASE_URL", cfg.NVIDIA_BASE_URL);
+  cfg.NANO_API_KEY = str(env, "NANO_API_KEY", cfg.NANO_BASE_URL === cfg.NVIDIA_BASE_URL ? cfg.NVIDIA_API_KEY : "none");
   if (requireKey && cfg.LLM_MODE === "nvidia" && !cfg.NVIDIA_API_KEY) {
     throw new ConfigError(
       "NVIDIA_API_KEY is missing. Put it in backend/agent/.env (never commit it), or run with LLM_MODE=mock.",

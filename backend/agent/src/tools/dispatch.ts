@@ -17,6 +17,8 @@ import {
 } from "../guards.ts";
 import { safeJson } from "../log.ts";
 import { survivorChain } from "../chain.ts";
+import { reviewConsistency, type ReviewPayload } from "../rules.ts";
+import { parsePayload } from "../world.ts";
 import * as reads from "./reads.ts";
 import { SCHEMAS, type ToolName } from "./schemas.ts";
 import * as writes from "./writes.ts";
@@ -29,13 +31,43 @@ export interface ToolResult {
   error?: string;
 }
 
+/** Free-text fields clipped (at a word boundary) instead of rejected: every tool's short "reason"
+ * (140) and the auditor's review text. On real Nemotron the models wrote sound reasons of 150 to
+ * 300 characters, and with 2 to 4 requests per cycle a rejection usually meant the fallback.
+ * Briefing text (send_briefing.text) stays strict: G2 rejects it so the model shortens it. */
+const REASON_MAX = 140;
+const CLIP_FIELDS: Partial<Record<ToolName, Record<string, number>>> = {
+  submit_review: { reason: 200, suggested_action: 140 },
+};
+
+export function clipText(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 3);
+  const space = cut.lastIndexOf(" ");
+  return (space > max / 2 ? cut.slice(0, space) : cut).replace(/[\s,;:.]+$/, "") + "...";
+}
+
+/** The assignment a review task is about (its payload's assignment_id), else null. */
+function reviewedAssignment(c: CycleCtx): number | null {
+  const t = c.input.task;
+  if (!t || t.kind !== "review") return null;
+  try {
+    const id = Number(JSON.parse(t.payload_json)?.assignment_id);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+const READ_TOOLS = new Set<string>(["get_board", "get_survivor", "list_rescuers", "list_cells", "get_robot"]);
+
 interface ToolImpl {
   guard?: (ctx: CycleCtx, a: Args) => string | null;
   run: (ctx: CycleCtx, a: Args) => Promise<unknown> | unknown;
 }
 
 const IMPL: Record<ToolName, ToolImpl> = {
-  get_board: { run: (c) => reads.getBoard(c.world) },
+  get_board: { run: (c) => reads.getBoard(c.world, c.agent.name === "auditor" ? reviewedAssignment(c) : null) },
   get_survivor: { run: (c, a) => reads.getSurvivor(c.world, a) },
   list_rescuers: { run: (c, a) => reads.listRescuers(c.world, a) },
   list_cells: { run: (c, a) => reads.listCells(c.world, a) },
@@ -46,7 +78,15 @@ const IMPL: Record<ToolName, ToolImpl> = {
   create_mission: { guard: guardCreateMission, run: writes.createMission },
   cancel_own_mission: { guard: guardCancelOwnMission, run: writes.cancelOwnMission },
   send_briefing: { guard: guardSendBriefing, run: writes.sendBriefing },
-  submit_review: { guard: guardSubmitReview, run: writes.submitReview },
+  submit_review: {
+    guard: (c, a) => {
+      const g = guardSubmitReview(c, a);
+      if (g) return g;
+      const payload = parsePayload<ReviewPayload>(c.input.task?.payload_json ?? "");
+      return payload && payload.assignment_id && payload.rescuer_identity ? reviewConsistency(c.world, payload, a) : null;
+    },
+    run: writes.submitReview,
+  },
 };
 
 const ajv = new Ajv({ allErrors: true, useDefaults: true });
@@ -145,6 +185,9 @@ export async function dispatch(ctx: CycleCtx, name: string, rawArgs: unknown, mo
         throw new Error("invalid arguments: not JSON");
       }
     } else if (rawArgs && typeof rawArgs === "object") args = { ...(rawArgs as Args) };
+    for (const [field, max] of Object.entries({ reason: REASON_MAX, ...(CLIP_FIELDS[name as ToolName] ?? {}) })) {
+      if (typeof args[field] === "string") args[field] = clipText(args[field] as string, max);
+    }
     const v = validators.get(name);
     if (!v || !(name in IMPL)) throw new Error("unknown tool");
     if (!v(args)) throw new Error("invalid arguments: " + ajv.errorsText(v.errors));
@@ -164,6 +207,7 @@ export async function dispatch(ctx: CycleCtx, name: string, rawArgs: unknown, mo
     res = { ok: true, result };
   } catch (err) {
     res = { ok: false, error: (err as Error).message };
+    if (!READ_TOOLS.has(name)) ctx.state.lastRejection = `${name}: ${res.error}`;
   }
   const summary = resultSummary(res);
   if (!res.ok && res.error === ALREADY_BY_WATCHDOG) ctx.deps.log.info(ctx.agent.name, `survivor #${args.survivor_id}: ${ALREADY_BY_WATCHDOG}`);

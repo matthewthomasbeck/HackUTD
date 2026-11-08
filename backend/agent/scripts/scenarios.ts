@@ -28,6 +28,10 @@ export interface ScenarioResult {
 export interface ScenarioOptions {
   env?: Record<string, string>;
   verbose?: boolean;
+  /** Real NVIDIA models in real time instead of MockLLM (scenario --real). */
+  real?: boolean;
+  /** Seed the auditor's bad input explicitly, also exercised without network in tests. */
+  injectBadProposal?: boolean;
 }
 
 /** Position `north`/`east` meters from the site center. */
@@ -112,7 +116,9 @@ function noDeathWords(h: Harness): boolean {
 }
 
 function harness(fixtures: string[], o: ScenarioOptions, extra: HarnessOptions = {}): Harness {
-  return new Harness({ fixtures: [...fixtures, "common"], verbose: o.verbose, ...extra, env: { ...(extra.env ?? {}), ...(o.env ?? {}) } });
+  // A scenario's own switches (extra.env) win over the caller's .env, or a variant such as
+  // "templates only" silently runs with the model on.
+  return new Harness({ fixtures: [...fixtures, "common"], verbose: o.verbose, real: o.real, ...extra, env: { ...(o.env ?? {}), ...(extra.env ?? {}) } });
 }
 
 async function finish(name: string, h: Harness, c: Checker): Promise<ScenarioResult> {
@@ -188,7 +194,8 @@ export async function priority(o: ScenarioOptions = {}): Promise<ScenarioResult>
   c.ok("the free rescuer goes to the not_detected survivor", !!first && first.survivor_id === nd && first.rescuer_identity === RESCUER.A, first ? `first proposal for #${first.survivor_id}` : "no proposal");
   c.ok("the delayed survivor was not proposed first", !h.store.rows("assignment").some((a) => a.survivor_id === delayed && a.id < (first?.id ?? 0)));
   const rejected = actions(h, "orchestrator", "propose_assignment").find((a) => a.result.startsWith("error") && a.result.includes(`#${nd}`));
-  c.ok("the guard named the tier 0 survivor", !!rejected, rejected?.result);
+  // The fixture deliberately tries the wrong survivor first. A real model may choose correctly.
+  if (!o.real) c.ok("the guard named the tier 0 survivor", !!rejected, rejected?.result);
   c.ok("no death words", noDeathWords(h));
   return finish("priority", h, c);
 }
@@ -262,9 +269,18 @@ export async function auditorDisagrees(o: ScenarioOptions = {}): Promise<Scenari
     ["B", 75, -100],
   ]);
   h.module.start();
-  await h.startAgents(ALL);
-  await h.run(1000);
+  const inject = o.real || o.injectBadProposal;
+  if (inject) h.module.registerParticipant(h.identity("orchestrator"), "orchestrator", "agent");
+  else {
+    await h.startAgents(ALL);
+    await h.run(1000);
+  }
   const sid = h.module.addSurvivor({ ...house(3), cell_id: cells[2].id, house_label: "house 3", location_note: "8 m in from front door", level: "immediate", score: 78, breathing: "detected", rate: 34, conf: 0.71 });
+  if (inject) {
+    // A known bad proposal is the input under test, not something Super must accidentally choose.
+    h.module.proposeAssignment(h.identity("orchestrator"), sid, RESCUER.B, "Test injection: Rescuer B is available because B is free");
+    await h.startAgents(ALL);
+  }
   await h.run(20_000);
   const review = h.store.rows("agent_task").find((t) => t.kind === "review");
   const verdict = parseJson<{ verdict?: string }>(review?.result_json)?.verdict;

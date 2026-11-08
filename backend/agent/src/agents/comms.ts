@@ -148,6 +148,7 @@ export function commsConfig(cfg: Config): AgentConfig {
     timeoutMs: 6000,
     maxSteps: 2,
     maxToolCalls: 3,
+    finalTools: ["send_briefing"],
     maxTokens: 512,
     mergeRowWakes: false,
     heartbeatMs: 10_000,

@@ -470,6 +470,18 @@ A `detected` result after an earlier `not_detected` replaces it (START re-triage
 
 ## 5. Visibility estimate (approximate)
 
+Implementation note (2026-11-08): the local E3 implementation adds three
+configurable nuisance safeguards without changing any shared message or reducer:
+`flicker_min_std=0.5` gray levels ignores negligible whole-frame variation;
+background PIC subtracts the uniform per-frame mean so global flicker is not
+mislabelled as camera movement; coherent background flow with standard deviation
+at least `bg_flow_min_px=0.1` pixels and concentration at least
+`bg_flow_concentration_min=0.35` independently rejects camera sway. The original
+frequency-only flicker check rejected clean synthetic chest motion, and PIC-only
+background rejection missed some sway. Known-frequency and nuisance tests now
+pass. These thresholds have not been tuned on the held-out public sensor clips
+or validated on the robot camera. See `docs/research/breathing-repos.md`.
+
 `visibility_pct` is approximate and the dashboard should say so.
 
 - `pose`: `100 * (number of the 17 keypoints with median confidence at least kp_conf) / 17`.

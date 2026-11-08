@@ -27,9 +27,9 @@ export function buildBody(req: ChatRequest): Record<string, unknown> {
   };
 }
 
-/** Per-model body extras: reasoning_effort "low" on Super, thinking off on Nano if enabled. */
+/** Per-model body extras: configured reasoning effort on Super, thinking off on Nano if enabled. */
 export function modelExtras(cfg: Config, model: string): Record<string, unknown> {
-  if (model === cfg.MODEL_SUPER) return { reasoning_effort: "low" };
+  if (model === cfg.MODEL_SUPER) return { reasoning_effort: cfg.SUPER_REASONING_EFFORT };
   if (model === cfg.MODEL_NANO && cfg.NANO_THINKING_OFF) return { chat_template_kwargs: { enable_thinking: false } };
   return {};
 }
@@ -47,6 +47,15 @@ export function toLlmError(err: unknown): LlmError {
     return new LlmError(msg, "network", s);
   }
   return new LlmError(String((err as Error)?.message ?? err).slice(0, 200), "network");
+}
+
+/** The provider for real model calls: one client, or two when MODEL_NANO is served elsewhere
+ * (NANO_BASE_URL, for example our vLLM on Brev while Super stays on the hosted API). */
+export function realProvider(cfg: Config): LlmProvider {
+  const hosted = new NvidiaProvider(cfg.NVIDIA_API_KEY, cfg.NVIDIA_BASE_URL);
+  if (cfg.NANO_BASE_URL === cfg.NVIDIA_BASE_URL) return hosted;
+  const nano = new NvidiaProvider(cfg.NANO_API_KEY, cfg.NANO_BASE_URL);
+  return { send: (req) => (req.model === cfg.MODEL_NANO ? nano : hosted).send(req) };
 }
 
 export class NvidiaProvider implements LlmProvider {

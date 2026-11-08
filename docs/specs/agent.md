@@ -134,6 +134,7 @@ NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
 MODEL_SUPER=nvidia/nemotron-3.5-super-vl-120b-a12b
 MODEL_NANO=nvidia/nemotron-3.5-lightning-30b-a3b
 MODEL_VISION=nvidia/nemotron-nano-12b-v2-vl
+SUPER_REASONING_EFFORT=low    # none | low | high; use none when Super replies exceed about 10 s
 TOOL_MODE=native              # native | json, chosen by smoke:llm, per model below overrides
 TOOL_MODE_SUPER=
 TOOL_MODE_NANO=
@@ -213,7 +214,7 @@ const body: any = {
   max_tokens: agent.maxTokens,
   stream: false,
   ...(toolMode === "native" ? { tools: agent.toolDefs, tool_choice: "auto" } : {}),
-  ...(agent.model === cfg.MODEL_SUPER ? { reasoning_effort: "low" } : {}),
+  ...(agent.model === cfg.MODEL_SUPER ? { reasoning_effort: cfg.SUPER_REASONING_EFFORT } : {}),
   ...(agent.model === cfg.MODEL_NANO && cfg.NANO_THINKING_OFF ? { chat_template_kwargs: { enable_thinking: false } } : {}),
 };
 ```
@@ -257,7 +258,13 @@ Result (2026-11-07, Eric's key, full table in `backend/agent/README.md`):
 
 No 429 was seen. The env names `MODEL_SUPER` and `MODEL_NANO` stay; they now hold the two Nemotron 3.5 models.
 
+Brev-only validation (2026-11-08): Super VL NVFP4 on an RTX PRO 6000 96 GB and Lightning BF16 on an A100 80 GB both pass all four smoke steps.
+The served model ids stay the same. `NVIDIA_BASE_URL` selects the Super server at `http://localhost:18001/v1`; `NANO_BASE_URL` selects Lightning at `http://localhost:18000/v1`. Both keys are the placeholder `none`, so no Build API key is used.
+Use `SUPER_REASONING_EFFORT=none` for this deployment: with `low`, Super sometimes took over 10 s. Native tool calls with reasoning off took 1.56 s (Super) and 1.12 s (Lightning); JSON actions took 1.02 s and 0.58 s. Runtime and tunnel instructions are in `backend/agent/README.md`.
+
 ### 4.4 Strict JSON fallback (`TOOL_MODE=json`)
+
+JSON-mode requests send `response_format: {"type":"json_object"}` so the serving engine constrains output to valid JSON. The runner still parses the action shape and validates every tool's arguments and guards.
 
 The system prompt gets one more section with every allowed tool's name, description, and JSON schema, and these rules:
 
@@ -665,7 +672,7 @@ Each time you wake:
 1. Read the wake packet. Use read tools only if something you need is missing.
 2. For each unassigned survivor, most urgent first, propose the best available rescuer (propose_assignment). Usually that is the nearest rescuer with the fewest active assignments. Choose someone else only for a reason you can state, such as a closer rescuer who is about to be free, or the auditor's objection.
 3. Delegate the briefing to the comms agent (delegate, kind brief_rescuer) for every proposal.
-4. Plan the search (create_mission). If a building has people unaccounted for, or a detection was weak, create an inspect mission at that place. If the robot is idle and areas are not yet searched, create a search_cells mission with 1 to 3 cells: cells with people unaccounted for first, then unsearched and partially searched cells, then nearest.
+4. Plan the search (create_mission). If a building has people unaccounted for, or a detection was weak, create an inspect mission at that place. An ACTIVE mission does not prevent queueing this next inspect mission: queue it now if the robot is online and has no proposed or queued mission, even while it finishes its current mission. Do not wait for the robot to become idle. If the robot is idle and areas are not yet searched, create a search_cells mission with 1 to 3 cells: cells with people unaccounted for first, then unsearched and partially searched cells, then nearest.
 5. If the auditor disagreed (a wrong rescuer or an unfair load), decide: act on it (a new proposal), or dismiss it with a reason (set_flag_status).
 6. When everything is handled, reply with a one-line summary and no tool calls.
 

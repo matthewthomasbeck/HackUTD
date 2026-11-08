@@ -12,7 +12,7 @@ import { ConfigError, loadConfig } from "./config.ts";
 import { FakeModule } from "./fake/module.ts";
 import { OverlayStore } from "./fake/store.ts";
 import { Budget } from "./llm/budget.ts";
-import { LlmGateway, ModelHealth, NvidiaProvider } from "./llm/client.ts";
+import { LlmGateway, ModelHealth, realProvider } from "./llm/client.ts";
 import { DEFAULT_FIXTURE_DIR, loadFixtures, MockLLM } from "./llm/mock.ts";
 import { DEFAULT_POLICIES } from "./llm/policies.ts";
 import type { LlmProvider } from "./llm/types.ts";
@@ -42,7 +42,7 @@ async function main(): Promise<number> {
     const names = [...cfg.MOCK_FIXTURES.filter((n) => n !== "common"), "common"];
     provider = new MockLLM(loadFixtures(names, DEFAULT_FIXTURE_DIR), clock, DEFAULT_POLICIES);
     log.info("runner", `LLM_MODE=mock with fixtures ${names.join(", ")}`);
-  } else provider = new NvidiaProvider(cfg.NVIDIA_API_KEY, cfg.NVIDIA_BASE_URL);
+  } else provider = realProvider(cfg);
   const llm = new LlmGateway(provider, budget, health, clock);
 
   const conns: LiveConnection[] = [];
