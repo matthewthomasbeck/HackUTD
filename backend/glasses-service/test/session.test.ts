@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { WebSocket } from 'ws';
 import { distanceM } from '../src/geo.js';
-import { FakeSession } from '../src/session.js';
+import { FakeSession, pickAssignment } from '../src/session.js';
 import type { DbSnapshot } from '../src/db.js';
 
 function snapshot(): DbSnapshot {
@@ -33,5 +34,58 @@ describe('glasses session projection', () => {
     session.applyDbSnapshot(value);
 
     expect(session.currentLayout()).toBe('arrow');
+  });
+
+  it('does not resend an unchanged page or image to the same socket', async () => {
+    const session = new FakeSession({ demoStartBearingDeg: 0, demoStartDistanceM: 30 });
+    await session.init();
+    session.enableLiveMode();
+    const value = snapshot();
+    value.assignments[0]!.status = { Active: [] };
+    const sent: Array<{ type: string }> = [];
+    const ws = { OPEN: 1, readyState: 1, on: vi.fn(), send: (raw: string) => sent.push(JSON.parse(raw)) } as unknown as WebSocket;
+    session.applyDbSnapshot(value);
+    session.attach(ws);
+    // Guide images are encoded asynchronously, so let each round of sends finish before counting.
+    const settle = () => new Promise(resolve => setTimeout(resolve, 100));
+    await settle();
+    const first = sent.length;
+    session.applyDbSnapshot(value);
+    session.applyDbSnapshot(value);
+    await settle();
+
+    expect(sent.filter(message => message.type === 'page')).toHaveLength(1);
+    expect(sent.length).toBe(first);
+  });
+
+  it('shows a new proposal over an active assignment, newest first', () => {
+    const rows = [
+      { id: 28, status: { Active: [] } },
+      { id: 46, status: { Proposed: [] } },
+      { id: 12, status: { Released: [] } },
+      { id: 44, status: { Proposed: [] } },
+    ];
+    expect(pickAssignment(rows)?.id).toBe(46);
+    expect(pickAssignment(rows.filter(row => row.id !== 46 && row.id !== 44))?.id).toBe(28);
+  });
+
+  it('updates changed text in place on the same layout instead of rebuilding the page', async () => {
+    const session = new FakeSession({ demoStartBearingDeg: 0, demoStartDistanceM: 30 });
+    await session.init();
+    session.enableLiveMode();
+    const value = snapshot();
+    value.assignments[0]!.status = { Active: [] };
+    const sent: Array<{ type: string; id?: number }> = [];
+    const ws = { OPEN: 1, readyState: 1, on: vi.fn(), send: (raw: string) => sent.push(JSON.parse(raw)) } as unknown as WebSocket;
+    session.applyDbSnapshot(value);
+    session.attach(ws);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const before = sent.length;
+    value.survivors[0]!.breathingRateBpm = 22;
+    session.applyDbSnapshot(value);
+    await new Promise(resolve => setTimeout(resolve, 600));
+    const after = sent.slice(before);
+    expect(after.some(message => message.type === 'text')).toBe(true);
+    expect(after.some(message => message.type === 'page' || message.type === 'image')).toBe(false);
   });
 });

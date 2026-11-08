@@ -5,7 +5,8 @@
 import type { CycleCtx } from "./agent-types.ts";
 import { sortTier } from "./priority.ts";
 import { haversineM } from "./geo.ts";
-import { parsePayload, type World } from "./world.ts";
+import type { Survivor } from "./types.ts";
+import { LAPSE_WINDOW_MS, parsePayload, type World } from "./world.ts";
 
 // ---------- text rules (G2, G5) ----------
 
@@ -60,6 +61,48 @@ export function redactNames(text: string, w: World): string {
   return out;
 }
 
+const IDENTITY_HEX = /\b[0-9a-fA-F]{64}\b/g;
+
+/** G8 for everything sent to a model: names as above, and each person's identity hex becomes the
+ * rescuer's callsign (or the person's role). Hex that is not a participant (an agent) is left. */
+export function redactForModel(text: string, w: World): string {
+  const identities = redactNames(text, w).replace(IDENTITY_HEX, (hex) => {
+    const p = w.participant(hex);
+    if (!p) return hex;
+    return p.role === "rescuer" ? w.callsign(p.identity) : p.role;
+  });
+  // Voice questions and location notes can contain contact details outside the
+  // participant table. Keep those out of every outbound turn too (G8).
+  return identities
+    .replace(/\b[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[email removed]")
+    .replace(/(?<![\w.])(?:\d{3}\.\d{3}\.\d{4}|\+?\d[\d ()-]*\d)(?!\w)/g, value => {
+      const digits = value.replace(/\D/g, "").length;
+      return digits >= 10 && digits <= 15 ? "[phone removed]" : value;
+    });
+}
+
+/** The way back: a model names rescuers by callsign, so map rescuer_identity and audience to the
+ * identity hex before dispatch validates and runs the call. Anything else passes unchanged. */
+export function resolveCallsigns(args: unknown, w: World): unknown {
+  let obj = args;
+  if (typeof args === "string") {
+    try {
+      obj = JSON.parse(args);
+    } catch {
+      return args; // dispatch reports the parse error
+    }
+  }
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return args;
+  const out: Record<string, unknown> = { ...(obj as Record<string, unknown>) };
+  for (const key of ["rescuer_identity", "audience"]) {
+    const v = out[key];
+    if (typeof v !== "string") continue;
+    const hex = w.identityForCallsign(v);
+    if (hex) out[key] = hex;
+  }
+  return out;
+}
+
 /** A reason "says why" when it gives a cause (heuristic; agent.md leaves the wording open). */
 const EXPLAINS =
   /\b(because|since|due to|load|fewer|auditor|about to be free|free soon|terrain|blocked|access|entry|route|already (there|nearby|inside)|knows)\b/i;
@@ -74,13 +117,57 @@ export function citesFact(reason: string): boolean {
 }
 
 export const ALREADY_BY_WATCHDOG = "already proposed by watchdog";
-export const LAPSE_WINDOW_MS = 5 * 60_000;
+export { LAPSE_WINDOW_MS };
+/** A higher-tier survivor whose own proposal was just rejected does not block other work for this long. */
+export const TIER_SKIP_MS = 60_000;
 /** "About as close": within 25% or 10 m (agent.md does not define it). */
 export function aboutAsClose(other: number, mine: number): boolean {
   return other <= mine * 1.25 + 10;
 }
 
 type Args = Record<string, any>;
+
+/** Errors that say the survivor is not open for a proposal; they never mark it as stuck. */
+const NOT_OPEN = [
+  ALREADY_BY_WATCHDOG,
+  "do not repeat it",
+  "not unassigned",
+  "not in the active run",
+  "propose it first",
+  "unknown tool",
+  "tool call limit",
+];
+export function marksProposalStuck(error: string): boolean {
+  return !NOT_OPEN.some((x) => error.includes(x));
+}
+
+/**
+ * The first unassigned survivor in a strictly higher tier that should be proposed before `tier`
+ * (agent.md 7.2), or null. A higher-tier survivor does not block other work when no rescuer is
+ * eligible for it, or when a proposal for it was rejected in the last 60 s: the guard logs that
+ * once and lets the cycle continue, so one stuck survivor never starves the rest of the board.
+ * The module's watchdog still proposes for every unassigned immediate survivor.
+ */
+export function higherTierBlocker(ctx: CycleCtx, tier: number): Survivor | null {
+  const w = ctx.world;
+  const now = w.now();
+  for (const x of w.waitingRanked()) {
+    if (sortTier(x) >= tier) break;
+    let why: string | null = null;
+    if (w.candidatesFor(x).candidates.length === 0) why = "no eligible rescuer";
+    else {
+      const rej = ctx.memory.proposalRejected.get(x.id);
+      if (rej && now - rej.at < TIER_SKIP_MS) why = `its proposal was rejected ${Math.round((now - rej.at) / 1000)} s ago (${rej.error})`;
+    }
+    if (!why) return x;
+    const key = `${x.id}:${ctx.memory.proposalRejected.get(x.id)?.at ?? "none"}`;
+    if (!ctx.memory.tierSkipLogged.has(key)) {
+      ctx.memory.tierSkipLogged.add(key);
+      ctx.deps.log.warn(ctx.agent.name, `survivor #${x.id} (tier ${sortTier(x)}) not blocking lower tiers: ${why}`);
+    }
+  }
+  return null;
+}
 
 // ---------- orchestrator ----------
 
@@ -101,20 +188,16 @@ export function guardProposeAssignment(ctx: CycleCtx, a: Args): string | null {
   if (!r.fresh) return `${r.callsign} is not fresh (offline, no position, or no heartbeat in 15 s)`;
   if (!r.available) return `${r.callsign} already has pending proposal #${r.proposed_assignment_id}`;
 
-  const tier = sortTier(s);
-  const higher = w.waitingRanked().find((x) => sortTier(x) < tier);
+  const higher = higherTierBlocker(ctx, sortTier(s));
   if (higher) return `survivor #${higher.id} (tier ${sortTier(higher)}) is unassigned with no proposal; propose it first`;
 
-  const now = w.now();
-  const others = w.rescuersNear(s.lat, s.lon, true).filter((o) => o.identity !== hex);
-  const lapsed = w
-    .assignmentsFor(s.id)
-    .some(
-      (x) => x.rescuer_identity === hex && x.status === "released" && x.release_cause === "expired" && now - x.updated_at < LAPSE_WINDOW_MS,
-    );
-  if (lapsed && others.length > 0)
-    return `${r.callsign}'s proposal for #${s.id} lapsed in the last 5 min; choose another available rescuer`;
+  // Lapse rule: not the rescuer whose proposal for this survivor lapsed in the last 5 min,
+  // unless every available rescuer did (candidatesFor applies it).
+  const { candidates } = w.candidatesFor(s);
+  if (!candidates.some((c) => c.identity === hex))
+    return `${r.callsign}'s proposal for #${s.id} lapsed in the last 5 min; choose another available rescuer${candidates[0] ? `, such as ${candidates[0].callsign}` : ""}`;
 
+  const others = w.rescuersNear(s.lat, s.lon, true).filter((o) => o.identity !== hex);
   if (r.lat != null && r.lon != null) {
     const mine = haversineM(r.lat, r.lon, s.lat, s.lon);
     const closer = others.find((o) => o.distance_m != null && o.distance_m < 0.5 * mine);
@@ -230,6 +313,13 @@ export function guardSendBriefing(ctx: CycleCtx, a: Args): string | null {
   const task = ctx.input.task;
   const payload = task ? parsePayload<Record<string, any>>(task.payload_json) ?? {} : {};
   const isAnswer = task?.kind === "answer_rescuer";
+  if (isAnswer) {
+    if (typeof payload.rescuer_identity !== "string" || payload.rescuer_identity.toLowerCase() !== audience)
+      return "write only to the rescuer named in the task";
+    if ((a.survivor_id ?? payload.survivor_id ?? 0) !== (payload.survivor_id ?? 0))
+      return "answer only about the survivor named in the task";
+    if (ctx.state.briefingsSent > 0) return "send only one answer per question";
+  }
   if (!["all", "coordinators", "commander"].includes(audience)) {
     if (!/^[0-9a-f]{64}$/.test(audience)) return "audience must be all, coordinators, commander, or a rescuer identity hex";
     const r = w.rescuer(audience);

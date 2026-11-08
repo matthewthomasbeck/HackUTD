@@ -3,15 +3,21 @@ import { createHash } from 'node:crypto';
 import { mercator, type Point } from '../geo.js';
 import { MAP_SIZE, TILE_SIZE, tilesForWindow, worldPixel, zoomForRadius, type TileCoord, type TileSource } from '../tiles/source.js';
 import { TileCache } from '../tiles/cache.js';
+import { drawVectorBase, vectorZoom, type SiteGeometry } from './vector.js';
 
 export interface MapMarker { kind: 'survivor' | 'robot' | 'rescuer'; lat: number; lon: number; criticalLevel?: string; resolved?: boolean; target?: boolean; online?: boolean; headingDeg?: number | null }
 export interface MapTileData { coord: TileCoord; data: Buffer }
 export interface MapImages { top: string; bottom: string; topSha1: string; bottomSha1: string; attribution: string; lensText: string }
 
-export async function composeBaseMap(options: { center: Point; radiusM: number; zoom: number; tiles: MapTileData[]; source: TileSource }): Promise<Canvas> {
+export async function composeBaseMap(options: { center: Point; radiusM: number; zoom: number; tiles: MapTileData[]; source: TileSource; geometry?: SiteGeometry }): Promise<Canvas> {
   const canvas = createCanvas(MAP_SIZE, MAP_SIZE);
   const context = canvas.getContext('2d');
   context.fillStyle = 'black'; context.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+  if (options.source.name === 'vector' && options.geometry) {
+    drawVectorBase(context, options.geometry, options.center, options.zoom, mercator(options.center.lat, options.center.lon, options.zoom).mpp);
+    drawNorthMark(context);
+    return canvas;
+  }
   const center = worldPixel(options.center, options.zoom);
   for (const tile of options.tiles) {
     try {
@@ -31,12 +37,13 @@ export async function composeBaseMap(options: { center: Point; radiusM: number; 
   return canvas;
 }
 
-export async function renderMap(options: { center: Point; radiusM: number; zoom: number; tiles: MapTileData[]; source: TileSource; markers?: MapMarker[]; baseCanvas?: Canvas }): Promise<MapImages> {
+export async function renderMap(options: { center: Point; radiusM: number; zoom: number; tiles: MapTileData[]; source: TileSource; markers?: MapMarker[]; route?: Point[]; baseCanvas?: Canvas }): Promise<MapImages> {
   const baseCanvas = options.baseCanvas ?? await composeBaseMap(options);
   const canvas = createCanvas(MAP_SIZE, MAP_SIZE);
   const context = canvas.getContext('2d');
   context.drawImage(baseCanvas, 0, 0);
   const center = worldPixel(options.center, options.zoom);
+  if (options.route && options.route.length > 1) drawRoute(context, options.route, center, options.zoom);
   for (const marker of options.markers ?? []) drawMarker(context, marker, center, options.zoom);
   const pixels = context.getImageData(0, 0, MAP_SIZE, MAP_SIZE);
   quantize(pixels.data);
@@ -91,19 +98,23 @@ export class SiteMapRenderer {
   private lastDrawAt = 0;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private drawing = false;
-  private pending: { center: Point; radiusM: number; markers: MapMarker[]; onImages(images: MapImages): void } | undefined;
+  private pending: { center: Point; radiusM: number; markers: MapMarker[]; route?: Point[]; onImages(images: MapImages): void } | undefined;
   private readonly baseLayers = new MapBaseLayerCache<Canvas>();
 
-  constructor(private readonly cache: TileCache, private readonly source: TileSource) {}
+  constructor(private readonly cache: TileCache, private readonly source: TileSource, private readonly geometry?: SiteGeometry) {}
 
-  request(options: { center: Point; radiusM: number; markers: MapMarker[]; onImages(images: MapImages): void }): void {
-    const zoom = zoomForRadius(options.center, options.radiusM);
+  request(options: { center: Point; radiusM: number; markers: MapMarker[]; route?: Point[]; onImages(images: MapImages): void }): void {
+    const zoom = this.zoomFor(options.center, options.radiusM);
     const key = siteMarkerKey(options.center, options.radiusM, zoom, options.markers);
     if (key === this.lastKey) return;
     this.lastKey = key;
     this.pending = options;
     if (this.drawing) return;
     this.schedule();
+  }
+
+  private zoomFor(center: Point, radiusM: number): number {
+    return this.source.name === 'vector' && this.geometry ? vectorZoom(center, radiusM) : zoomForRadius(center, radiusM);
   }
 
   private schedule(): void {
@@ -119,7 +130,7 @@ export class SiteMapRenderer {
     this.pending = undefined;
     this.drawing = true;
     try {
-      const zoom = zoomForRadius(item.center, item.radiusM);
+      const zoom = this.zoomFor(item.center, item.radiusM);
       const baseKey = `${this.source.name}:${item.center.lat}:${item.center.lon}:${item.radiusM}:${zoom}`;
       const baseCanvas = await this.baseLayers.get(baseKey, async () => {
         const tiles: MapTileData[] = [];
@@ -127,9 +138,9 @@ export class SiteMapRenderer {
           const data = await this.cache.get(coord);
           if (data) tiles.push({ coord, data });
         }
-        return composeBaseMap({ center: item.center, radiusM: item.radiusM, zoom, tiles, source: this.source });
+        return composeBaseMap({ center: item.center, radiusM: item.radiusM, zoom, tiles, source: this.source, ...(this.geometry ? { geometry: this.geometry } : {}) });
       });
-      const images = await renderMap({ center: item.center, radiusM: item.radiusM, zoom, tiles: [], source: this.source, markers: item.markers, baseCanvas });
+      const images = await renderMap({ center: item.center, radiusM: item.radiusM, zoom, tiles: [], source: this.source, markers: item.markers, ...(item.route ? { route: item.route } : {}), baseCanvas });
       item.onImages(images);
     } catch {
       // Keep the previous image if a tile or canvas operation fails.
@@ -190,6 +201,14 @@ function drawNorthMark(ctx: SKRSContext2D): void {
   ctx.beginPath(); ctx.moveTo(8, 29); ctx.lineTo(8, 22); ctx.lineTo(12, 25); ctx.lineTo(16, 22); ctx.lineTo(16, 29); ctx.stroke(); ctx.restore();
 }
 
+// The walking route as a dashed line under the markers.
+function drawRoute(ctx: SKRSContext2D, route: Point[], center: { x: number; y: number }, zoom: number): void {
+  ctx.save(); ctx.strokeStyle = 'white'; ctx.lineWidth = 2.5; ctx.setLineDash([6, 5]); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  route.forEach((point, index) => { const pixel = mercator(point.lat, point.lon, zoom); const x = pixel.px - center.x + MAP_SIZE / 2, y = pixel.py - center.y + MAP_SIZE / 2; if (index) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+  ctx.stroke(); ctx.restore();
+}
+
 function drawMarker(ctx: SKRSContext2D, marker: MapMarker, center: { x: number; y: number }, zoom: number): void {
   if (marker.resolved) return;
   const point = mercator(marker.lat, marker.lon, zoom);
@@ -204,13 +223,20 @@ function drawMarker(ctx: SKRSContext2D, marker: MapMarker, center: { x: number; 
     if (marker.criticalLevel === 'immediate') { ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
     else { ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.stroke(); }
   } else if (marker.kind === 'rescuer') {
-    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // "You": a solid dot in a ring, with a pointer when the walking direction is known.
+    ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.stroke();
+    if (typeof marker.headingDeg === 'number') {
+      const angle = (marker.headingDeg - 90) * Math.PI / 180;
+      ctx.translate(x, y); ctx.rotate(angle); ctx.beginPath(); ctx.moveTo(20, 0); ctx.lineTo(12, -6); ctx.lineTo(12, 6); ctx.closePath(); ctx.fill();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
   } else {
     const angle = ((marker.headingDeg ?? 0) - 90) * Math.PI / 180;
     ctx.translate(x, y); ctx.rotate(angle); ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-6, -6); ctx.lineTo(-3, 0); ctx.lineTo(-6, 6); ctx.closePath();
     if (marker.online === false) ctx.stroke(); else { ctx.fill(); ctx.stroke(); }
   }
-  if (marker.target) { ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.stroke(); }
+  if (marker.target) { ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.stroke(); }
   ctx.restore();
 }
 

@@ -277,7 +277,7 @@ YOLO pose details (Ultralytics, https://docs.ultralytics.com/tasks/pose/ and htt
 
 Chest ROI from keypoints (`pose`), needs both shoulders, or one shoulder plus one hip:
 
-- Torso axis from the shoulder midpoint `S` to the hip midpoint `H` (if hips are missing, `H = S + 1.2 * shoulder_width` along the box's long axis, toward the box center).
+- Torso axis from the shoulder midpoint `S` to the hip midpoint `H` (if hips are missing, `H = S + 1.2 * shoulder_width` perpendicular to the shoulder line, away from the face if a face keypoint is visible, else toward the box center; not the box's long axis, because a torso that fills a wide frame gives a wide box although the person is upright, found in the A3 review of the MPSC-RR front clips on 2026-11-08).
 - ROI = the rectangle aligned to the image axes that covers the segment from `S` to `S + 0.6 * (H - S)`, widened to `chest_width_factor` (1.1) times the shoulder width.
   This works for a person standing, sitting, or lying, because it follows the keypoints, not the box shape.
 
@@ -462,6 +462,13 @@ Result JSON (`result.json`, also returned by the read endpoints):
 
 The defaults are untuned starting points (inference); tune them on the recorded teammate clips in section 10, and write the final values in `config.toml` with a comment saying which clips they were tuned on.
 
+A2 (2026-11-08): the service config now uses `flicker_c_max=0.6`, selected on
+VRWi M14 resting 030s/060s plus the 15 synthetic regression cases. The table and
+Python fallback defaults above remain the original baseline. Evaluation uses
+090s/120s with no further selection. All four were already reported in A1;
+this is a temporal split of one subject, not independent validation. See
+`docs/notes/2026-11-08-quality-gates.md` for the frozen experiment and limits.
+
 ### Re-scan rule
 
 A newer clip for the same survivor replaces the older result, except that an `unknown` result never replaces an earlier `detected` or `not_detected`.
@@ -470,7 +477,7 @@ A `detected` result after an earlier `not_detected` replaces it (START re-triage
 
 ## 5. Visibility estimate (approximate)
 
-Implementation note (2026-11-08): the local E3 implementation adds three
+Reference implementation note (2026-11-08): `backend/perception/codex-reference/` adds three
 configurable nuisance safeguards without changing any shared message or reducer:
 `flicker_min_std=0.5` gray levels ignores negligible whole-frame variation;
 background PIC subtracts the uniform per-frame mean so global flicker is not
@@ -479,8 +486,10 @@ at least `bg_flow_min_px=0.1` pixels and concentration at least
 `bg_flow_concentration_min=0.35` independently rejects camera sway. The original
 frequency-only flicker check rejected clean synthetic chest motion, and PIC-only
 background rejection missed some sway. Known-frequency and nuisance tests now
-pass. These thresholds have not been tuned on the held-out public sensor clips
-or validated on the robot camera. See `docs/research/breathing-repos.md`.
+pass in that separate implementation. These safeguards are not present in the
+primary `perception/breathing.py`; its gates are the frequency/concentration and
+background PIC ratio checks above. Reference test results do not validate the
+primary pipeline or robot camera. See `docs/research/breathing-repos.md`.
 
 `visibility_pct` is approximate and the dashboard should say so.
 
@@ -591,6 +600,7 @@ The `under 10` rule is not part of START; it comes from a critique of START (res
 | `rescore_interval_s` | 60 |
 | `rescore_min_delta` | 2.0 score points |
 | `rescore_conf_delta` | 0.05 |
+| `new_survivor_grace_s` | 2.0 (PROPOSED key) |
 
 The weights are untuned guesses from the research; say so if a judge asks.
 
@@ -599,7 +609,10 @@ The weights are untuned guesses from the research; say so if a judge asks.
 The perception service owns this with its own timer (not the agent), because the formula and its config live here and the agent must not guess the score.
 
 - Every `rescore_interval_s` (60 s), `watcher.py` reads `survivor` and `detection` (from the helper's cache, or SQL over HTTP) and scores every survivor whose status is `unassigned`, `assigned`, or `en_route`, including survivors with no clip yet (they get `immediate`, `no breathing clip yet`, confidence at most 0.3).
-- A new survivor (from the helper's `survivor` insert event) is scored at once, not at the next tick.
+- A new survivor (from the helper's `survivor` insert event) is scored `new_survivor_grace_s` (2 s, PROPOSED key) after the insert, not at the next tick, so a writer that creates and scores a survivor in one step (the simulator) scores it first.
+- The timer adds no evidence of its own (only waiting time), so it never replaces a score another writer set: it writes only when the survivor is still `unknown` and this service has never scored it, or when the survivor row still holds the level, score, and confidence this service last wrote.
+  A finished breathing job is new evidence and always writes, and after it the timer owns the survivor's waiting-time re-score again.
+  Found in the 2026-11-08 rehearsal: during sim `scale 300` the timer rewrote every sim survivor from the row (1079 calls), and the house 3 survivor went from immediate 92 to delayed 33.6.
 - It calls `set_critical_score` only if the level changed, or the score moved by at least `rescore_min_delta`, or the confidence moved by at least `rescore_conf_delta`, or the survivor has never been scored by this service.
   This keeps `event_log` from filling with a row every minute per survivor; with the default weights the waiting term adds about 0.67 points a minute, so a waiting survivor is rewritten about every 3 minutes (inference from the formula).
 - Survivors in `reached` or `resolved` are not re-scored; their last score stays.

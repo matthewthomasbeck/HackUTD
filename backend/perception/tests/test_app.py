@@ -15,9 +15,10 @@ def iso_minutes_ago(minutes):
     return (datetime.now(timezone.utc) - timedelta(minutes=minutes)).isoformat().replace("+00:00", "Z")
 
 
-def survivor(sid=12, status="unassigned", breathing="unknown", minutes=0):
+def survivor(sid=12, status="unassigned", breathing="unknown", minutes=0, level="unknown", score=0.0, conf=0.0):
     return {"id": sid, "status": status, "breathing": breathing, "breathing_rate_bpm": None,
-            "breathing_confidence": 0.0, "visibility_pct": None, "created_at": iso_minutes_ago(minutes)}
+            "breathing_confidence": 0.0, "visibility_pct": None, "created_at": iso_minutes_ago(minutes),
+            "critical_level": level, "critical_score": score, "score_confidence": conf, "score_reasons": []}
 
 
 def post_clip(client, **form):
@@ -202,8 +203,79 @@ def test_rescore_writes_only_on_meaningful_change(app, fake_stdb, stubs):
     assert watcher.rescore_all() == 1
 
 
+def test_rescore_keeps_a_score_another_writer_set(client, app, fake_stdb, stubs):
+    # rehearsal 2026-11-08: during sim `scale 300` the timer rescored every sim survivor from the
+    # row, so minor and delayed sim survivors turned delayed or immediate
+    fake_stdb.tables["survivor"] = [survivor(30, breathing="detected", minutes=5, level="minor", score=22.0, conf=0.6)]
+    watcher = app.state.watcher
+    watcher.poll_once()
+    assert watcher.rescore_all() == 0
+    fake_stdb.tables["survivor"][0]["created_at"] = iso_minutes_ago(25)
+    watcher.poll_once()
+    assert watcher.rescore_all() == 0
+    assert fake_stdb.calls == []
+    assert app.state.store.get_score_write(30) is None
+
+    # this service's own clip is new evidence: it writes, and then owns the waiting-time rescore
+    post_clip(client, survivor_id="30")
+    app.state.worker.process_next()
+    assert fake_stdb.reducers() == ["report_breathing", "set_critical_score"]
+    fake_stdb.calls.clear()
+    fake_stdb.tables["survivor"][0]["created_at"] = iso_minutes_ago(40)
+    watcher.poll_once()
+    assert watcher.rescore_all() == 1
+    assert fake_stdb.reducers() == ["set_critical_score"]
+
+
+def test_rescore_does_not_replace_a_later_score_from_another_writer(app, fake_stdb, stubs):
+    # rehearsal 2026-11-08: the house 3 survivor went from immediate 92 (sim) to delayed 33.6
+    fake_stdb.tables["survivor"] = [survivor(31, minutes=1)]
+    watcher = app.state.watcher
+    watcher.poll_once()
+    assert watcher.rescore_all() == 1  # nobody scored it: the default immediate, per section 7
+    row = fake_stdb.tables["survivor"][0]
+    assert row["critical_level"] == "immediate"
+    # the simulator then reports breathing and its own score
+    row.update(breathing="detected", breathing_rate_bpm=17.0, breathing_confidence=0.8,
+               critical_level="immediate", critical_score=92.0, score_confidence=0.6,
+               created_at=iso_minutes_ago(30))
+    watcher.poll_once()
+    assert watcher.rescore_all() == 0
+    assert fake_stdb.reducers() == ["set_critical_score"]
+    assert row["critical_score"] == 92.0
+
+
+def test_new_survivor_waits_the_grace_period(app, fake_stdb, stubs, monkeypatch):
+    import perception.watcher as watcher_mod
+
+    timers = []
+
+    class FakeTimer:
+        def __init__(self, delay, fn):
+            timers.append((delay, fn))
+            self.daemon = False
+
+        def start(self):
+            pass
+
+    monkeypatch.setattr(watcher_mod.threading, "Timer", FakeTimer)
+    watcher = app.state.watcher
+    watcher.cfg["score"]["new_survivor_grace_s"] = 2.0
+    watcher.handle_event({"status": "connected"})
+    watcher.handle_event({"table": "survivor", "op": "insert", "row": survivor(40)})
+    watcher.handle_event({"table": "survivor", "op": "insert", "row": survivor(41)})
+    assert fake_stdb.calls == [] and [d for d, _ in timers] == [2.0, 2.0]
+    # the simulator scores #40 within the grace period; #41 stays unscored
+    watcher.handle_event({"table": "survivor", "op": "update",
+                          "row": survivor(40, breathing="detected", level="immediate", score=92.0, conf=0.6)})
+    for _, fn in timers:
+        fn()
+    assert [c[1][0] for c in fake_stdb.calls] == [41]
+
+
 def test_helper_events_feed_the_watcher(app, fake_stdb):
     watcher = app.state.watcher
+    watcher.cfg["score"]["new_survivor_grace_s"] = 0
     watcher.handle_event({"status": "connected"})
     assert watcher.helper_up
     watcher.handle_event({"table": "survivor", "op": "insert", "row": survivor(20)})

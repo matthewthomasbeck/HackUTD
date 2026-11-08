@@ -12,6 +12,7 @@ export interface Config {
   rescuersFile: string;
   primaryGraceMs: number;
   tileSource: TileSourceName;
+  siteGeometryFile: string;
   tileCacheDirectory: string;
   cartoKey?: string;
   perceptionUrl: string;
@@ -28,8 +29,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   const primaryGraceMs = Number(env.PRIMARY_GRACE_MS ?? 0);
   if (!Number.isInteger(primaryGraceMs) || primaryGraceMs < 0) throw new Error('PRIMARY_GRACE_MS must be a non-negative integer.');
-  const tileSource = env.TILE_SOURCE ?? 'esri-dark';
-  if (!['esri-dark', 'carto-dark', 'osm-inverted', 'none'].includes(tileSource)) throw new Error('TILE_SOURCE must be esri-dark, carto-dark, osm-inverted, or none.');
+  const tileSource = env.TILE_SOURCE ?? 'vector';
+  if (!['vector', 'esri-dark', 'carto-dark', 'osm-inverted', 'none'].includes(tileSource)) throw new Error('TILE_SOURCE must be vector, esri-dark, carto-dark, osm-inverted, or none.');
   if (tileSource === 'carto-dark' && !env.CARTO_KEY?.trim()) throw new Error('CARTO_KEY is required when TILE_SOURCE=carto-dark.');
   const askMaxSeconds = Number(env.ASK_MAX_S ?? 8);
   if (!Number.isFinite(askMaxSeconds) || askMaxSeconds <= 0 || askMaxSeconds > 8) throw new Error('ASK_MAX_S must be greater than zero and no more than 8.');
@@ -47,6 +48,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     rescuersFile: resolve(env.RESCUERS_FILE ?? 'rescuers.json'),
     primaryGraceMs,
     tileSource: tileSource as TileSourceName,
+    siteGeometryFile: resolve(env.SITE_GEOMETRY_FILE ?? 'site/worthing.geojson'),
     tileCacheDirectory: resolve(env.TILE_CACHE_DIR ?? 'tiles'),
     ...(env.CARTO_KEY?.trim() ? { cartoKey: env.CARTO_KEY.trim() } : {}),
     perceptionUrl: env.PERCEPTION_URL ?? 'http://localhost:8080',

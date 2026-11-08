@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { briefingProblem, redactNames, textProblem } from "../src/guards.ts";
+import { briefingProblem, redactForModel, redactNames, resolveCallsigns, textProblem } from "../src/guards.ts";
 import { dispatch } from "../src/tools/dispatch.ts";
 import { ctxFor, fakeWorld, postAndClaim, RESCUER, survivorAt } from "./helpers.ts";
 
@@ -26,6 +26,21 @@ describe("G8: names never reach a model", () => {
     const { h } = fakeWorld();
     const ctx = ctxFor(h, "orchestrator");
     expect(redactNames("Ana Lopez is closer than Ben Okafor", ctx.world)).toBe("Rescuer A is closer than Rescuer B");
+  });
+  it("replaces rescuer identity hex with callsigns, in any case", () => {
+    const { h } = fakeWorld();
+    const ctx = ctxFor(h, "orchestrator");
+    const out = redactForModel(`assign ${RESCUER.A} or ${RESCUER.B.toUpperCase()}`, ctx.world);
+    expect(out).toBe("assign Rescuer A or Rescuer B");
+    expect(out).not.toMatch(/[0-9a-f]{64}/i);
+  });
+  it("maps callsigns in rescuer_identity and audience back to hex, from objects and JSON strings", () => {
+    const { h } = fakeWorld();
+    const ctx = ctxFor(h, "orchestrator");
+    expect(resolveCallsigns({ reason: "r", survivor_id: 1, rescuer_identity: "rescuer a" }, ctx.world)).toEqual({ reason: "r", survivor_id: 1, rescuer_identity: RESCUER.A });
+    expect(resolveCallsigns(JSON.stringify({ audience: "Rescuer B", text: "go" }), ctx.world)).toEqual({ audience: RESCUER.B, text: "go" });
+    expect(resolveCallsigns({ audience: "coordinators" }, ctx.world)).toEqual({ audience: "coordinators" });
+    expect(resolveCallsigns("{not json", ctx.world)).toBe("{not json");
   });
 });
 

@@ -50,6 +50,10 @@ export interface AgentMemory {
   lastModelDownLogged: Map<string, number>;
   /** Last agent_heartbeat this agent sent (the orchestrator's packet shows the watchdog countdown). */
   lastHeartbeatAt: number;
+  /** Survivor id to the last rejected propose_assignment for it (time and error); cleared on success. */
+  proposalRejected: Map<number, { at: number; error: string }>;
+  /** Survivors the tier guard already logged as not blocking (one log line per episode). */
+  tierSkipLogged: Set<string>;
 }
 
 export function newMemory(): AgentMemory {
@@ -62,6 +66,8 @@ export function newMemory(): AgentMemory {
     handledTasks: new Set(),
     lastModelDownLogged: new Map(),
     lastHeartbeatAt: 0,
+    proposalRejected: new Map(),
+    tierSkipLogged: new Set(),
   };
 }
 

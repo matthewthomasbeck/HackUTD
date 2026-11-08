@@ -1,5 +1,7 @@
 #include "core/config.hpp"
 
+#include <sys/un.h>
+
 #include <algorithm>
 #include <set>
 #include <stdexcept>
@@ -137,6 +139,52 @@ Config parse(const YAML::Node& root) {
 
   c.control_socket = get_string(root, "control.socket");
   require(!c.control_socket.empty(), "control.socket must not be empty");
+  require(c.control_socket.size() < sizeof(sockaddr_un{}.sun_path), "control.socket path is too long for a Unix socket");
+
+  BridgeSettings& b = c.bridge;
+  b.socket = get_string(root, "bridge.socket");
+  b.heartbeat_hz = get_number(root, "bridge.heartbeat_hz");
+  b.position_hz = get_number(root, "bridge.position_hz");
+  b.outbox = get_string(root, "bridge.outbox");
+  const int test_mission = get_int(root, "bridge.test_mission_id");
+  require(!b.socket.empty(), "bridge.socket must not be empty");
+  require(b.socket.size() < sizeof(sockaddr_un{}.sun_path), "bridge.socket path is too long for a Unix socket");
+  // The module marks the robot offline after 5 s without a heartbeat, so stay well inside that.
+  require(b.heartbeat_hz >= 0.5 && b.heartbeat_hz <= c.loop.rate_hz,
+          "bridge.heartbeat_hz must be in [0.5, loop.rate_hz] (the module's offline rule is 5 s)");
+  require(b.position_hz > 0 && b.position_hz <= c.loop.rate_hz, "bridge.position_hz must be in (0, loop.rate_hz]");
+  require(test_mission >= 0, "bridge.test_mission_id must be >= 0 (0: no test mission)");
+  b.test_mission_id = static_cast<std::uint64_t>(test_mission);
+
+  SiteSettings& site = c.site;
+  site.demo_mode_default = get_bool(root, "site.demo_mode_default");
+  site.center_lat = get_number(root, "site.center_lat");
+  site.center_lon = get_number(root, "site.center_lon");
+  site.radius_m = get_number(root, "site.radius_m");
+  require(site.center_lat >= -90 && site.center_lat <= 90, "site.center_lat must be in [-90, 90]");
+  require(site.center_lon >= -180 && site.center_lon <= 180, "site.center_lon must be in [-180, 180]");
+  require(site.radius_m > 0, "site.radius_m must be > 0");
+
+  LocationSettings& loc = c.location;
+  loc.force_demo = get_bool(root, "location.force_demo");
+  loc.home_lat = get_number(root, "home.lat");
+  loc.home_lon = get_number(root, "home.lon");
+  require(loc.home_lat >= -90 && loc.home_lat <= 90, "home.lat must be in [-90, 90]");
+  require(loc.home_lon >= -180 && loc.home_lon <= 180, "home.lon must be in [-180, 180]");
+  loc.heading_initial_deg = get_number(root, "heading.initial_deg");
+  loc.heading_gps_min_speed_mps = get_number(root, "heading.gps_min_speed_mps");
+  loc.heading_source = get_string(root, "heading.source");
+  loc.heading_gyro_axis = get_string(root, "heading.gyro_axis");
+  loc.heading_gyro_sign = get_int(root, "heading.gyro_sign");
+  require(loc.heading_initial_deg >= 0 && loc.heading_initial_deg < 360, "heading.initial_deg must be in [0, 360)");
+  require(loc.heading_gps_min_speed_mps >= 0, "heading.gps_min_speed_mps must be >= 0");
+  require(loc.heading_source == "imu" || loc.heading_source == "commanded", "heading.source must be imu or commanded");
+  require(loc.heading_gyro_axis == "x" || loc.heading_gyro_axis == "y" || loc.heading_gyro_axis == "z",
+          "heading.gyro_axis must be x, y, or z");
+  require(loc.heading_gyro_sign == 1 || loc.heading_gyro_sign == -1, "heading.gyro_sign must be 1 or -1");
+  loc.odometry_scale = get_number(root, "odometry.scale");
+  require(loc.odometry_scale > 0 && loc.odometry_scale <= 10, "odometry.scale must be in (0, 10]");
+  loc.paths_file = get_string(root, "paths_file");
 
   for (const auto& name : {"maestro_a", "maestro_b"}) {
     c.device_path[name] = get_string(root, std::string(name) + ".path");

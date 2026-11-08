@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Assess</title>
+    <!--
+      Desktop launch animation, in its own frameless, transparent window (electron/main.cjs), so only the dog shows
+      over the desktop. It steps through all 12 frames of assets/backflip.png (the backflip from Loading.gif with the
+      black background removed, 100 ms per frame like the GIF), then fades to assets/Logo.png placed so its dog sits
+      where the last frame's dog stands, holds the logo, and tells main.cjs it has finished.
+    -->
+    <style>
+      html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
+      body { position: relative; transition: opacity 240ms ease; }
+      body.leaving { opacity: 0; }
+      #dog { position: absolute; background: url("assets/backflip.png") 0 0 / 1200% 100% no-repeat; }
+      #logo { position: absolute; opacity: 0; transition: opacity 180ms ease; }
+      body.finished #logo { opacity: 1; }
+      body.finished #dog { opacity: 0; transition: opacity 180ms ease; }
+      @media (prefers-reduced-motion: reduce) { body, #logo, body.finished #dog { transition: none; } }
+    </style>
+  </head>
+  <body>
+    <div id="dog"></div>
+    <img id="logo" src="assets/Logo.png" alt="" />
+    <script>
+      const FRAMES = 12;
+      const FRAME_MS = 100;
+      const LOGO_HOLD_MS = 450;
+      const FRAME_SIZE = 400; // drawn size of one 358 px sprite frame
+      // The dog's bounding box in each image, in source pixels (measured from the alpha channel).
+      const FRAME_DOG = { left: 83, top: 113, right: 294, bottom: 293, size: 358 };
+      const LOGO_DOG = { left: 394, top: 165, right: 1105, bottom: 819, width: 1536, height: 1024 };
+
+      const dog = document.getElementById('dog');
+      const logo = document.getElementById('logo');
+      let started = false;
+
+      // Center the last frame's dog in the window, then size and place the logo so its dog covers the same box.
+      function layout() {
+        const scale = FRAME_SIZE / FRAME_DOG.size;
+        const dogWidth = (FRAME_DOG.right - FRAME_DOG.left) * scale;
+        const centerX = ((FRAME_DOG.left + FRAME_DOG.right) / 2) * scale;
+        const centerY = ((FRAME_DOG.top + FRAME_DOG.bottom) / 2) * scale;
+        const left = window.innerWidth / 2 - centerX;
+        const top = window.innerHeight / 2 - centerY;
+        Object.assign(dog.style, { left: `${left}px`, top: `${top}px`, width: `${FRAME_SIZE}px`, height: `${FRAME_SIZE}px` });
+        const logoScale = dogWidth / (LOGO_DOG.right - LOGO_DOG.left);
+        Object.assign(logo.style, {
+          width: `${LOGO_DOG.width * logoScale}px`,
+          height: `${LOGO_DOG.height * logoScale}px`,
+          left: `${left + centerX - ((LOGO_DOG.left + LOGO_DOG.right) / 2) * logoScale}px`,
+          top: `${top + centerY - ((LOGO_DOG.top + LOGO_DOG.bottom) / 2) * logoScale}px`,
+        });
+      }
+
+      function showFrame(frame) {
+        dog.style.backgroundPosition = `${(frame / (FRAMES - 1)) * 100}% 0`;
+      }
+
+      function finish() {
+        document.body.classList.add('finished');
+        window.setTimeout(() => window.assessDesktop?.splashAnimationFinished(), LOGO_HOLD_MS);
+      }
+
+      // Frames follow the clock, so a late timer skips ahead instead of slowing the flip down.
+      function play() {
+        const start = performance.now();
+        let shown = 0;
+        showFrame(0);
+        const timer = window.setInterval(() => {
+          const frame = Math.min(FRAMES - 1, Math.floor((performance.now() - start) / FRAME_MS));
+          if (frame !== shown) { shown = frame; showFrame(frame); }
+          if (performance.now() - start >= FRAMES * FRAME_MS) { window.clearInterval(timer); finish(); }
+        }, 16);
+      }
+
+      layout();
+      window.startSplash = () => {
+        if (started) return;
+        started = true;
+        const sprite = new Image();
+        sprite.onload = () => (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? (showFrame(FRAMES - 1), finish()) : play());
+        sprite.onerror = finish;
+        sprite.src = 'assets/backflip.png';
+      };
+
+      window.fadeSplash = () => document.body.classList.add('leaving');
+    </script>
+  </body>
+</html>

@@ -6,6 +6,7 @@ import type { CycleCtx } from "../agent-types.ts";
 import { stringsIn } from "../board.ts";
 import {
   ALREADY_BY_WATCHDOG,
+  DEATH_WORDS,
   guardCancelOwnMission,
   guardCreateMission,
   guardDelegate,
@@ -13,9 +14,10 @@ import {
   guardSendBriefing,
   guardSetFlagStatus,
   guardSubmitReview,
+  marksProposalStuck,
   textProblem,
 } from "../guards.ts";
-import { safeJson } from "../log.ts";
+import { boundedJson, safeJson } from "../log.ts";
 import { survivorChain } from "../chain.ts";
 import { reviewConsistency, type ReviewPayload } from "../rules.ts";
 import { parsePayload } from "../world.ts";
@@ -130,8 +132,33 @@ export function resultSummary(r: ToolResult): string {
   return clip(s, 300);
 }
 
+/** The module's forbidden labels (config.ts FORBIDDEN_PATTERN) plus our wider G2 list. */
+const LOG_FORBIDDEN = new RegExp(`${DEATH_WORDS.source}|\\bdeceas\\w*|\\bbody\\s+recovery\\b`, "gi");
+
+/**
+ * Text as log_agent_action accepts it: a rejected call can quote a forbidden word (that is why it
+ * was rejected), and the module refuses to store any, so the word is replaced in the logged copy.
+ * The replacement has no quote or backslash, so JSON text stays valid.
+ */
+export function logSafeText(s: string): string {
+  return s.replace(LOG_FORBIDDEN, "[word removed]");
+}
+
+/** args_json for log_agent_action: valid JSON, at most 1000 characters (the module allows 4000), no forbidden word. */
+export function logArgsJson(args: unknown): string {
+  let value: unknown;
+  try {
+    value = JSON.parse(logSafeText(safeJson(args)));
+  } catch {
+    value = "<unserializable>";
+  }
+  return boundedJson(value, 1000);
+}
+
 /**
  * log_agent_action from the agent's own connection, plus the trace line. Never throws, never loops.
+ * Every field is made acceptable to the reducer (valid bounded JSON, a non-empty reason, names of
+ * at most 40 characters), so every action reaches the Agents panel.
  */
 export async function logAction(
   ctx: CycleCtx,
@@ -142,10 +169,12 @@ export async function logAction(
   model: string,
   extraTrace: Record<string, unknown> = {},
 ): Promise<void> {
-  const argsJson = clip(safeJson(args), 1000);
-  const why = clip(reason || "", 140);
+  const argsJson = logArgsJson(args);
+  const why = clip(logSafeText(reason || "").trim() || "(no reason given)", 140);
+  const toolName = clip(tool || "unknown", 40);
+  const modelName = clip(model || "unknown", 40);
   try {
-    await ctx.actions.logAgentAction(tool, argsJson, clip(result, 300), why, ctx.state.step, model, ctx.state.callChain ?? ctx.input.chainId);
+    await ctx.actions.logAgentAction(toolName, argsJson, clip(logSafeText(result), 300), why, ctx.state.step, modelName, ctx.state.callChain ?? ctx.input.chainId);
   } catch (err) {
     ctx.deps.log.error(ctx.agent.name, `log_agent_action failed: ${(err as Error).message}`);
     ctx.deps.log.traceLine({ agent: ctx.agent.name, event: "log_failed", tool, error: (err as Error).message });
@@ -210,6 +239,10 @@ export async function dispatch(ctx: CycleCtx, name: string, rawArgs: unknown, mo
     if (!READ_TOOLS.has(name)) ctx.state.lastRejection = `${name}: ${res.error}`;
   }
   const summary = resultSummary(res);
+  if (name === "propose_assignment" && typeof args.survivor_id === "number") {
+    if (res.ok) ctx.memory.proposalRejected.delete(args.survivor_id);
+    else if (marksProposalStuck(res.error ?? "")) ctx.memory.proposalRejected.set(args.survivor_id, { at: ctx.world.now(), error: clip(res.error ?? "failed", 80) });
+  }
   if (!res.ok && res.error === ALREADY_BY_WATCHDOG) ctx.deps.log.info(ctx.agent.name, `survivor #${args.survivor_id}: ${ALREADY_BY_WATCHDOG}`);
   ctx.deps.log.info(ctx.agent.name, `${name} -> ${summary}`);
   if (ctx.state.callChain == null) ctx.state.callChain = safeChain(ctx, args);

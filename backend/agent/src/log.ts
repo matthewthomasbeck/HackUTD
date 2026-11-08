@@ -37,12 +37,57 @@ export class MemoryTrace implements TraceSink {
   }
 }
 
+/** JSON text for any value: bigint as a number, undefined as null, cycles and throwing getters as a marker string. */
 export function safeJson(v: unknown): string {
   try {
-    return JSON.stringify(v, (_k, x) => (typeof x === "bigint" ? Number(x) : x));
+    return JSON.stringify(v, (_k, x) => (typeof x === "bigint" ? Number(x) : x)) ?? "null";
   } catch {
     return '"<unserializable>"';
   }
+}
+
+/** Shorten long strings and arrays, recursively, so a large value keeps its shape. */
+function shrink(v: unknown, str: number, arr: number, depth = 0): unknown {
+  if (typeof v === "string") return v.length > str ? v.slice(0, str) + "..." : v;
+  if (Array.isArray(v)) {
+    const head = v.slice(0, arr).map((x) => shrink(x, str, arr, depth + 1));
+    return v.length > arr ? [...head, `...${v.length - arr} more`] : head;
+  }
+  if (v && typeof v === "object") {
+    if (depth > 6) return "...";
+    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, shrink(x, str, arr, depth + 1)]));
+  }
+  return v;
+}
+
+/**
+ * JSON text of at most `max` characters that always parses (log_agent_action rejects args_json
+ * that does not). Cutting a JSON string at a length breaks it, so this first shortens strings
+ * and arrays inside the value, and as a last resort wraps a cut preview in a valid object.
+ */
+export function boundedJson(v: unknown, max: number): string {
+  const full = safeJson(v);
+  if (full.length <= max) return full;
+  let value: unknown;
+  try {
+    value = JSON.parse(full);
+  } catch {
+    value = full;
+  }
+  for (const [str, arr] of [
+    [200, 20],
+    [80, 8],
+    [30, 3],
+  ]) {
+    const s = safeJson(shrink(value, str, arr));
+    if (s.length <= max) return s;
+  }
+  for (let k = Math.max(0, max - 60); k >= 0; k -= Math.max(10, Math.floor(k / 4))) {
+    const s = JSON.stringify({ truncated: true, chars: full.length, preview: full.slice(0, k) });
+    if (s.length <= max) return s;
+    if (k === 0) break;
+  }
+  return "{}";
 }
 
 export class Logger {

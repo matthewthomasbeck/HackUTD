@@ -10,8 +10,9 @@ What exists so far (R1 and the C++ part of R0):
 - The safety gate (`src/state/safety_gate.cpp`), the only path from a behavior to the drivers.
 - The fixed-rate main loop (`src/main.cpp`), the local control socket, and `robotctl`.
 - Mock devices. Real device drivers are task R2, so a device with `mock: false` reports FAILED and nothing moves.
+- The C++ side of the bridge (R3): `src/bridge/bridge_client.*`, `src/bridge/messages.*`, and the localizer (`src/localization/localizer.*`, `src/core/geo.*`). See "Bridge to SpacetimeDB" below.
 
-Not here yet: the bridge to SpacetimeDB (`bridge/`, R3) and systemd and udev files (`system/`, R9).
+Not here yet: the Node.js bridge (`bridge/`, the other half of R3) and systemd and udev files (`system/`, R9).
 The Pico firmware (`pico/`, R4) has a first version streaming text lines; `pico/README.md` lists what it still lacks.
 
 ## Build
@@ -68,6 +69,55 @@ Mock knobs, to see the safety rules fire:
 
 Ctrl+C (SIGINT) or SIGTERM stops motion, then ends in SHUTDOWN with exit code 0.
 An invalid config exits with code 2 and names the bad key.
+
+## Bridge to SpacetimeDB (C++ side, task R3)
+
+The robot connects to the Node.js bridge's Unix socket and sends one JSON object per line (`docs/specs/robot.md` 9.3): `heartbeat` and `position` at `bridge.heartbeat_hz` and `bridge.position_hz`, and a `device` line per device after init, on every status change, and again after each reconnect.
+Every line has `observed_at` (UTC, wall clock) and `seq`. It reads `mission`, `cancel`, `site`, and `terrain_hint` back and ignores any other type with a log line.
+It never waits on the bridge: with no bridge running it logs `bridge: cannot connect ... retry in 0.5 s` (then 1, 2, 4, 5 s) and keeps ticking.
+While the bridge is down, `detection`, `cell`, and `mission_progress` lines go to the outbox file and are replayed first on the next connect, also after a robot restart.
+On connect the outbox is renamed to `<outbox>.replaying`, which is deleted only after its last line is written, so a crash during the replay replays it again; after an unclean drop the last 32 important lines written are replayed too, so the bridge can see a line twice (it dedupes).
+Heartbeat and position are not queued while the bridge is down; fresh ones go out on connect.
+
+Missions: only `hold` runs today (through the state machine, with `mission_progress` active, failed, or done). Other kinds are stored and logged, not started, until the mission runner (R6).
+With `missions.auto_start: false`, a bridge `hold` mission is stored too and starts on `robotctl start`.
+The bridge resends the current mission on every connect: a resend of the running, stored, or already finished (done or failed this boot) mission is ignored with a log line. Cancelled ids are not remembered, so a re-leased mission starts again.
+`robotctl stop` during a bridge mission sends `mission_progress(failed, "stopped by operator")`.
+A `site` message sets demo mode for the localizer; before one arrives, `site.demo_mode_default` applies.
+
+Config keys (both YAML files):
+
+| Key | Pi | Laptop | Meaning |
+| --- | --- | --- | --- |
+| `bridge.socket` | `/run/robot/bridge.sock` | `/tmp/robot-bridge.sock` | the bridge listens, the robot connects (laptop path matches the Node bridge's laptop default) |
+| `bridge.heartbeat_hz`, `bridge.position_hz` | 1 | 1 | heartbeat must stay at 0.5 Hz or more (the module marks a robot offline after 5 s) |
+| `bridge.outbox` | `/var/lib/robot/outbox.jsonl` | `/tmp/robot/outbox.jsonl` | unsent important lines; empty disables it |
+| `bridge.test_mission_id` | 0 | 0 | TEST HOOK, see below |
+| `site.*` | | | demo mode and site center until the bridge sends `site` |
+| `location.force_demo` | false | false | demo positions even if the site is not in demo mode |
+| `home.*` | | | home coordinates (TBD, copy from `backend/sim`) |
+| `heading.source` | `imu` | `commanded` | heading from the IMU gyro, or from the commanded turn rate (the mock IMU never turns) |
+| `heading.gyro_axis`, `heading.gyro_sign` | `z`, -1 | `z`, -1 | TBD per IMU mounting |
+| `heading.initial_deg`, `heading.gps_min_speed_mps` | 0, 0.5 | 0, 0.5 | start heading; above this speed the GPS track sets the heading |
+| `odometry.scale` | 1.0 | 1.0 | TBD: drive 2 m and measure |
+
+Demo coordinates come from `paths_file` (`config/scripts/demo_paths.yaml`, all zeros and TBD until copied from `backend/sim`).
+There is no GPS driver yet (R2), so outside demo mode the location is unknown and no `position` lines are sent (the reducer needs lat and lon).
+
+To watch the lines without the Node bridge:
+
+```
+python3 -c "import socket,os; p='/tmp/robot-bridge.sock'; os.path.exists(p) and os.unlink(p); s=socket.socket(socket.AF_UNIX); s.bind(p); s.listen(1); c,_=s.accept(); [print(l, end='') for l in c.makefile()]"
+```
+
+Test hook, for the R3 laptop check before the inspect behavior exists: `robotctl test_detection [MISSION_ID]` queues one fake thermal detection (made-up temperature and confidence, no media files).
+It uses the given mission id, else the running mission, else `bridge.test_mission_id`; it refuses mission 0, which the bridge drops.
+
+```
+./build/robotctl --socket /tmp/robot/control.sock test_detection 42
+```
+
+`robotctl status` also shows `bridge` (connected, queue sizes, site demo mode, stored mission) and `location` (mode, lat, lon, heading, note).
 
 ## Threads
 

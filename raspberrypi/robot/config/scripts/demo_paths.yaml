@@ -1,9 +1,9 @@
 # Scripted paths and demo waypoints (docs/specs/robot.md sections 8 and 15).
-# Coordinates are TBD: copy them from the backend/sim config so the robot and the simulator agree.
-anchor: { lat: 0.0, lon: 0.0 }           # TBD, copy from backend/sim config
+# Coordinates are copied from backend/sim/demo-site.json (equirectangular offsets from the site center) so the robot and the simulator agree.
+anchor: { lat: 32.996746, lon: -96.7704579 }   # demo_anchor: house 3 front door
 waypoints:
-  home:    { lat: 0.0, lon: 0.0 }        # TBD
-  house_3: { lat: 0.0, lon: 0.0, label: "house 3" }   # TBD
+  home:    { lat: 32.9966948, lon: -96.7704708 }   # sim robot home
+  house_3: { lat: 32.9968808, lon: -96.7704579, label: "house 3" }
 paths:
   - name: home_to_house_3
     start: home

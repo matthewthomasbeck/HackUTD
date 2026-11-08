@@ -166,6 +166,7 @@ StepResult step(const Machine& current, const WorldSnapshot& world, const std::v
         } else if (has(events, EventType::mission_cancelled)) {
           go(State::READY, "mission cancelled");
         } else if (has(events, EventType::stop)) {
+          r.operator_stop = true;
           go(State::READY, "stop command");
         }
         not_ready_note += ", mission already running";

@@ -49,6 +49,12 @@ class FakeStdb:
             raise StdbRejected("rejected", 530, f"{reducer} refused")
         self.calls.append((reducer, args))
         self.ok_once = True
+        if reducer == "set_critical_score":
+            # as the module does: the survivor row takes the new score
+            for row in self.tables["survivor"]:
+                if int(row["id"]) == int(args[0]):
+                    row.update(critical_level=next(iter(args[1])), critical_score=args[2],
+                               score_confidence=args[3], score_reasons=list(args[4]))
 
     def sql(self, query: str, *, retry: bool = False) -> list[dict]:
         if self.sql_down:
