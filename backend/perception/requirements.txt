@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+python-multipart        # FastAPI needs it for File/Form uploads
+numpy
+scipy
+opencv-python           # not opencv-python-headless: ultralytics depends on opencv-python, and having both installed conflicts
+httpx
+ultralytics             # YOLO pose for the chest region and visibility
+matplotlib              # spectrum PNG for the dashboard and debugging
+soundfile               # read and write WAV
+faster-whisper          # local speech to text fallback (section 12)
+nvidia-riva-client      # NVIDIA hosted speech to text (section 12)
+pytest
+# terrain model (should have), install only when starting section 9:
+# transformers
+# torch                 # already pulled in by ultralytics
+# scikit-learn
