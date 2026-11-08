@@ -9,13 +9,13 @@ import type { BoardState } from '../../src/data/BoardData';
 const read = (name: string) => JSON.parse(readFileSync(new URL(`../../public/site/${name}`, import.meta.url), 'utf8'));
 const site = parseSite(read('block.geojson'), read('context.geojson'));
 const target = { lat: 32.9861898, lon: -96.7516083 }; // 2520 Rutford Ave (UT Dallas), the demo building
-// The judged demo's person, in the east side of the building (backend/sim/demo-site.json: 15.8 m east, 14.2 m south).
-const plaza = { lat: target.lat - 14.2 / 110_574, lon: target.lon + 15.8 / (111_320 * Math.cos((target.lat * Math.PI) / 180)) };
+// The judged demo's person, just outside the east wall (backend/sim/demo-site.json: 26 m east, 14 m south).
+const plaza = { lat: target.lat - 14 / 110_574, lon: target.lon + 26 / (111_320 * Math.cos((target.lat * Math.PI) / 180)) };
 
 describe('demo site geometry', () => {
-  it('finds 2520 Rutford Ave from its center and from the person inside it, and lists the tracked buildings north to south', () => {
+  it('finds 2520 Rutford Ave from its center and from the person outside its east wall, and lists the tracked buildings north to south', () => {
     expect(houseAt(site.houses, target)?.address).toBe('2520 Rutford Ave');
-    expect(containsPoint(houseAt(site.houses, plaza)!.ring, plaza)).toBe(true);
+    expect(containsPoint(houseAt(site.houses, plaza)!.ring, plaza)).toBe(false);
     expect(houseAt(site.houses, plaza)?.address).toBe('2520 Rutford Ave');
     const homes = blockHomes(site.houses);
     expect(homes).toHaveLength(14);

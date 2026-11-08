@@ -1,7 +1,7 @@
 import { destinationPoint, type Point } from './geo.js';
 // path: street waypoints walked in order before heading to the target (render/route.ts); empty walks straight.
 export interface DemoState { position:Point; origin:Point; target:Point; walking:boolean; path?:Point[]; }
-export const DEMO_SPEED_MPS=3;
+export const DEMO_SPEED_MPS=6; // twice the earlier 3 m/s, so demo walks move along
 export const DEMO_START_DISTANCE_M=92; // with the bearing: the parking lot south of Franklyn Jenifer Dr, about 115 m on foot
 export const DEMO_START_BEARING_DEG=158;
 export function makeDemoState(center:Point,target:Point,bearingDeg=DEMO_START_BEARING_DEG,distanceM=DEMO_START_DISTANCE_M):DemoState {return {position:destinationPoint(center,bearingDeg,distanceM),origin:destinationPoint(center,bearingDeg,distanceM),target,walking:false};}

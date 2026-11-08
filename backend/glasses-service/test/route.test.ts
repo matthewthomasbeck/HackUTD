@@ -6,7 +6,7 @@ import { frontDoor } from '../src/render/guide.js';
 
 const geometry = loadSiteGeometry('site/site.geojson')!;
 const center = { lat: 32.9861898, lon: -96.7516083 }; // 2520 Rutford Ave, the site center
-const person = { lat: 32.9860622, lon: -96.7514391 }; // the demo person, in the east side of the building
+const person = { lat: 32.986064, lon: -96.7513299 }; // the demo person, outside the east wall, in the courtyard by Rutford Ave
 const target = buildingAt(geometry, person)!;
 const door = frontDoor(target.ring, geometry.roads);
 
@@ -22,19 +22,18 @@ function expectOutsideBuildings(path: Point[]): void {
 }
 
 describe('walking routes on the UT Dallas site', () => {
-  it('puts the demo person inside 2520 Rutford Ave', () => {
+  it('puts the demo person just outside 2520 Rutford Ave, which still names the place', () => {
     expect(target.target).toBe(true);
     expect(target.address).toBe('2520 Rutford Ave');
-    expect(containsPoint(target.ring, person)).toBe(true);
+    expect(containsPoint(target.ring, person)).toBe(false);
   });
 
-  it('walks from the parking lot to the door on paths, then in to the person, in about 115 m', () => {
+  it('walks from the parking lot to the person on paths, never through a building', () => {
     const start = destinationPoint(center, 158, 92); // the glasses demo start (npm run demo): the lot south of Franklyn Jenifer Dr
-    const outside = streetRoute(geometry, start, door);
-    expect(outside.length).toBeGreaterThan(1);
-    expectOutsideBuildings(outside.slice(0, -1));
-    const total = routeLength([start, ...outside, door, person]);
-    expect(total).toBeLessThan(125); // under a minute at the demo's 2 m/s
+    const path = streetRoute(geometry, start, person);
+    expect(path.length).toBeGreaterThan(1);
+    expectOutsideBuildings([...path, person]);
+    expect(routeLength([start, ...path, person])).toBeLessThan(140);
   });
 
   it('goes around the building from Franklyn Jenifer Dr instead of through it', () => {

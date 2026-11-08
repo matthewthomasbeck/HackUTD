@@ -3,7 +3,7 @@ import type { BoardState } from '../../src/data/BoardData';
 import { glassesMismatch, runDemo, sameServer, type DemoStep, type GlassesDemoCommand } from '../../src/view/demo';
 
 const identity = (hex: string) => ({ toHexString: () => hex });
-const HOUSE3 = { lat: 32.9860622, lon: -96.7514391 }; // the person in the east side of 2520 Rutford Ave
+const HOUSE3 = { lat: 32.986064, lon: -96.7513299 }; // the person outside the east wall of 2520 Rutford Ave
 
 const START = { lat: 32.9854219, lon: -96.7512228 }; // the demo walker's start in the parking lot south of the building
 

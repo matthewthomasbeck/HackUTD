@@ -46,7 +46,7 @@ The sim, the dashboard e2e tests, the robot bridge (demo anchor), and the glasse
 
 All positions are meter offsets from the site center (`east_m`, `north_m`), so moving the whole demo is a change to two numbers.
 Since 2026-11-08 the site is 2520 Rutford Ave, Richardson TX 75080 (UT Dallas), centered on its engineering building, and each house is a real campus building from OpenStreetMap (`backend/glasses-service/site/site.geojson`, built by `backend/sim/scripts/build-site.mjs`; the building itself is missing from OpenStreetMap and was traced from the coordinator's Google Maps screenshot).
-House 3 is the search cell on the person, in the east side of 2520 Rutford Ave (the coordinator's location); the others are Modular Labs 1 and 2, Karl Hoblitzelle Hall (house 4), Engineering and Computer Science North and South, Parking Structure 4, and University Village Buildings 24 to 27.
+House 3 is the search cell on the person, just outside the east wall of 2520 Rutford Ave, in the courtyard by Rutford Ave (next to the coordinator's location); the others are Modular Labs 1 and 2, Karl Hoblitzelle Hall (house 4), Engineering and Computer Science North and South, Parking Structure 4, and University Village Buildings 24 to 27.
 Earlier the center was 7716 Worthing St, Dallas TX 75252, with houses on the Worthing St block: houses 1 to 5 on Worthing St, houses 6 to 10 on Benchmark Dr, and 11 and 12 north of Worthing.
 The houses are about 17 m apart, so cells are 15 m.
 `src/geo.ts` converts offsets with `lat = center_lat + north_m / 111320` and `lon = center_lon + east_m / (111320 * cos(center_lat in radians))`, accurate to well under a meter over 500 m.
@@ -59,7 +59,7 @@ The houses are about 17 m apart, so cells are 15 m.
   "houses": [
     { "label": "house 1", "east_m": -154.0, "north_m": 72.6 },
     { "label": "house 2", "east_m": -97.8, "north_m": 72.5 },
-    { "label": "house 3", "east_m": 15.8, "north_m": -14.2, "demo_pile": true },
+    { "label": "house 3", "east_m": 26.0, "north_m": -14.0, "demo_pile": true },
     { "label": "house 4", "east_m": -4.6, "north_m": 66.5, "view_blocked": true },
     { "label": "house 5", "east_m": 110.5, "north_m": 87.9 },
     { "label": "house 6", "east_m": -124.8, "north_m": -5.4 },
@@ -86,7 +86,7 @@ The houses are about 17 m apart, so cells are 15 m.
   ],
   "extra_sim_rescuers": 0,
   "hidden_survivors": [
-    { "house": "house 3", "east_m": 15.8, "north_m": -14.2, "note": "east side, under rubble", "level": "immediate", "breathing": "detected", "rate_bpm": 8, "visibility_pct": 35 },
+    { "house": "house 3", "east_m": 26.0, "north_m": -14.0, "note": "east side, under rubble", "level": "immediate", "breathing": "detected", "rate_bpm": 8, "visibility_pct": 35 },
     { "house": "house 4", "east_m": -4.6, "north_m": 70.0, "note": "front room", "level": "delayed", "breathing": "detected", "rate_bpm": 18, "visibility_pct": 70 },
     { "house": "house 10", "east_m": -136.5, "north_m": -106.0, "note": "under stairs", "level": "immediate", "breathing": "not_detected", "visibility_pct": 15 }
   ],
@@ -110,7 +110,7 @@ The houses are about 17 m apart, so cells are 15 m.
     "minor": 5
   },
   "timing": {
-    "speedup": 3,
+    "speedup": 6,
     "robot_heartbeat_ms": 1000,
     "rescuer_heartbeat_ms": 5000,
     "position_ms": 1000,
@@ -130,9 +130,9 @@ Notes:
 - Updated 2026-11-08: the JSON above is copied from the committed `backend/sim/demo-site.json`.
   The simulated crew is minimal at Cayden's request: `fleet_size` 1 (so two robot dogs, `sim-dog` and `sim-dog-2`), rescuers Cayden (real, glasses) plus R1 (sim rescuer, key `r1`; R2 was dropped later on 2026-11-08), and `extra_sim_rescuers` 0.
   `sim-dog` (Dog 1) has its home on Rutford Ave next to 2520 Rutford Ave (`home` 56 m east, 12 m north), so the Play demo search starts at once.
-  Cayden (the glasses demo walker) starts in the parking lot south of Franklyn Jenifer Dr (92 m at bearing 158 from the center) and walks about 115 m at 2 m/s, under a minute.
+  Cayden (the glasses demo walker) starts in the parking lot south of Franklyn Jenifer Dr (92 m at bearing 158 from the center) and walks about 100 m at 4 m/s (twice a brisk walk; every sim walker is doubled too, `timing.speedup` 6), about half a minute.
   `setup` prints "Robots: sim-dog, sim-dog-2" and "Rescuers: R1".
-  `hidden_survivors` now starts with the house 3 person the judged demo finds (in the east side of 2520 Rutford Ave under rubble, IMMEDIATE, breathing 8 per minute).
+  `hidden_survivors` now starts with the house 3 person the judged demo finds (just outside the east wall of 2520 Rutford Ave under rubble, IMMEDIATE, breathing 8 per minute).
 - The center is an approximate point near UT Dallas, a placeholder.
   Before the first run, open the dashboard map, move the center to a residential block nearby so mock houses sit on houses, and run `coords` again.
 - "house 3" is the real mock rubble pile at the booth, 140 m north of the center.

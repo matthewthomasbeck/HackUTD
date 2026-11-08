@@ -3,7 +3,7 @@
 anchor: { lat: 32.9858556, lon: -96.751091 }   # demo_anchor: house 3 southeast door (2520 Rutford Ave, UT Dallas)
 waypoints:
   home:    { lat: 32.9862976, lon: -96.7510086 }   # sim robot home
-  house_3: { lat: 32.9860622, lon: -96.7514391, label: "house 3" }
+  house_3: { lat: 32.986064, lon: -96.7513299, label: "house 3" }
 paths:
   - name: home_to_house_3
     start: home
