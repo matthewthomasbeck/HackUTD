@@ -124,8 +124,15 @@ evenhub qr --url "http://<laptop-ip>:5173"
   When it goes to the background, the WebView is suspended, the dev connection dies, and you may need to rescan ([Local testing](https://hub.evenrealities.com/docs/test/local-testing), VERIFIED).
 - Simulator automation (VERIFIED, [Simulator](https://hub.evenrealities.com/docs/test/simulator)): `GET /api/ping`, `GET /api/screenshot/glasses` (576x288 RGBA PNG, lit pixels have alpha above 0), `POST /api/input` with body `{"action":"click"}` and actions `up`, `down`, `click`, `double_click`, `long_press`, `long_press_release`, `context_menu`.
   Input sent in the first few seconds, before the capture container exists, is dropped, so wait about 4 seconds.
-- Backup path if the dev server cannot stay up: a private build (`npm run build`, `evenhub pack app.json dist -o rubble.ehpk`, then upload through the portal or `evenhub upload`).
-  This needs Cayden's login and is not needed for the demo.
+- Backup path if the dev server cannot stay up: a private build (`npm run pack` writes `underdog.ehpk`, then upload it through the portal or `evenhub upload`).
+  This needs Cayden's login.
+- Offline demo (2026-11-08): an installed build plays a recording of the dashboard's Play demo (the task, accept, walk, arrival) when the glasses service does not answer within 6 s, so the app works on the glasses with no laptop or network.
+  `src/plugin/demo.ts` feeds the recorded messages to the same handler as the live socket, so every view is drawn by the same code.
+  A tap on the task screen accepts it at once; without a tap the story moves on after 12 s, and it loops after the arrived view.
+  Once a live link has opened, a later drop shows LINK LOST and never switches to the recording, so a recorded survivor is never shown as live.
+  `?demo=1` plays it at once, `?demo=0` turns it off.
+  To refresh the recording: `npm run demo` in `frontend/dashboard`, `npm run record-demo` in `frontend/glasses`, then press Play demo; `npm run record-demo -- --stage` restages the last raw recording.
+  Play demo accepts the task before the glasses draw it, so the staging step draws the task screen with the glasses service's own layout code (`backend/glasses-service/scripts/ack-page.ts`).
 
 ## 3. Plugin (`frontend/glasses/`)
 
@@ -192,7 +199,7 @@ So the plugin only base64-decodes `png_b64` into a `Uint8Array`.
 1. `const bridge = await waitForEvenAppBridge()`.
 2. Create the startup page once with two text containers and nothing else:
    - id 1 `capture`: x 0, y 0, w 576, h 288, z 1, content `' '`, `isEventCapture: 1`, `borderWidth: 0`, `paddingLength: 0`.
-   - id 8 `status`: x 8, y 130, w 560, h 56, z 2, content `RUBBLE SEARCH\nconnecting...`, `textColor: 3`.
+   - id 8 `status`: x 8, y 130, w 560, h 56, z 2, content `UNDERDOG\nconnecting...`, `textColor: 3`.
    If the result is not `StartUpPageCreateResult.success`, log it, wait 500 ms, and try once more.
 3. Register `bridge.onEvenHubEvent` (section 3.5).
 4. Read the serial with `getDeviceInfo()`; use `"sim"` if it is null (the simulator hardcodes profiles).
@@ -279,7 +286,7 @@ That long press is not sent, so it does not start a voice question; the tap befo
 While the display is off, the write queue keeps the latest page and every text and image written since, and draws nothing.
 The next tap, long press, or scroll only turns the display back on and redraws that view; it is not sent and never accepts a task.
 Double tap still exits.
-The service does not know the display is off; this is plugin-only.
+The service does not know the display is off; this is plugin-only and works in the offline demo too.
 
 ### 3.6 WebSocket and reconnect
 
@@ -301,9 +308,9 @@ Fields VERIFIED against [Packaging](https://hub.evenrealities.com/docs/ship/pack
 
 ```json
 {
-  "package_id": "com.hackutd.rubblesearch",
+  "package_id": "com.hackutd.underdog",
   "edition": "202601",
-  "name": "Rubble Search",
+  "name": "UnderDog",
   "version": "0.1.0",
   "min_sdk_version": "0.0.16",
   "entrypoint": "index.html",
