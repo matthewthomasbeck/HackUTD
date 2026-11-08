@@ -134,8 +134,8 @@ Only `src/stdb/` touches the generated bindings, through a dynamic import, so `n
 
 ## Still needs
 
-- The generated bindings and the published module: `npm start`, the three identities registering, and checks of every UNCONFIRMED item in the top comment of `src/stdb/connect.ts` (argument key spelling, enum shapes, `Identity.fromString`, optional arguments).
-- The simulator (`backend/sim/`): `npm run scenario -- --live` is reserved for it and exits with a message today.
+- The upstream module and generated bindings are now merged into this checkout. Confirm the running deployment/roles, register all three identities, and check every UNCONFIRMED adapter assumption in `src/stdb/connect.ts` (argument keys, enum shapes, `Identity.fromString`, optional arguments).
+- The upstream simulator source is now merged into `backend/sim/`. Live integration remains unverified: `npm run scenario -- --live` is still reserved and exits with a message today. See `docs/tasks/eric-remaining.md`.
 
 ## Extension points
 
