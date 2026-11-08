@@ -1,108 +1,130 @@
-# Rubble Search: drone scouting for disaster response
+# Underdog
 
-HackUTD entry by Camille Rivera, Cayden Hutcheson, Matthew Beck, and Eric Lee.
-Target tracks: NVIDIA ("Use Nemotron Beyond a Chatbot"), State Farm ("The Worst Day, at Scale"), and SpacetimeDB, which runs the whole backend.
+<p align="center">
+  <img src="images/glasses-view.webp" alt="Rescuer's view through the Even Realities G2 glasses: a new immediate task at 2520 Rutford Ave, 72 m north, breathing 8 per minute, with a direction arrow" width="49%">
+  <img src="images/robot-dog.webp" alt="The Underdog robot dog: legs with 3D-printed mecanum wheels, LiDAR on top, and the electronics in a clear body" width="49%">
+</p>
 
-After a disaster, a **DJI Mini 4 Pro** drone scouts the damaged area from above and streams live video to a laptop, where computer vision spots people.
-Every person it spots becomes a survivor on a live dashboard shared by every coordinator, with a critical rating and its reasons.
-Nemotron agents decide who should help whom, and the most critical people go to rescuers wearing Even Realities G2 smart glasses, which show how many critical people are nearby and point the way to the next one.
+**An AI-powered drone and robot dog team that searches disaster rubble, finds survivors with thermal imaging, checks if they are breathing, and guides rescuers wearing smart glasses to the people who need help most.**
 
-## How it works
+*Scout first. Reduce human risk.* The drone scouts from above, then the robot dog goes in.
 
-1. **Scout from above.** The drone flies over the search area and streams live video from DJI Fly (RTMP) to a laptop. Rubble that is slow and dangerous to cross on foot is quick to fly over.
-2. **Spot people.** A person detector on the video marks each possible survivor and where they are.
-3. **Report.** Each find goes into SpacetimeDB, and every dashboard and pair of glasses sees it at the same moment.
-4. **Rate.** Transparent rules turn what is known (how visible or buried the person is, how long they have waited, and signs of life when a close check is available) into a critical level with its reasons. The system never labels anyone dead: "no signs of life detected" stays at the top of the list.
-5. **Coordinate.** Nemotron agents rank survivors, propose the nearest free rescuer, and brief that rescuer; an auditor agent checks every proposal; the database enforces the rules, so no one is overlooked even with every agent down.
-6. **Guide.** The rescuer's glasses show "1 critical within 0.3 mi", then an arrow and distance.
+Built at HackUTD by Camille Rivera, Cayden Hutcheson, Matthew Beck, and Eric Lee.
 
-**Close check, when available:** a ground rover built in this repo (thermal camera, lidars, mecanum wheels) can be sent to a find for a closer look and a 20-second breathing check, which a hovering drone shakes too much to do.
+Tracks: **NVIDIA** ("Use Nemotron Beyond a Chatbot"), **State Farm** ("The Worst Day, at Scale"), and **SpacetimeDB**.
 
-## Tracks
+---
 
-### State Farm: Intelligent Catastrophe Response
+## The problem
 
-"The Worst Day, at Scale": when a disaster hits many people at once, find the most urgent needs, coordinate help, and make sure no one is overlooked.
-Rubble Search covers the three stages in one workflow: the drone **discovers** survivors, the critical score **assesses** who needs help first, and the shared board **coordinates** rescuers.
-"No one overlooked" is enforced by the database, not by the AI: every survivor stays on the board until a person resolves them, a dropped rescuer releases their assignment at once, and a watchdog assigns the nearest rescuer if no agent does.
-The dashboard headline is "Critical survivors unattended over 60 s: 0".
+After an earthquake, tornado, or building collapse, rescuers face the same question at once in hundreds of places: where are the survivors, who is still alive, and who needs help first?
+Searching collapsed buildings is slow and dangerous, and in the chaos, people get missed.
 
-### NVIDIA: Nemotron Beyond a Chatbot
+## What Underdog does
 
-Three Nemotron agents plan multi-step work and call tools; none of them is a chatbot:
+1. **The drone scouts from above.** Our drone sweeps the disaster area first, scanning the damage so the search starts where survivors are most likely to be.
+2. **The robot dog goes in.** Our autonomous four-legged robot dog walks into the rubble the drone flagged, plans its own search path house by house, and maps the space with LiDAR.
+3. **Finds people by heat.** The dog's thermal camera spots warm, person-sized shapes, even in the dark or under debris.
+4. **Checks for breathing.** The dog stops, records a short video, and measures tiny chest movements to get a breathing rate. Eulerian video magnification makes that motion visible to humans.
+5. **Scores how critical each person is.** Breathing, body heat, and how buried the person is combine into a triage level, so a barely visible person who cannot breathe well rises to the top.
+6. **Coordinates the response.** NVIDIA Nemotron AI agents rank survivors, pick the nearest free rescuer, and plan where the drone and the dog search next.
+7. **Guides rescuers.** Rescuers wearing Even Realities G2 smart glasses see how many critical survivors are nearby and an arrow pointing to the next one.
+8. **Never drops anyone.** Every survivor stays on a live shared board until a human rescuer confirms them, partially searched areas stay queued for the drone or the dog, and timers escalate anyone left waiting.
 
-- **Orchestrator**: ranks survivors, proposes the nearest free rescuer, and plans where the drone scouts next.
-- **Auditor**: independently checks every proposal (wrong rescuer, unfair load) and gives a verdict with a reason.
-- **Comms agent**: briefs rescuers on their glasses and answers their questions.
+```
+  Drone (scouts from above)
+      | area scan, priority zones
+      v
+  Robot dog                     SpacetimeDB (live database)              People
+  ---------                     ---------------------------              ------
+  thermal camera  --+                                              +-->  coordinator dashboard
+  breathing video   +--> findings --> survivors, search areas,  ---+
+  LiDAR, IMU, GPS --+               assignments, agent task board  +-->  rescuer smart glasses
+                                          ^         |
+                                          |         v
+                                 Nemotron agents (orchestrator, auditor, comms)
+```
 
-The agents talk only through a shared task board in SpacetimeDB (`agent_task`), so every hand-off is logged and replayable, and no agent can fly the drone or resolve a survivor.
-See `docs/AGENT_WORKFLOW.md`.
+---
 
-### SpacetimeDB: Real-Time Rescue Coordination
+## Technology
 
-SpacetimeDB is the whole backend, with no separate web server or API layer, published on Maincloud as `assess-0hw81`:
+### NVIDIA Nemotron: agents, not a chatbot
 
-- **One live board**: survivors, search areas, the drone, missions, assignments, briefings, and the agents' tasks, streamed to every dashboard and pair of glasses through subscriptions.
-- **Rules in reducers**: the survivor state machine, roles, and the rule that no one is labelled dead.
-- **Timers in schedule tables**: assignment leases, heartbeats, two-level escalation, and the agent watchdog all run inside the database.
-- **Instant disconnect handling**: `client_disconnected` releases a dropped rescuer's assignment, so the survivor goes back in the queue.
+Three AI agents run on Nemotron and work together through a shared task board, each with its own job and tools:
 
-## What is live and what is simulated
+| Agent | Model | Job |
+| --- | --- | --- |
+| Orchestrator | `nemotron-3.5-super-vl-120b-a12b` | Ranks survivors, assigns rescuers, plans the drone's and the dog's search missions |
+| Auditor | `nemotron-3.5-lightning-30b-a3b` | Independently reviews every orchestrator decision and flags bad ones |
+| Comms | `nemotron-3.5-lightning-30b-a3b` | Writes short briefings for each rescuer's glasses |
 
-The judged demo is hard-coded (team decision, 2026-11-08): only SpacetimeDB runs live.
-The simulator scripts the drone's flight, the find, the breathing result and critical score, and any rescuer actions.
-The dashboard and the glasses view (on the G2 or the fallback page) are real clients rendering that data live from SpacetimeDB.
-The DJI Mini 4 Pro video link (DJI Fly RTMP to a laptop) is planned and not yet tested; the agents and the perception service are built and tested separately and do not run in the judged demo.
-Later, DJI's Mobile SDK v5 (Android, Mini 4 Pro with the RC-N2 controller, from v5.13.0) could also send the drone's live GPS position to the dashboard map.
+The agents plan multi-step tasks and call real tools (database reducers), and they never steer the drone or the dog directly: they send high-level missions, and each robot's own safety system stays in charge.
+Speech to text uses NVIDIA Riva.
+See [docs/AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md).
 
-## Code
+### SpacetimeDB: the whole backend
+
+There is no separate web server or API. One SpacetimeDB module ([backend/spacetimedb/](backend/spacetimedb/)), published on Maincloud, runs everything:
+
+- **Reducers** hold every rule. An agent can only propose what the rules allow, and a survivor cannot leave the board until a person resolves them.
+- **Schedule tables** run every timer inside the database: rescuer leases, robot heartbeats, two-level escalation, and a watchdog that assigns rescuers if the agents go quiet.
+- **Lifecycle reducers** (`client_connected`, `client_disconnected`) notice at once when a robot or a pair of glasses drops off the network.
+- **Live subscriptions** mean the dashboard and every pair of glasses see the same board update instantly.
+- **Agents and workers are ordinary clients** that coordinate through the `agent_task` table, so nothing is lost if one crashes.
+
+### State Farm: the worst day, at scale
+
+- **Most urgent needs first:** every survivor gets a critical score and a confidence.
+- **Coordinated assistance:** the nearest free rescuer is assigned and guided with turn-by-turn direction on their glasses.
+- **No one overlooked:** every search area must be searched by the drone or the dog, and every survivor stays tracked until a rescuer confirms them.
+
+### The drone
+
+The drone, a **DJI Mini 4 Pro**, is the first layer of the search. It scans the disaster area from above, quickly covering ground no rescuer could walk in time, and marks the zones the robot dog should search first.
+Its scans go into SpacetimeDB like every other finding, so the Nemotron orchestrator can send the dog where the drone saw the most need.
+
+### The robot dog
+
+The dog is the second layer: it goes where the drone cannot see, into and under the rubble.
+
+- **Body:** four legs with 12 high-torque servos driven by inverse kinematics, plus mecanum wheels for fast travel on flat ground. 3D-printed parts.
+- **Brain:** Raspberry Pi 4B running a C++17 state machine with a safety gate, fixed-rate control loop, and systemd watchdog.
+- **Senses:** a Raspberry Pi Pico streams the MLX90640 thermal camera, LD19 360 degree LiDAR, TF-Luna LiDAR, IMU, and foot force sensors to the Pi. A camera captures breathing video, and GPS tags each find.
+- **Link:** a Node.js bridge on the Pi connects the robot to SpacetimeDB.
+
+### Perception
+
+Python, FastAPI, OpenCV, and YOLO pose (Ultralytics) find the chest region, measure breathing from video motion, and compute the critical score.
+
+### Smart glasses and dashboard
+
+- **Glasses:** an Even Realities G2 plugin (Even Hub SDK, TypeScript, Vite). A glasses service draws a live map of the area when the rescuer is far away and switches to a direction arrow and distance when they get close.
+- **Dashboard:** a React + Vite desktop app (Electron) for coordinators, with a live map, a ranked survivor list, and an Agents panel showing every agent decision as it happens.
+
+---
+
+## Repo layout
 
 | Folder | What it is |
 | --- | --- |
-| `backend/spacetimedb/` | SpacetimeDB module, the whole backend; published on Maincloud as `assess-0hw81` |
-| `backend/spacetimedb-bindings/` | Generated TypeScript bindings |
-| `backend/sim/` | Demo simulator: site, search vehicle, rescuers, failures, timelines |
-| `backend/glasses-service/` | One SpacetimeDB connection per glasses session; renders the glasses views |
-| `backend/agent/`, `backend/perception/` | Nemotron agents and the breathing and perception service |
-| `frontend/dashboard/` | Coordinator dashboard |
-| `frontend/glasses/` | Even Hub plugin, fallback page, phone page |
-| `frontend/design-tokens/` | Shared CSS tokens |
-| `raspberrypi/`, `pico/` | The ground rover for close checks: Pi program (state machine, safety gate, wheel drive, thermal seek, remote driving) and Pico sensor firmware (thermal camera, lidars, IMU), with a Node.js bridge to SpacetimeDB |
-
-How to run each part is in `backend/README.md`, `frontend/README.md`, and `raspberrypi/README.md`.
-Every client reads `STDB_URI` and `STDB_DATABASE` (`assess-0hw81`); browser apps read `VITE_STDB_URI` and `VITE_STDB_DATABASE`.
-Keys and tokens go in git-ignored `.env` files, because the repo is public.
-
-## Run the demo
-
-```bash
-cd backend/sim
-export STDB_URI=https://maincloud.spacetimedb.com STDB_DATABASE=assess-0hw81   # or the local fallback server
-npm run sim -- setup
-npm run sim -- timeline demo
-```
-
-Before judging, republish Maincloud clean from the repo root with `spacetime publish assess-0hw81 -p backend/spacetimedb --server maincloud --delete-data=always --yes`, then run `setup` again.
-The full run of show is in `docs/specs/demo.md`.
-
-## Tests
-
-```bash
-cd backend/spacetimedb && npx tsc --noEmit -p . && spacetime build && npm test
-cd backend/sim && npm test && npx tsc --noEmit
-cd backend/glasses-service && npm test && npx tsc --noEmit
-cd frontend/dashboard && npm test && npm run build
-cd frontend/glasses && npm test && npm run build
-cd backend/agent && npm test && npx tsc --noEmit
-cd backend/perception && python -m pytest
-cd raspberrypi/robot && cmake -B build && cmake --build build -j && ctest --test-dir build
-```
+| [backend/spacetimedb/](backend/spacetimedb/) | SpacetimeDB module: tables, reducers, timers (TypeScript) |
+| [backend/agent/](backend/agent/) | Nemotron agents: orchestrator, auditor, comms |
+| [backend/perception/](backend/perception/) | Breathing detection and critical score (Python) |
+| [backend/glasses-service/](backend/glasses-service/) | Renders the glasses views from live data |
+| [backend/sim/](backend/sim/) | Simulator for the site, robot, and rescuers |
+| [frontend/dashboard/](frontend/dashboard/) | Coordinator desktop app |
+| [frontend/glasses/](frontend/glasses/) | G2 glasses plugin and fallback web view |
+| [raspberrypi/](raspberrypi/) | Robot C++ program and SpacetimeDB bridge |
+| [pico/](pico/) | Sensor firmware for the Pico |
+| [3d_parts/](3d_parts/) | Robot body parts |
+| [docs/](docs/) | Project plan, specs, and research |
 
 ## Docs
+
 - Presentation: https://canva.link/dv874lbguzouirt
-- `docs/devpost-draft.md`: the Devpost entry.
-- `docs/PROJECT.md`, `docs/MVP.md`: the team's original plan, before the drone.
-- `docs/AGENT_WORKFLOW.md`: how the three agents (orchestrator, auditor, comms agent) work.
-- `docs/specs/`: implementation specs and the shared contracts (start at `docs/specs/README.md`).
-- `docs/ROBOT.md`: onboard hardware, pin map, and protocol.
-- `docs/README-rover.md`: the earlier README, from the ground-robot plan.
+- [docs/devpost-draft.md](docs/devpost-draft.md): the Devpost entry.
+- [docs/PROJECT.md](docs/PROJECT.md): the full design.
+- [docs/AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md): how the three agents work.
+- [docs/specs/](docs/specs/): implementation specs and the shared contracts.
+- [docs/ROBOT.md](docs/ROBOT.md): the robot dog's hardware, pin map, and protocol.
