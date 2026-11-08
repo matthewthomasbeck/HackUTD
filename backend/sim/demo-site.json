@@ -4,7 +4,7 @@
   "houses": [
     { "label": "house 1", "east_m": -154.0, "north_m": 72.6 },
     { "label": "house 2", "east_m": -97.8, "north_m": 72.5 },
-    { "label": "house 3", "east_m": 15.8, "north_m": -14.2, "demo_pile": true },
+    { "label": "house 3", "east_m": 26.0, "north_m": -14.0, "demo_pile": true },
     { "label": "house 4", "east_m": -4.6, "north_m": 66.5, "view_blocked": true },
     { "label": "house 5", "east_m": 110.5, "north_m": 87.9 },
     { "label": "house 6", "east_m": -124.8, "north_m": -5.4 },
@@ -31,7 +31,7 @@
   ],
   "extra_sim_rescuers": 0,
   "hidden_survivors": [
-    { "house": "house 3", "east_m": 15.8, "north_m": -14.2, "note": "east side, under rubble", "level": "immediate", "breathing": "detected", "rate_bpm": 8, "visibility_pct": 35 },
+    { "house": "house 3", "east_m": 26.0, "north_m": -14.0, "note": "east side, under rubble", "level": "immediate", "breathing": "detected", "rate_bpm": 8, "visibility_pct": 35 },
     { "house": "house 4", "east_m": -4.6, "north_m": 70.0, "note": "front room", "level": "delayed", "breathing": "detected", "rate_bpm": 18, "visibility_pct": 70 },
     { "house": "house 10", "east_m": -136.5, "north_m": -106.0, "note": "under stairs", "level": "immediate", "breathing": "not_detected", "visibility_pct": 15 }
   ],
@@ -55,7 +55,7 @@
     "minor": 5
   },
   "timing": {
-    "speedup": 3,
+    "speedup": 6,
     "robot_heartbeat_ms": 1000,
     "rescuer_heartbeat_ms": 5000,
     "position_ms": 1000,

@@ -41,10 +41,10 @@ export function pickAssignment(rows:Record<string,unknown>[]):Record<string,unkn
 }
 export interface FakeSurvivor {id:number|string;lat:number;lon:number;critical_level:'immediate'|'delayed'|'minor'|'unknown';critical_score:number;score_confidence?:number;status:'unassigned'|'assigned'|'en_route'|'reached'|'resolved'|'unknown';house_label:string;location_note:string;breathing:'detected'|'not_detected'|'unknown';breathing_rate_bpm?:number|null;breathing_confidence?:number;visibility_pct?:number|null;}
 export class FakeSession {
-  // Fake data (FAKE_DB=1) on the UT Dallas site: the east side of 2520 Rutford Ave, Hoblitzelle Hall, Building 24.
+  // Fake data (FAKE_DB=1) on the UT Dallas site: outside the east wall of 2520 Rutford Ave, Hoblitzelle Hall, Building 24.
   readonly site={center:{lat:32.9861898,lon:-96.7516083},radius_m:350,demo_mode:true};
   readonly survivors:FakeSurvivor[]=[
-    {id:1,lat:32.9860622,lon:-96.7514391,critical_level:'immediate',critical_score:86,score_confidence:0.7,status:'assigned',house_label:'2520 Rutford Ave',location_note:'east side, under rubble',breathing:'detected',breathing_rate_bpm:14,breathing_confidence:0.7},
+    {id:1,lat:32.986064,lon:-96.7513299,critical_level:'immediate',critical_score:86,score_confidence:0.7,status:'assigned',house_label:'2520 Rutford Ave',location_note:'east side, under rubble',breathing:'detected',breathing_rate_bpm:14,breathing_confidence:0.7},
     {id:2,lat:32.9868186,lon:-96.7516576,critical_level:'delayed',critical_score:54,status:'unassigned',house_label:'Karl Hoblitzelle Hall',location_note:'front room',breathing:'detected',breathing_rate_bpm:18},
     {id:3,lat:32.9852376,lon:-96.7530700,critical_level:'immediate',critical_score:81,status:'unassigned',house_label:'Building 24',location_note:'stairwell',breathing:'not_detected'}];
   readonly assignment={id:1 as number|string,survivor_id:1 as number|string,status:'active' as 'active'|'proposed'|'released'|'idle'};

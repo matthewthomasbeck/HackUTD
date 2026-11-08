@@ -6,7 +6,7 @@ describe('service configuration', () => {
     const config = loadConfig({ FAKE_DB: '1' });
     expect(config.demoStartDistanceM).toBe(92);
     expect(config.demoStartBearingDeg).toBe(158);
-    expect(config.demoSpeedMps).toBe(3);
+    expect(config.demoSpeedMps).toBe(6);
   });
 
   it('accepts explicit demo walker settings', () => {

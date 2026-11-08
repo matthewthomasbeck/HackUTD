@@ -2,8 +2,8 @@
 //   1. the local SpacetimeDB server (started if it is not running) with the module published (if the database is missing)
 //   2. `sim setup` (idempotent), then a sim console running `hidden` and `scene`: Dog 1 and Dog 2 patrol with R1 and R2,
 //      and Dog 1 finds the hidden house 3 person when it searches there
-//   3. the glasses service (Cayden starts in the parking lot south of Franklyn Jenifer Dr and walks about 115 m to the
-//      person in the east side of 2520 Rutford Ave, at a brisk 2 m/s so the walk takes under a minute) and the glasses pages (port 5173),
+//   3. the glasses service (Cayden starts in the parking lot south of Franklyn Jenifer Dr and walks about 100 m to the
+//      person outside the east wall of 2520 Rutford Ave, at 4 m/s, twice a brisk walk, so the demo moves along) and the glasses pages (port 5173),
 //      which the app's glasses panel and the Even simulator (`cd frontend/glasses && npm run sim`) both use
 //   4. the packaged UnderDog app on the local server, so the Dock shows its name and logo; it is rebuilt
 //      (npm run app:pack) first when the dashboard code is newer than the last build. `--dev` opens the hot-reload
@@ -163,7 +163,7 @@ try {
   else {
     start('glasses', 'npm', ['run', '--silent', 'start'], {
       cwd: resolve(ROOT, 'backend/glasses-service'),
-      env: { ...DB_ENV, PORT: '8787', DEMO_START_BEARING_DEG: '158', DEMO_START_DISTANCE_M: '92', DEMO_SPEED_MPS: '2' },
+      env: { ...DB_ENV, PORT: '8787', DEMO_START_BEARING_DEG: '158', DEMO_START_DISTANCE_M: '92', DEMO_SPEED_MPS: '4' },
     });
   }
   if (await portOpen(5173)) log('Glasses pages already served on port 5173.');
