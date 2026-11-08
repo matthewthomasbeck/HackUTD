@@ -113,13 +113,19 @@ Hardware build_hardware(const Config& cfg, const std::shared_ptr<MockControls>& 
   const bool mock_a = cfg.is_mock("maestro_a"), mock_b = cfg.is_mock("maestro_b");
   hw.maestro_a = mock_a ? make_servo_mock("maestro_a") : make_servo_maestro("maestro_a", path("maestro_a"), baud("maestro_a"));
   hw.maestro_b = mock_b ? make_servo_mock("maestro_b") : make_servo_maestro("maestro_b", path("maestro_b"), baud("maestro_b"));
-  hw.dc_a = cfg.is_mock("dc_driver_a") ? make_dc_driver_mock("dc_driver_a")
-                                       : make_dc_driver_tbd("dc_driver_a", path("dc_driver_a"), baud("dc_driver_a"));
-  hw.dc_b = cfg.is_mock("dc_driver_b") ? make_dc_driver_mock("dc_driver_b")
-                                       : make_dc_driver_tbd("dc_driver_b", path("dc_driver_b"), baud("dc_driver_b"));
-  hw.pico = cfg.is_mock("pico")
-                ? make_pico_link_mock(controls)
-                : make_pico_link_serial(PicoLinkConfig{path("pico"), cfg.pico_heartbeat_hz, cfg.pico_link_timeout_ms});
+  // Both DC drivers share one pigpiod connection.
+  std::shared_ptr<IGpio> gpio;
+  auto dc_driver = [&](const std::string& name) -> std::shared_ptr<IDcDriver> {
+    if (cfg.is_mock(name)) return make_dc_driver_mock(name);
+    if (!gpio) gpio = make_gpio_pigpio();
+    const DcDriverSettings& d = cfg.dc_driver.at(name);
+    return make_dc_driver_gpio(name, DcGpioConfig{d.pwm_hz, d.pins, d.min_duty}, gpio);
+  };
+  hw.dc_a = dc_driver("dc_driver_a");
+  hw.dc_b = dc_driver("dc_driver_b");
+  hw.pico = cfg.is_mock("pico") ? make_pico_link_mock(controls)
+                                : make_pico_link_serial(PicoLinkConfig{path("pico"), cfg.pico_heartbeat_hz,
+                                                                       cfg.pico_link_timeout_ms, cfg.pico_firmware_version});
   const CameraConfig cam{cfg.camera_width, cfg.camera_height, cfg.camera_fps};
   hw.camera = cfg.is_mock("camera") ? make_camera_mock(cam, controls) : make_camera_libcamera(cam);
   hw.detector = cfg.is_mock("coral")
@@ -135,6 +141,8 @@ Hardware build_hardware(const Config& cfg, const std::shared_ptr<MockControls>& 
     else if (name == "pico") hw.init_order.push_back(hw.pico);
     else if (name == "camera") hw.init_order.push_back(hw.camera);
     else if (name == "coral") hw.init_order.push_back(hw.detector);
+    else if (!cfg.is_mock(name) && std::find(kPicoDevices.begin(), kPicoDevices.end(), name) != kPicoDevices.end())
+      hw.init_order.push_back(make_pico_sensor_device(name, hw.pico));  // status from the Pico's STATUS reply
     else if (cfg.is_mock(name)) hw.init_order.push_back(std::make_shared<MockDevice>(name, controls));
     else hw.init_order.push_back(std::make_shared<UnimplementedDevice>(name));
   }
@@ -288,7 +296,12 @@ int main(int argc, char** argv) {
   movement_config.rate_hz = cfg.movement_rate_hz;
   movement_config.command_timeout_ms = cfg.movement_command_timeout_ms;
   movement_config.release_servos_on_stop = cfg.safe_stop_servo_action == "release";
-  // TODO(R8): fill movement_config.mecanum from motion.mecanum.* once Matthew measures the robot.
+  const MecanumSettings& m = cfg.mecanum;
+  movement_config.mecanum = MecanumConfig{m.wheel_radius_m, m.half_track_lx_m, m.half_base_ly_m, m.max_wheel_rad_s,
+                                          m.wheel_order, m.invert};
+  if (!mecanum_dimensions_known(movement_config.mecanum)) {
+    log::warn("motion: mecanum dimensions TBD (motion.mecanum.*), so the wheels stay at 0");
+  }
   MovementThread movement(Actuators{hw.dc_a, hw.dc_b, hw.maestro_a, hw.maestro_b, make_leg_ik_mock()},
                           movement_config);
   VisionThread vision(hw.camera, hw.detector, cfg.vision_rate_hz);

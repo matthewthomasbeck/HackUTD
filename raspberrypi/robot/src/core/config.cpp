@@ -1,6 +1,7 @@
 #include "core/config.hpp"
 
 #include <algorithm>
+#include <set>
 #include <stdexcept>
 
 namespace robot {
@@ -96,6 +97,8 @@ Config parse(const YAML::Node& root) {
 
   c.pico_heartbeat_hz = get_int(root, "pico.heartbeat_hz");
   c.pico_link_timeout_ms = get_int(root, "pico.link_timeout_ms");
+  c.pico_firmware_version = get_string(root, "pico.firmware_version");
+  require(!c.pico_firmware_version.empty(), "pico.firmware_version must not be empty");
   require(c.pico_heartbeat_hz > 0, "pico.heartbeat_hz must be > 0");
   require(c.pico_link_timeout_ms > 0, "pico.link_timeout_ms must be > 0");
 
@@ -135,9 +138,45 @@ Config parse(const YAML::Node& root) {
   c.control_socket = get_string(root, "control.socket");
   require(!c.control_socket.empty(), "control.socket must not be empty");
 
-  for (const auto& name : {"maestro_a", "maestro_b", "dc_driver_a", "dc_driver_b"}) {
+  for (const auto& name : {"maestro_a", "maestro_b"}) {
     c.device_path[name] = get_string(root, std::string(name) + ".path");
     c.device_baud[name] = get_int(root, std::string(name) + ".baud");
+  }
+  std::set<int> motor_pins;
+  for (const std::string name : {"dc_driver_a", "dc_driver_b"}) {
+    DcDriverSettings d;
+    d.pwm_hz = get_int(root, name + ".pwm_hz");
+    d.min_duty = get_number(root, name + ".min_duty");
+    require(d.pwm_hz > 0, name + ".pwm_hz must be > 0");
+    require(d.min_duty >= 0 && d.min_duty < 1, name + ".min_duty must be in [0, 1)");
+    for (int ch = 0; ch < 2; ++ch) {
+      const std::string key = name + ".ch" + std::to_string(ch) + "_pins";
+      const auto pins = get<std::vector<int>>(root, key, "a list of 2 GPIO numbers");
+      require(pins.size() == 2, key + " must list 2 GPIO numbers [IN1, IN2]");
+      for (std::size_t i = 0; i < 2; ++i) {
+        require(pins[i] >= 2 && pins[i] <= 27, key + " pins must be BCM GPIO 2 to 27");
+        require(motor_pins.insert(pins[i]).second, key + " reuses GPIO " + std::to_string(pins[i]));
+        d.pins[static_cast<std::size_t>(ch)][i] = pins[i];
+      }
+    }
+    c.dc_driver[name] = d;
+  }
+
+  MecanumSettings& m = c.mecanum;
+  m.wheel_radius_m = get_number(root, "motion.mecanum.wheel_radius_m");
+  m.half_track_lx_m = get_number(root, "motion.mecanum.half_track_lx_m");
+  m.half_base_ly_m = get_number(root, "motion.mecanum.half_base_ly_m");
+  m.max_wheel_rad_s = get_number(root, "motion.mecanum.max_wheel_rad_s");
+  require(m.wheel_radius_m >= 0 && m.half_track_lx_m >= 0 && m.half_base_ly_m >= 0 && m.max_wheel_rad_s >= 0,
+          "motion.mecanum dimensions must be >= 0 (0 means TBD)");
+  const auto order = get<std::vector<int>>(root, "motion.mecanum.wheel_order", "a list of 4 integers");
+  const auto invert = get<std::vector<bool>>(root, "motion.mecanum.invert", "a list of 4 true/false");
+  require(order.size() == 4 && invert.size() == 4, "motion.mecanum.wheel_order and invert must list 4 values");
+  const std::set<int> order_set(order.begin(), order.end());
+  require(order_set == std::set<int>{1, 2, 3, 4}, "motion.mecanum.wheel_order must use each of 1, 2, 3, 4 once");
+  for (std::size_t i = 0; i < 4; ++i) {
+    m.wheel_order[i] = order[i];
+    m.invert[i] = invert[i];
   }
   c.device_path["pico"] = get_string(root, "pico.path");
   c.camera_width = get_int(root, "camera.width");
