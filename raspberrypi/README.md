@@ -89,6 +89,23 @@ Real now (2026-11-08):
 - `hal/dc_driver_gpio.cpp` drives the two H-bridges on GPIO PWM through `pigpiod` (pins in `dc_driver_a` / `dc_driver_b`). Install with `sudo apt install pigpio && sudo systemctl enable --now pigpiod`, then rebuild; CMake prints `pigpio=ON`.
 - `motion/mecanum.hpp` mixes with eq. 20. The wheels stay at 0 until `motion.mecanum.wheel_radius_m`, `half_track_lx_m`, `half_base_ly_m` and `max_wheel_rad_s` are measured.
 - Until the udev rules exist (R9), point `pico.path` at the `/dev/serial/by-id/usb-Raspberry_Pi_Pico_*` path.
+
+## Drive bring-up and calibration (`robot_diag`, task R8)
+
+Stop the robot program first; `robot_diag` drives the devices directly. Ctrl+C stops the motors.
+
+```
+./build/robot_diag --config config/robot.yaml pico 3              # Pico streams and newest values
+./build/robot_diag --config config/robot.yaml motor a0 0.4        # one driver channel, no mixer
+./build/robot_diag --config config/robot.yaml wheel fl 0.4        # one wheel, + rolls the robot forward
+./build/robot_diag --config config/robot.yaml calibrate           # guided, prints motion.mecanum values
+./build/robot_diag --config config/robot.yaml drive 0.1 0 0 2     # after calibrating: about 20 cm
+./build/robot_diag --config config/robot.yaml drive 0 0 45 2      # about 90 degrees
+```
+
+`calibrate` runs 4 steps: wheel directions (on blocks, fixes `invert`), top wheel speed (on blocks, count turns of a tape mark), `lx + ly` (spin on the floor, measured with the IMU gyro), and an optional radius check (drive at a wall, measured with the TF-Luna).
+Only `lx + ly` appears in the mixer, so the spin measures exactly what it needs at the real stance.
+Calibrate at the stance the robot drives in: moving the legs changes the wheel spacing.
 CMake finds libcamera, OpenCV, and the Edge TPU runtime (libedgetpu plus TensorFlow Lite) if installed and prints `robot backends: ...`; without them the real devices report FAILED and the mocks still work.
 
 ## How one tick works

@@ -151,6 +151,7 @@ target_link_libraries(robotctl PRIVATE nlohmann_json::nlohmann_json)
 
 add_executable(robot_diag tools/robot_diag.cpp)
 target_compile_options(robot_diag PRIVATE ${ROBOT_WARNINGS})
+target_link_libraries(robot_diag PRIVATE robot_core)
 
 # Tests (GoogleTest, no hardware).
 find_package(GTest QUIET)
@@ -171,6 +172,7 @@ add_executable(robot_tests
   tests/test_pico_text.cpp
   tests/test_dc_driver.cpp
   tests/test_mecanum.cpp
+  tests/test_calibration.cpp
 )
 target_compile_options(robot_tests PRIVATE ${ROBOT_WARNINGS})
 target_compile_definitions(robot_tests PRIVATE ROBOT_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/config")
