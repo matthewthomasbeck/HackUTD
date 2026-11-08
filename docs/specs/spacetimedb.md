@@ -296,7 +296,7 @@ SQL cannot filter on enum columns (tested), so clients filter enums in their own
 | `CellStatus` | `unsearched`, `searching`, `partially_searched`, `searched` |
 | `RobotState` | `BOOT`, `INIT`, `READY`, `ACTIVE`, `SAFE_STOP`, `FAULT`, `SHUTDOWN` |
 | `DeviceHealth` | `OK`, `DEGRADED`, `FAILED` |
-| `MissionKind` | `search_cells`, `inspect`, `return_home`, `hold` |
+| `MissionKind` | `search_cells`, `inspect`, `return_home`, `hold`, `teleop` |
 | `MissionStatus` | `proposed`, `queued`, `leased`, `active`, `done`, `failed`, `cancelled` |
 | `DetectionSource` | `thermal`, `camera` |
 | `Breathing` | `detected`, `not_detected`, `unknown` |
@@ -552,7 +552,7 @@ When the row fires and `presence.open` for that identity is still 0:
 | --- | --- | --- | --- | --- |
 | `lease_timer` `proposal` | `propose_assignment` (due `proposal_lease_s`) | never | `accept_assignment`, `release_assignment`, release of the survivor's other proposals | proposal `released` with cause `expired` (event `assignment_expired`); survivor stays `unassigned`; escalation keeps running |
 | `lease_timer` `assignment` | `accept_assignment` (due `assignment_lease_s`) | `rescuer_heartbeat`, `participant_update_position` | release, `resolve_survivor` | assignment `released` with cause `expired` (event `assignment_expired`), survivor `unassigned` |
-| `lease_timer` `mission` | `claim_next_mission` (due `mission_lease_s`) | `robot_heartbeat`, `mission_progress` | `done`, `failed`, `cancelled` | mission back to `queued` (event `mission_requeued`), `robot.current_mission_id` cleared, its `searching` cells back to `unsearched`; `robot_id` reset to `""` if the robot is offline |
+| `lease_timer` `mission` | `claim_next_mission` (due `mission_lease_s`) | `robot_heartbeat`, `mission_progress` | `done`, `failed`, `cancelled` | mission back to `queued` (event `mission_requeued`), `robot.current_mission_id` cleared, its `searching` cells back to `unsearched`; `robot_id` reset to `""` if the robot is offline; a `teleop` mission is cancelled instead and its `teleop` row deleted |
 | `lease_timer` `agent_task` | `claim_agent_task` (due `AGENT_TASK_LEASE_S`) | never | `complete_agent_task` | task back to `open` (event `agent_task_expired`); after `AGENT_TASK_MAX_ATTEMPTS` expiries, `expired` |
 | `heartbeat_timer` `rescuer` | `accept_assignment` (due `RESCUER_HEARTBEAT_S`) | `rescuer_heartbeat`, `participant_update_position` | the rescuer has no `active` assignment left | release that rescuer's active assignments (cause `heartbeat`), event `rescuer_offline` |
 | `heartbeat_timer` `robot` | first `robot_heartbeat` (due `ROBOT_HEARTBEAT_S`) | `robot_heartbeat` | never | robot offline and cells reopened, as in 6.3; the next heartbeat brings it back (event `robot_online`) and re-arms |
@@ -701,7 +701,7 @@ Robot reducers take a last argument `observed_at: opt(Timestamp)`; `detection.cr
 `claim_next_mission(robot_id: string)`
 - Caller: `requireRobot`.
 - If `current_mission_id` is `leased` or `active`: renew and return (a reconnecting bridge gets its mission back).
-- Else pick a `queued` mission with `robot_id` equal to this robot or `""`: missions with a target cell that has people unaccounted for (section 10) first, then lowest `id`.
+- Else pick a `queued` mission with `robot_id` equal to this robot or `""`: a `teleop` mission first (a person took the robot over), then missions with a target cell that has people unaccounted for (section 10), then lowest `id`.
 - Set `leased`, `robot_id`, `lease_expires_at`, arm `lease_timer` `mission`; set `robot.current_mission_id`.
 - `search_cells`: each target cell `unsearched` or `partially_searched` becomes `searching` with `searched_by = robot_id`.
 - Event `mission_leased`.
@@ -724,7 +724,7 @@ Robot reducers take a last argument `observed_at: opt(Timestamp)`; `detection.cr
 
 `create_mission(robot_id, kind, target_cell_ids: u64[], target_lat: opt(f64), target_lon: opt(f64), reason, chain_id: u64)`
 - Caller: `orchestrator`, coordinator, commander, sim in demo.
-- Per kind: `search_cells` 1 to 50 existing ids, at least one not `searched`; `inspect` needs a target point; `return_home` defaults to the site center; `hold` has no target.
+- Per kind: `search_cells` 1 to 50 existing ids, at least one not `searched`; `inspect` needs a target point; `return_home` defaults to the site center; `hold` has no target; `teleop` is refused (use `take_over`).
 - Agents: `proposed` if `site.require_mission_approval`, else `queued`; at most `MAX_OPEN_AGENT_PROPOSALS` in `proposed` per agent.
 - Coordinators and sim: `queued`.
 - `chain_id` is stored as given (0 for none).
@@ -736,6 +736,24 @@ Robot reducers take a last argument `observed_at: opt(Timestamp)`; `detection.cr
 
 `cancel_mission(mission_id)`: coordinator or commander; any non-final mission; lease none and timer cancelled; `searching` targets back to `unsearched`; event `mission_cancelled`.
 The bridge sees the change and sends `{"type":"cancel",...}` to the robot.
+For a `teleop` mission it also deletes the `teleop` row, and the event message reads "remote control of ROBOT handed back".
+
+### 8.4.1 Remote driving (CONTRACTS.md 8.3, robot.md 18.1)
+
+`take_over(robot_id: string, reason: string)`
+- Caller: coordinator or commander, human only (agents never drive).
+- The robot exists and is `online`; no `teleop` mission for it is `queued`, `leased`, or `active` (else `SenderError('NAME is already driving ROBOT')`).
+- Each of its `leased` or `active` missions goes back to `queued`, keeping `robot_id`, with its lease cancelled and `searching` cells reopened (event `mission_requeued`, "mission N paused: NAME took over ROBOT"), so autonomy resumes after the hand back; `robot.current_mission_id` is cleared.
+- Insert a `queued` `teleop` mission (`chain_id` 0, `created_by` the caller), and upsert the `teleop` row to zero with `seq` 0 and `sent_by` the caller (event `mission_created`, "NAME took over ROBOT").
+- The bridge sees the requeue and sends `cancel`; the robot says READY and claims the `teleop` mission first.
+
+`teleop_drive(robot_id: string, vx_mps: f64, vy_mps: f64, wz_dps: f64, seq: u64)`
+- Caller: coordinator or commander, human only, and the identity in `teleop.sent_by` (one driver at a time).
+- The robot's `teleop` mission is `leased` or `active` (a `queued` one is rejected: the robot has not taken control yet).
+- `|vx_mps|`, `|vy_mps|` at most `TELEOP_MAX_LIN_MPS` (0.2) and `|wz_dps|` at most `TELEOP_MAX_TURN_DPS` (45), the robot's own limits; the robot's safety gate clamps again.
+- Update the row (`sent_at` now). No event: the mission start and end are logged.
+
+A `teleop` mission ends by `cancel_mission` (hand back), `mission_progress` `done` or `failed` (a fault on the robot), or lease expiry, which cancels it instead of requeueing it; each deletes the `teleop` row.
 
 ### 8.5 Perception
 

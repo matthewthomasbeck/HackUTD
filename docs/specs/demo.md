@@ -45,36 +45,38 @@ File: `backend/sim/demo-site.json`, committed.
 The sim, the dashboard e2e tests, the robot bridge (demo anchor), and the glasses service (rescuer start point) all read this one file.
 
 All positions are meter offsets from the site center (`east_m`, `north_m`), so moving the whole demo is a change to two numbers.
-The center is 7716 Worthing St, Dallas TX 75252 (house 3), and each house sits on a real building footprint from OpenStreetMap (`backend/glasses-service/site/worthing.geojson`): houses 1 to 5 on Worthing St, houses 6 to 10 on Benchmark Dr, and 11 and 12 north of Worthing.
+Since 2026-11-08 the site is 2520 Rutford Ave, Richardson TX 75080 (UT Dallas), centered on its engineering building, and each house is a real campus building from OpenStreetMap (`backend/glasses-service/site/site.geojson`, built by `backend/sim/scripts/build-site.mjs`; the building itself is missing from OpenStreetMap and was traced from the coordinator's Google Maps screenshot).
+House 3 is the search cell on the person, just outside the east wall of 2520 Rutford Ave, in the courtyard by Rutford Ave (next to the coordinator's location); the others are Modular Labs 1 and 2, Karl Hoblitzelle Hall (house 4), Engineering and Computer Science North and South, Parking Structure 4, and University Village Buildings 24 to 27.
+Earlier the center was 7716 Worthing St, Dallas TX 75252, with houses on the Worthing St block: houses 1 to 5 on Worthing St, houses 6 to 10 on Benchmark Dr, and 11 and 12 north of Worthing.
 The houses are about 17 m apart, so cells are 15 m.
 `src/geo.ts` converts offsets with `lat = center_lat + north_m / 111320` and `lon = center_lon + east_m / (111320 * cos(center_lat in radians))`, accurate to well under a meter over 500 m.
 `npm run sim -- coords` prints every named point with its `lat` and `lon`.
 
 ```json
 {
-  "site": { "name": "Tornado response, Dallas TX", "center_lat": 32.9968745, "center_lon": -96.7704708, "radius_m": 483, "demo_mode": true, "require_mission_approval": true },
+  "site": { "name": "Tornado response, UT Dallas", "center_lat": 32.9861898, "center_lon": -96.7516083, "radius_m": 350, "demo_mode": true, "require_mission_approval": true },
   "cell_size_m": 15,
   "houses": [
-    { "label": "house 1", "east_m": -33.5, "north_m": 0.8 },
-    { "label": "house 2", "east_m": -17.2, "north_m": 1.3 },
-    { "label": "house 3", "east_m": 1.2, "north_m": 0.7, "demo_pile": true },
-    { "label": "house 4", "east_m": 18.2, "north_m": 0.5, "view_blocked": true },
-    { "label": "house 5", "east_m": 36.7, "north_m": 0.0 },
-    { "label": "house 6", "east_m": -35.3, "north_m": -42.5 },
-    { "label": "house 7", "east_m": -16.3, "north_m": -38.9 },
-    { "label": "house 8", "east_m": 1.9, "north_m": -40.2 },
-    { "label": "house 9", "east_m": 18.1, "north_m": -41.6 },
-    { "label": "house 10", "east_m": 36.1, "north_m": -42.5 },
-    { "label": "apartments 11", "east_m": -5.0, "north_m": 45.9 },
-    { "label": "house 12", "east_m": 25.5, "north_m": 47.7 }
+    { "label": "house 1", "east_m": -154.0, "north_m": 72.6 },
+    { "label": "house 2", "east_m": -97.8, "north_m": 72.5 },
+    { "label": "house 3", "east_m": 26.0, "north_m": -14.0, "demo_pile": true },
+    { "label": "house 4", "east_m": -4.6, "north_m": 66.5, "view_blocked": true },
+    { "label": "house 5", "east_m": 110.5, "north_m": 87.9 },
+    { "label": "house 6", "east_m": -124.8, "north_m": -5.4 },
+    { "label": "house 7", "east_m": 105.1, "north_m": -6.0 },
+    { "label": "house 8", "east_m": -17.0, "north_m": -116.5 },
+    { "label": "house 9", "east_m": -67.1, "north_m": -111.0 },
+    { "label": "house 10", "east_m": -136.5, "north_m": -108.7 },
+    { "label": "apartments 11", "east_m": -26.5, "north_m": -157.9 },
+    { "label": "house 12", "east_m": 82.9, "north_m": 49.3 }
   ],
   "scale_lots": { "file": "site-lots.json", "label_prefix": "lot", "exclude_within_m": 40 },
-  "demo_anchor": { "label": "house 3 front door", "east_m": 1.2, "north_m": -14.3 },
+  "demo_anchor": { "label": "house 3 southeast door", "east_m": 48.3, "north_m": -37.2 },
   "robots": {
     "real": { "robot_id": "dog1" },
     "sim": {
       "robot_id": "sim-dog",
-      "home": { "east_m": 0, "north_m": -20 }
+      "home": { "east_m": 56.0, "north_m": 12.0 }
     },
     "fleet_size": 1
   },
@@ -84,9 +86,9 @@ The houses are about 17 m apart, so cells are 15 m.
   ],
   "extra_sim_rescuers": 0,
   "hidden_survivors": [
-    { "house": "house 3", "east_m": 1.0, "north_m": 13.0, "note": "front yard, under rubble", "level": "immediate", "breathing": "detected", "rate_bpm": 8, "visibility_pct": 35 },
-    { "house": "house 4", "east_m": 16.2, "north_m": 3.5, "note": "front room", "level": "delayed", "breathing": "detected", "rate_bpm": 18, "visibility_pct": 70 },
-    { "house": "house 10", "east_m": 34.1, "north_m": -39.5, "note": "under stairs", "level": "immediate", "breathing": "not_detected", "visibility_pct": 15 }
+    { "house": "house 3", "east_m": 26.0, "north_m": -14.0, "note": "east side, under rubble", "level": "immediate", "breathing": "detected", "rate_bpm": 8, "visibility_pct": 35 },
+    { "house": "house 4", "east_m": -4.6, "north_m": 70.0, "note": "front room", "level": "delayed", "breathing": "detected", "rate_bpm": 18, "visibility_pct": 70 },
+    { "house": "house 10", "east_m": -136.5, "north_m": -106.0, "note": "under stairs", "level": "immediate", "breathing": "not_detected", "visibility_pct": 15 }
   ],
   "family_report": { "house": "house 4", "kind": "missing", "count": 2, "name_or_unit": "family of 2", "source": "family", "note": "both were home" },
   "scale": {
@@ -98,8 +100,17 @@ The houses are about 17 m apart, so cells are 15 m.
     "min_spacing_m": 12,
     "duplicate_pairs": 3
   },
+  "patrol": { "roads_file": "site-roads.json", "speed_mps": [0.8, 1.2], "follow_m": 3, "together_m": 8, "rejoin_speed_mps": 1.8, "min_leg_m": 60 },
+  "scene": {
+    "searched_houses": ["house 1", "house 2", "house 5"],
+    "partial_houses": ["house 4", "house 9"],
+    "radius_m": 250,
+    "immediate": 1,
+    "delayed": 4,
+    "minor": 5
+  },
   "timing": {
-    "speedup": 3,
+    "speedup": 12,
     "robot_heartbeat_ms": 1000,
     "rescuer_heartbeat_ms": 5000,
     "position_ms": 1000,
@@ -118,9 +129,10 @@ Notes:
 
 - Updated 2026-11-08: the JSON above is copied from the committed `backend/sim/demo-site.json`.
   The simulated crew is minimal at Cayden's request: `fleet_size` 1 (so two robot dogs, `sim-dog` and `sim-dog-2`), rescuers Cayden (real, glasses) plus R1 (sim rescuer, key `r1`; R2 was dropped later on 2026-11-08), and `extra_sim_rescuers` 0.
-  `sim-dog` (Dog 1) has its home on Worthing St in front of house 3 (`home` 6 m east, 19 m north), so the Play demo search starts at once.
+  `sim-dog` (Dog 1) has its home on Rutford Ave next to 2520 Rutford Ave (`home` 56 m east, 12 m north), so the Play demo search starts at once.
+  Cayden (the glasses demo walker) starts in the parking lot south of Franklyn Jenifer Dr (92 m at bearing 158 from the center) and walks about 100 m at 8 m/s (four times a brisk walk; every sim walker is sped up the same, `timing.speedup` 12), about 15 seconds.
   `setup` prints "Robots: sim-dog, sim-dog-2" and "Rescuers: R1".
-  `hidden_survivors` now starts with the house 3 person the judged demo finds (in the front yard under rubble, IMMEDIATE, breathing 8 per minute; moved out of the back bedroom on 2026-11-08 so the walk ends in front of the house).
+  `hidden_survivors` now starts with the house 3 person the judged demo finds (just outside the east wall of 2520 Rutford Ave under rubble, IMMEDIATE, breathing 8 per minute).
 - The center is an approximate point near UT Dallas, a placeholder.
   Before the first run, open the dashboard map, move the center to a residential block nearby so mock houses sit on houses, and run `coords` again.
 - "house 3" is the real mock rubble pile at the booth, 140 m north of the center.
@@ -448,9 +460,9 @@ The parts that are not live are tested separately, and the presenter can say so 
 
 The story is short and ends at the find:
 
-1. The robot dog enters 7716 Worthing St (house 3) to search it.
+1. The robot dog searches the east side of 2520 Rutford Ave (house 3).
 2. It searches inside.
-3. It finds the hidden person: IMMEDIATE, breathing 8/min, in the front yard under rubble (the house 3 entry in `hidden_survivors` in `demo-site.json`).
+3. It finds the hidden person: IMMEDIATE, breathing 8/min, in the east side of the building under rubble (the house 3 entry in `hidden_survivors` in `demo-site.json`).
 4. The dashboard and the glasses view show the find, and the demo ends there.
 
 There is no scale 300 run, no glasses walk, no disconnect beat, and no agent-stop beat in the judged demo.
@@ -460,10 +472,10 @@ The timeline `timelines/demo.json`:
 1. `run start Demo`.
 2. `hidden` (arms the hidden survivors).
 3. `robot start` (runs `sim-dog`).
-4. Cue: "The robot dog enters 7716 Worthing St (house 3) to search it".
+4. Cue: "The robot dog searches the east side of 2520 Rutford Ave (house 3)".
 5. After 2 s, `search house 3` (queues a `sim-dog` search mission for house 3).
 6. Await `survivor_in` house 3 for up to 120 s; on timeout, run `robot replay house3` as the fallback.
-7. Cue: "Found: IMMEDIATE, breathing 8/min, front yard under rubble. The dashboard and glasses show it now."
+7. Cue: "Found: IMMEDIATE, breathing 8/min, east side, under rubble. The dashboard and glasses show it now."
 8. Await Enter, then `run end demo`.
 
 Verified live on a local server on 2026-11-08: the find arrived at 0:14 with no fallback.
@@ -517,7 +529,7 @@ Booth checklist for the judged demo:
 
 1. `status` in the sim console: `dog1` online, every agent online, perception online, glasses connected, headline 0.
 2. Previous run ended; a new run's cards count "this run", so no reset is needed unless the board is too busy (local server only).
-3. Teammate in the pile, booth lights dimmed (white light on, if used), robot at the house 3 front door mark.
+3. Teammate in the pile, booth lights dimmed (white light on, if used), robot at the house 3 southeast door mark.
 4. Glasses demo walker reset (`R` on the fallback page), so Cayden starts in the far map view.
 5. Both screens live, map fitted; Screen A shows the live board, and the Agents panel full screen is one key (`A`) away.
 6. Sim rescuers running (`rc`), `hidden` armed, `sim-dog` running (`rb`).

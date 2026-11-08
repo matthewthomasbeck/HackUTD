@@ -124,7 +124,14 @@ struct TerrainHintMsg {
   std::string observed_at;
 };
 
-enum class InboundType { Mission, Cancel, Site, TerrainHint };
+enum class InboundType { Mission, Cancel, Site, TerrainHint, Teleop };
+
+// {"type":"teleop","vx":0.1,"vy":0,"wz":0,"seq":42}: one remote driving command from the website
+// (PROPOSED contract change, docs/specs/robot.md 9.4). Units as MotionCommand.
+struct TeleopMsg {
+  double vx_mps = 0, vy_mps = 0, wz_dps = 0;
+  std::uint64_t seq = 0;
+};
 
 struct InboundMessage {
   InboundType type = InboundType::Cancel;
@@ -132,6 +139,7 @@ struct InboundMessage {
   std::uint64_t cancel_mission_id = 0;  // Cancel
   SiteMsg site;                    // Site
   TerrainHintMsg terrain_hint;     // TerrainHint
+  TeleopMsg teleop;                // Teleop
 };
 
 enum class ParseStatus { Ok, UnknownType, Invalid };

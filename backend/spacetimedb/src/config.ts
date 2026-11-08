@@ -44,6 +44,11 @@ export const OBSERVED_AT_MAX_FUTURE_US = 5_000_000n;
 // Death words are rejected in stored free text (section 5.4).
 export const FORBIDDEN_PATTERN = /\b(dead|deceased|deceas\w*|expectant|corpse)\b|\bbody\s+recovery\b/i;
 
+// Remote driving limits, the same as the robot's limits.max_lin_mps and max_ang_dps (robot.yaml).
+// teleop_drive rejects anything faster; the robot's safety gate clamps again on its side.
+export const TELEOP_MAX_LIN_MPS = 0.2;
+export const TELEOP_MAX_TURN_DPS = 45;
+
 // created_by, from_agent, or agent for rows the module writes itself.
 export const MODULE_ACTOR = 'module';
 

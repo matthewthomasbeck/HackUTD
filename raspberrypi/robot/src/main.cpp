@@ -26,6 +26,7 @@
 #include <atomic>
 #include <cctype>
 #include <chrono>
+#include <cmath>
 #include <csignal>
 #include <cstdint>
 #include <cstdio>
@@ -50,6 +51,7 @@
 #include "hal/device_manager.hpp"
 #include "hal/device_mock.hpp"
 #include "mission/behaviors/behavior.hpp"
+#include "mission/behaviors/teleop.hpp"
 #include "mission/behaviors/thermal_seek.hpp"
 #include "mission/mission_intake.hpp"
 #include "hal/camera.hpp"
@@ -417,6 +419,10 @@ int main(int argc, char** argv) {
   SteadyClock clock;
   std::vector<Event> pending{Event{EventType::config_valid}};
   std::unique_ptr<IBehavior> behavior;
+  // Remote driving: robotctl drive/teleop and the bridge's teleop messages all write here; only a
+  // running "teleop" mission reads it (mission/behaviors/teleop.hpp).
+  auto teleop_input = std::make_shared<TeleopInput>();
+  std::uint64_t teleop_seq = 0;
   std::string mission_kind;
   std::uint64_t mission_id = 0;
   std::uint64_t movement_seq = 0;
@@ -551,18 +557,30 @@ int main(int argc, char** argv) {
                                      {"width", sample->value.width}, {"height", sample->value.height},
                                      {"centi_deg_c", sample->value.centi_deg_c}});
         }
+      } else if (cmd == "drive") {
+        // One teleop command; robotctl drive/teleop re-send it about 10 times a second.
+        const auto num = [&](const char* k) { return req.body.contains(k) && req.body[k].is_number() ? req.body[k].get<double>() : 0.0; };
+        TeleopCommand t{num("vx"), num("vy"), num("wz"), ++teleop_seq, "robotctl"};
+        if (!std::isfinite(t.vx_mps) || !std::isfinite(t.vy_mps) || !std::isfinite(t.wz_dps)) {
+          control.reply(req.client, {{"ok", false}, {"error", "vx, vy and wz must be numbers"}});
+          continue;
+        }
+        teleop_input->write(t, clock.now());
+        json reply = {{"ok", true}};
+        if (mission_kind != "teleop") reply["note"] = "not driving: start a teleop mission first (robotctl start teleop)";
+        control.reply(req.client, reply);
       } else if (cmd == "start") {
         const std::string kind = req.body.value("kind", "hold");
-        if (kind != "hold" && kind != "seek_thermal") {
+        if (kind != "hold" && kind != "seek_thermal" && kind != "teleop") {
           control.reply(req.client, {{"ok", false}, {"error", "unknown mission kind '" + kind +
-                                                                   "' (only hold until the mission runner, R5)"}});
+                                                                   "' (hold, seek_thermal or teleop)"}});
           continue;
         }
         Event e{EventType::start};
         e.mission_kind = kind;  // mission_id 0: a local test mission, not sent to SpacetimeDB
         // With missions.auto_start off, a stored bridge hold mission starts here instead (in READY
         // only, so a start in another state does not fail it).
-        if (machine.state == State::READY && stored_mission && stored_mission->kind == "hold") {
+        if (machine.state == State::READY && stored_mission && stored_mission->kind == kind) {
           e.mission_id = stored_mission->id;
           stored_mission.reset();
         }
@@ -578,7 +596,7 @@ int main(int argc, char** argv) {
         control.reply(req.client, {{"ok", false}, {"error", "commands: status, start, stop, estop, reset, mock, test_detection"}});
       }
     }
-    // The bridge only ever sends mission, cancel, site, and terrain_hint (robot.md 9.4).
+    // The bridge sends mission, cancel, site, terrain_hint (robot.md 9.4), and teleop (PROPOSED).
     for (const auto& msg : bridge.poll(tick_start)) {
       switch (msg.type) {
         case InboundType::Mission: {
@@ -599,7 +617,7 @@ int main(int argc, char** argv) {
               e.mission_id = m.id;
               e.mission_kind = m.kind;
               events.push_back(e);  // the state machine accepts it in READY or rejects it with a note
-              log::info("bridge: mission " + id + " (hold) from " + m.created_by);
+              log::info("bridge: mission " + id + " (" + m.kind + ") from " + m.created_by);
               break;
             }
             case MissionAction::store:
@@ -647,6 +665,11 @@ int main(int argc, char** argv) {
           }
           break;
         }
+        case InboundType::Teleop:
+          // From the website's joystick (CONTRACTS.md 8.3). Only a running teleop mission uses it.
+          teleop_input->write(TeleopCommand{msg.teleop.vx_mps, msg.teleop.vy_mps, msg.teleop.wz_dps, msg.teleop.seq, "web"},
+                              tick_start);
+          break;
       }
     }
 
@@ -683,6 +706,9 @@ int main(int argc, char** argv) {
     if (r.start_mission) {
       if (r.mission.mission_kind == "seek_thermal") {
         behavior = std::make_unique<ThermalSeekBehavior>(cfg.thermal, cfg.seek);
+      } else if (r.mission.mission_kind == "teleop") {
+        teleop_input = std::make_shared<TeleopInput>();  // never drive on a command left from before
+        behavior = std::make_unique<TeleopBehavior>(teleop_input, cfg.teleop_deadman_ms);
       } else {
         behavior = std::make_unique<HoldBehavior>();
       }

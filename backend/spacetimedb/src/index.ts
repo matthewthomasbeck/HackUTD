@@ -6,7 +6,7 @@ import spacetimedb, {
   BriefingKind, AgentName, TaskPriority, TaskStatus, TerrainClass, TerrainAction, PersonReportKind,
   PersonReportSource, AuditFlagKind, AuditFlagStatus, participant, site, search_cell, robot, device_status, mission, detection, survivor, assignment,
   briefing, agent_task, event_log, run, audit_flag, agent_action, person_report, lease_timer,
-  heartbeat_timer, escalation_timer, agent_watchdog, sweep_timer,
+  heartbeat_timer, escalation_timer, agent_watchdog, sweep_timer, teleop,
 } from './schema';
 import { ensureSchedules, setLease, setHeartbeat, cancelLease, cancelHeartbeat, armEscalation, cancelEscalation, addSeconds, resetWatchdog, insertWatchdog } from './lib/timers';
 import { anySite, callerParticipant, isDemo, authorize, requireRobot, activeSite, isCoordinator } from './lib/auth';
@@ -16,7 +16,7 @@ import { checkLatLon, checkNumber, checkConfidence, checkUrl, freeText, checkNam
 import { logEvent, diff, created, activeRunId, rowToPlain, type Plain } from './lib/events';
 import { cellForPoint, siteForPoint, haversineM, metersToDeg } from './lib/geo';
 import { createProposal, setSurvivorStatus, releaseAssignment, acceptProposal, renewRescuer, insertBriefing, chainFor, siteTimings, activeAssignmentsOf, assignmentsOfSurvivor, completeAssignment } from './lib/state';
-import { DISCONNECT_GRACE_S, ROBOT_DISCONNECT_GRACE_S, ROBOT_HEARTBEAT_S, RESCUER_HEARTBEAT_S, AGENT_TASK_LEASE_S, AGENT_TASK_MAX_ATTEMPTS, MIN_THERMAL_CONFIDENCE, MODULE_ACTOR, MAX_OPEN_AGENT_PROPOSALS, MAX_OPEN_TASKS_PER_AGENT, MAX_GRID_CELLS, UNATTENDED_HEADLINE_S, UNPROPOSED_BACKSTOP_S, UNPROPOSED_BACKSTOP_DEMO_S, MERGE_RADIUS_M, DUPLICATE_RADIUS_M, OBSERVED_AT_MAX_FUTURE_US } from './config';
+import { DISCONNECT_GRACE_S, ROBOT_DISCONNECT_GRACE_S, ROBOT_HEARTBEAT_S, RESCUER_HEARTBEAT_S, AGENT_TASK_LEASE_S, AGENT_TASK_MAX_ATTEMPTS, MIN_THERMAL_CONFIDENCE, MODULE_ACTOR, MAX_OPEN_AGENT_PROPOSALS, MAX_OPEN_TASKS_PER_AGENT, MAX_GRID_CELLS, UNATTENDED_HEADLINE_S, UNPROPOSED_BACKSTOP_S, UNPROPOSED_BACKSTOP_DEMO_S, MERGE_RADIUS_M, DUPLICATE_RADIUS_M, OBSERVED_AT_MAX_FUTURE_US, TELEOP_MAX_LIN_MPS, TELEOP_MAX_TURN_DPS } from './config';
 
 type RoleValue = Infer<typeof Role>;
 
@@ -245,6 +245,7 @@ export const lease_expired = spacetimedb.reducer({ onSchedule: lease_timer }, { 
   }
   if (arg.kind.tag === 'mission') {
     const m = ctx.db.mission.id.find(arg.entity_id); if (!m || !m.lease_expires_at || m.lease_expires_at.microsSinceUnixEpoch > now || (m.status.tag !== 'leased' && m.status.tag !== 'active')) return;
+    if (m.kind.tag === 'teleop') { endTeleop(ctx, m, 'lease expired'); return; }
     const r = ctx.db.robot.robot_id.find(m.robot_id); const row = { ...m, status: { tag: 'queued' as const }, robot_id: r?.online ? m.robot_id : '', lease_expires_at: undefined, updated_at: ctx.timestamp };
     ctx.db.mission.id.update(row); if (r?.current_mission_id === m.id) ctx.db.robot.robot_id.update({ ...r, current_mission_id: undefined }); reopenMissionCells(ctx, m); logEvent(ctx, 'mission_requeued', 'mission', m.id, `mission ${m.id} requeued`, diff(m, row)); return;
   }
@@ -262,6 +263,7 @@ function expireTaskLease(ctx: Ctx, task: Infer<typeof agent_task.rowType>): void
 }
 
 function requeueExpiredMission(ctx: Ctx, missionRow: Infer<typeof mission.rowType>): void {
+  if (missionRow.kind.tag === 'teleop') { endTeleop(ctx, missionRow, 'lease expired'); return; }
   const r = ctx.db.robot.robot_id.find(missionRow.robot_id);
   const row = { ...missionRow, status: { tag: 'queued' as const }, robot_id: r?.online ? missionRow.robot_id : '', lease_expires_at: undefined, updated_at: ctx.timestamp };
   ctx.db.mission.id.update(row);
@@ -804,6 +806,7 @@ export const create_mission = spacetimedb.reducer(
     const agent = p.role.tag === 'agent' && p.name === 'orchestrator';
     if (!agent && p.role.tag !== 'coordinator' && p.role.tag !== 'commander' && !(p.role.tag === 'sim' && isDemo(ctx))) throw new SenderError('not allowed to create mission');
     const reason = freeText(args.reason, 200, 'reason', 1); let kind = args.kind;
+    if (kind.tag === 'teleop') throw new SenderError('use take_over to drive a robot');
     if (kind.tag === 'search_cells') {
       if (args.target_cell_ids.length < 1 || args.target_cell_ids.length > 50) throw new SenderError('search_cells needs 1 to 50 cells');
       let hasSearchableCell = false;
@@ -834,7 +837,8 @@ export const cancel_mission = spacetimedb.reducer({ name: 'cancel_mission' }, { 
   if (!m || ['done', 'failed', 'cancelled'].includes(m.status.tag)) throw new SenderError('mission is final');
   cancelLease(ctx, 'mission', m.id); const row = { ...m, status: { tag: 'cancelled' as const }, lease_expires_at: undefined, updated_at: ctx.timestamp }; ctx.db.mission.id.update(row);
   const r = ctx.db.robot.robot_id.find(m.robot_id); if (r?.current_mission_id === m.id) ctx.db.robot.robot_id.update({ ...r, current_mission_id: undefined });
-  reopenMissionCells(ctx, m); logEvent(ctx, 'mission_cancelled', 'mission', m.id, `mission ${m.id} cancelled`, diff(m, row));
+  reopenMissionCells(ctx, m); deleteTeleopRow(ctx, m);
+  logEvent(ctx, 'mission_cancelled', 'mission', m.id, m.kind.tag === 'teleop' ? `remote control of ${m.robot_id} handed back` : `mission ${m.id} cancelled`, diff(m, row));
 });
 
 export const cancel_own_mission = spacetimedb.reducer({ name: 'cancel_own_mission' }, { mission_id: t.u64() }, (ctx, { mission_id }) => {
@@ -861,7 +865,8 @@ export const claim_next_mission = spacetimedb.reducer({ name: 'claim_next_missio
     }
   }
   const queued = [...ctx.db.mission.iter()].filter(m => m.status.tag === 'queued' && (m.robot_id === '' || m.robot_id === robot_id));
-  queued.sort((a, b) => Number(b.target_cell_ids.some(id => (ctx.db.search_cell.id.find(id)?.unaccounted ?? 0) > 0)) - Number(a.target_cell_ids.some(id => (ctx.db.search_cell.id.find(id)?.unaccounted ?? 0) > 0)) || Number(a.id - b.id));
+  // A person taking a robot over comes before any search; then unaccounted cells first, then oldest.
+  queued.sort((a, b) => Number(b.kind.tag === 'teleop') - Number(a.kind.tag === 'teleop') || Number(b.target_cell_ids.some(id => (ctx.db.search_cell.id.find(id)?.unaccounted ?? 0) > 0)) - Number(a.target_cell_ids.some(id => (ctx.db.search_cell.id.find(id)?.unaccounted ?? 0) > 0)) || Number(a.id - b.id));
   const m = queued[0]; if (!m) return;
   const due = addSeconds(ctx, siteTimings(ctx).mission_lease_s); const row = { ...m, robot_id, status: { tag: 'leased' as const }, lease_expires_at: new Timestamp(due), updated_at: ctx.timestamp }; ctx.db.mission.id.update(row);
   ctx.db.robot.robot_id.update({ ...r, current_mission_id: m.id }); setLease(ctx, 'mission', m.id, due);
@@ -875,8 +880,54 @@ export const mission_progress = spacetimedb.reducer({ name: 'mission_progress' }
   freeText(args.note, 500, 'note');
   if (args.status.tag === 'active') { const due = addSeconds(ctx, siteTimings(ctx).mission_lease_s); const row = { ...m, status: args.status, lease_expires_at: new Timestamp(due), updated_at: ctx.timestamp }; ctx.db.mission.id.update(row); setLease(ctx, 'mission', m.id, due); return; }
   cancelLease(ctx, 'mission', m.id); const row = { ...m, status: args.status, lease_expires_at: undefined, updated_at: ctx.timestamp }; ctx.db.mission.id.update(row);
-  const r = ctx.db.robot.robot_id.find(m.robot_id); if (r?.current_mission_id === m.id) ctx.db.robot.robot_id.update({ ...r, current_mission_id: undefined }); reopenMissionCells(ctx, m);
+  const r = ctx.db.robot.robot_id.find(m.robot_id); if (r?.current_mission_id === m.id) ctx.db.robot.robot_id.update({ ...r, current_mission_id: undefined }); reopenMissionCells(ctx, m); deleteTeleopRow(ctx, m);
   logEvent(ctx, args.status.tag === 'done' ? 'mission_done' : 'mission_failed', 'mission', m.id, args.note, diff(m, row), args.observed_at ?? undefined);
+});
+
+// Remote driving (docs/specs/robot.md section 18.1). A person at the dashboard takes a robot over, drives it, and
+// hands it back with cancel_mission. take_over puts the robot's running mission back in its queue (the bridge then
+// cancels it on the robot, and it resumes after the hand back) and queues a teleop mission that claim_next_mission
+// hands out first. The robot stops by itself 300 ms after the last teleop row update. Agents can never drive.
+function openTeleop(ctx: Ctx, robot_id: string): Infer<typeof mission.rowType> | undefined {
+  for (const m of ctx.db.mission.robot_id.filter(robot_id)) if (m.kind.tag === 'teleop' && ['queued', 'leased', 'active'].includes(m.status.tag)) return m;
+  return undefined;
+}
+
+function deleteTeleopRow(ctx: Ctx, m: Infer<typeof mission.rowType>): void {
+  if (m.kind.tag === 'teleop' && ctx.db.teleop.robot_id.find(m.robot_id)) ctx.db.teleop.robot_id.delete(m.robot_id);
+}
+
+// A teleop mission is never requeued: driving belongs to the person who took the robot over, so it just ends.
+function endTeleop(ctx: Ctx, m: Infer<typeof mission.rowType>, why: string): void {
+  cancelLease(ctx, 'mission', m.id); const row = { ...m, status: { tag: 'cancelled' as const }, lease_expires_at: undefined, updated_at: ctx.timestamp }; ctx.db.mission.id.update(row);
+  const r = ctx.db.robot.robot_id.find(m.robot_id); if (r?.current_mission_id === m.id) ctx.db.robot.robot_id.update({ ...r, current_mission_id: undefined });
+  deleteTeleopRow(ctx, m); logEvent(ctx, 'mission_cancelled', 'mission', m.id, `remote control of ${m.robot_id} ended: ${why}`, diff(m, row));
+}
+
+export const take_over = spacetimedb.reducer({ name: 'take_over' }, { robot_id: t.string(), reason: t.string() }, (ctx, args) => {
+  const p = authorize(ctx, { roles: ['coordinator', 'commander'], human: true }); const reason = freeText(args.reason, 200, 'reason', 1);
+  const r = ctx.db.robot.robot_id.find(args.robot_id); if (!r) throw new SenderError('robot not found'); if (!r.online) throw new SenderError(`${r.robot_id} is offline`);
+  const open = openTeleop(ctx, r.robot_id); if (open) throw new SenderError(`${open.created_by} is already driving ${r.robot_id}`);
+  for (const m of [...ctx.db.mission.robot_id.filter(r.robot_id)]) {
+    if (m.status.tag !== 'leased' && m.status.tag !== 'active') continue;
+    cancelLease(ctx, 'mission', m.id); const paused = { ...m, status: { tag: 'queued' as const }, lease_expires_at: undefined, updated_at: ctx.timestamp }; ctx.db.mission.id.update(paused);
+    reopenMissionCells(ctx, m); logEvent(ctx, 'mission_requeued', 'mission', m.id, `mission ${m.id} paused: ${p.name} took over ${r.robot_id}`, diff(m, paused));
+  }
+  ctx.db.robot.robot_id.update({ ...r, current_mission_id: undefined });
+  const row = ctx.db.mission.insert({ id: 0n, chain_id: 0n, robot_id: r.robot_id, kind: { tag: 'teleop' }, target_cell_ids: [], target_lat: undefined, target_lon: undefined, status: { tag: 'queued' }, lease_expires_at: undefined, created_by: p.name, reason, created_at: ctx.timestamp, updated_at: ctx.timestamp });
+  const still = { robot_id: r.robot_id, vx_mps: 0, vy_mps: 0, wz_dps: 0, seq: 0n, sent_by: ctx.sender, sent_at: ctx.timestamp };
+  if (ctx.db.teleop.robot_id.find(r.robot_id)) ctx.db.teleop.robot_id.update(still); else ctx.db.teleop.insert(still);
+  logEvent(ctx, 'mission_created', 'mission', row.id, `${p.name} took over ${r.robot_id}`, created(row));
+});
+
+// One driving command, about 10 a second while a key is held. Not logged: the mission start and end are.
+export const teleop_drive = spacetimedb.reducer({ name: 'teleop_drive' }, { robot_id: t.string(), vx_mps: t.f64(), vy_mps: t.f64(), wz_dps: t.f64(), seq: t.u64() }, (ctx, args) => {
+  authorize(ctx, { roles: ['coordinator', 'commander'], human: true });
+  const m = openTeleop(ctx, args.robot_id); if (!m) throw new SenderError(`${args.robot_id} is not under remote control`);
+  if (m.status.tag === 'queued') throw new SenderError(`${args.robot_id} has not taken the remote control mission yet`);
+  const prior = ctx.db.teleop.robot_id.find(args.robot_id); if (!prior || !prior.sent_by.isEqual(ctx.sender)) throw new SenderError(`${m.created_by} is driving ${args.robot_id}`);
+  checkNumber(args.vx_mps, -TELEOP_MAX_LIN_MPS, TELEOP_MAX_LIN_MPS, 'vx_mps'); checkNumber(args.vy_mps, -TELEOP_MAX_LIN_MPS, TELEOP_MAX_LIN_MPS, 'vy_mps'); checkNumber(args.wz_dps, -TELEOP_MAX_TURN_DPS, TELEOP_MAX_TURN_DPS, 'wz_dps');
+  ctx.db.teleop.robot_id.update({ ...prior, vx_mps: args.vx_mps, vy_mps: args.vy_mps, wz_dps: args.wz_dps, seq: args.seq, sent_at: ctx.timestamp });
 });
 
 export const rescuer_ask = spacetimedb.reducer({name:'rescuer_ask'},{text:t.string(),audio_url:t.option(t.string()),survivor_id:t.option(t.u64())},(ctx,args)=>{

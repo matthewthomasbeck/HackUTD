@@ -1,4 +1,4 @@
-// Full-bleed site map (paper and ink): the neighborhood from OpenStreetMap as quiet context, the block's houses
+// Full-bleed site map (paper and ink): the campus from OpenStreetMap as quiet context, the tracked buildings
 // filled by their live state, survivors, rescuers with their street routes, and robots. Drawn as SVG in local
 // meters, framed so the block sits in the free space between the floating cards. Drag to pan, scroll to zoom.
 import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
@@ -36,7 +36,7 @@ const PAN_LIMIT = { east: 650, north: 450 };
 const ZOOM_LIMIT = { min: 0.5, max: 6 };
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const ROAD_WIDTH_M: Record<string, number> = { motorway: 30, trunk: 24, primary: 20, secondary: 17, tertiary: 12, residential: 10, unclassified: 9, service: 4.5 };
+const ROAD_WIDTH_M: Record<string, number> = { motorway: 30, trunk: 24, primary: 20, secondary: 17, tertiary: 12, residential: 10, unclassified: 9, living_street: 8, pedestrian: 7, service: 4.5 };
 const FILL: Partial<Record<HouseState, string>> = {
   immediate: 'var(--house-target)', delayed: 'var(--house-partial)', unscored: 'var(--house-partial)', unaccounted: 'var(--house-partial)',
   partial: 'var(--house-partial)', searched: 'var(--house-searched)', searching: 'var(--brand-soft)',
@@ -47,13 +47,10 @@ const STROKE: Partial<Record<HouseState, string>> = {
 };
 // Street names placed by hand for this fixed site, where each label reads best.
 const LABELS: Array<{ at: GeoPoint; text: string; rotate?: number; size?: number }> = [
-  { at: { lat: 32.99770, lon: -96.7699 }, text: 'Frankford Rd', size: 15 },
-  { at: { lat: 32.99610, lon: -96.76785 }, text: 'Coit Rd', rotate: -90, size: 15 },
-  { at: { lat: 32.99708, lon: -96.7716 }, text: 'Worthing St' },
-  { at: { lat: 32.99655, lon: -96.76925 }, text: 'Worthing St', rotate: 90 },
-  { at: { lat: 32.99740, lon: -96.77110 }, text: 'Bardsley Wy', rotate: -90 },
-  { at: { lat: 32.99630, lon: -96.7730 }, text: 'Benchmark Dr' },
-  { at: { lat: 32.99640, lon: -96.7650 }, text: 'Highland Springs', size: 13 },
+  { at: { lat: 32.98760, lon: -96.75100 }, text: 'Rutford Ave', rotate: -90, size: 15 },
+  { at: { lat: 32.98500, lon: -96.75100 }, text: 'Rutford Ave', rotate: -90 },
+  { at: { lat: 32.98566, lon: -96.75390 }, text: 'Franklyn Jenifer Dr', size: 15 },
+  { at: { lat: 32.98566, lon: -96.74880 }, text: 'Franklyn Jenifer Dr' },
 ];
 
 // The neighborhood never changes, so this layer only re-renders when the site does, not on every live update.
@@ -159,7 +156,7 @@ export const SiteMap = forwardRef<SiteMapHandle, Props>(function SiteMap(props, 
 
   return <div className="site-map" ref={ref} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
     onClickCapture={(event) => { if (wasDrag.current) { event.stopPropagation(); wasDrag.current = false; } }}>
-    <svg viewBox={viewBox.join(' ')} preserveAspectRatio="none" role="img" aria-label="Map of the Worthing St block with house search states, survivors, rescuers and robots">
+    <svg viewBox={viewBox.join(' ')} preserveAspectRatio="none" role="img" aria-label="Map of the buildings around 2520 Rutford Ave with search states, survivors, rescuers and robots">
       <rect x={viewBox[0]! - 50} y={viewBox[1]! - 50} width={viewBox[2]! + 100} height={viewBox[3]! + 100} fill="var(--map-paper)" />
       <ContextLayer context={context} />
 

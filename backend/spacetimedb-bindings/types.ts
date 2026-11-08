@@ -334,6 +334,7 @@ export const MissionKind = __t.enum("MissionKind", {
   Inspect: __t.unit(),
   ReturnHome: __t.unit(),
   Hold: __t.unit(),
+  Teleop: __t.unit(),
 });
 export type MissionKind = __Infer<typeof MissionKind>;
 
@@ -618,6 +619,17 @@ export const TaskStatus = __t.enum("TaskStatus", {
   Expired: __t.unit(),
 });
 export type TaskStatus = __Infer<typeof TaskStatus>;
+
+export const Teleop = __t.object("Teleop", {
+  robotId: __t.string(),
+  vxMps: __t.f64(),
+  vyMps: __t.f64(),
+  wzDps: __t.f64(),
+  seq: __t.u64(),
+  sentBy: __t.identity(),
+  sentAt: __t.timestamp(),
+});
+export type Teleop = __Infer<typeof Teleop>;
 
 // The tagged union or sum type for the algebraic type `TerrainAction`.
 export const TerrainAction = __t.enum("TerrainAction", {

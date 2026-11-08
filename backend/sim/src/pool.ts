@@ -75,7 +75,7 @@ export class SimPool {
             tables.briefing, tables.criticalOpen, tables.myAssignment, tables.myBriefing, tables.mySurvivor,
           ]
           : role === 'robot'
-            ? [tables.site, tables.searchCell, tables.robot, tables.mission]
+            ? [tables.site, tables.searchCell, tables.robot, tables.mission, tables.teleop]
             : [tables.site, tables.myAssignment, tables.mySurvivor];
         let pending = subscriptions.length;
         let registrationStarted = false;

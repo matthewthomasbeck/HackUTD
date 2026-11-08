@@ -1,5 +1,5 @@
-// UnderDog, the coordinator dashboard: a full-bleed map of the Worthing St block with floating cards
-// (who needs help first; the database headline; rescuers and robot; houses) and an Agents page.
+// UnderDog, the coordinator dashboard: a full-bleed map of the buildings around 2520 Rutford Ave (UT Dallas) with
+// floating cards (who needs help first; the database headline; rescuers and robot; buildings) and an Agents page.
 // All data comes live from SpacetimeDB through useBoard(); see src/view/derive.ts for what each card shows.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSpacetimeDB } from 'spacetimedb/react';
@@ -25,10 +25,11 @@ import { buildStreetGraph } from './site/route';
 import { DEMO_RESCUER, demoStepLabel, glassesMismatch, runDemo, type DemoStep, type GlassesDemoCommand } from './view/demo';
 import {
   agentCards, chainOptions, chainSteps, glassesRescuers, headline, helpRows, houseSummary, mapLayers, onlineRescuers, peopleRows,
-  pendingMissions, robotFrames, systemChips, taskTimeline,
+  pendingMissions, robotControls, robotFrames, systemChips, taskTimeline,
 } from './view/derive';
+import type { DriveCommand } from './model/teleop';
 
-const DEMO_HOUSE = { lat: 32.9968745, lon: -96.7704708 }; // 7716 Worthing St, until the site row arrives
+const DEMO_HOUSE = { lat: 32.9861898, lon: -96.7516083 }; // 2520 Rutford Ave, until the site row arrives
 // The floating card columns (see .fcol in underdog.css, narrower under 1500 px), so the map frames the block between them.
 // Where Camera View finds the glasses heads-up: the glasses fallback page and the glasses service socket.
 // Set VITE_GLASSES_PAGE_URL and VITE_GLASSES_WS_URL, or ?glassesPage= and ?glassesWs= on the dashboard URL.
@@ -66,6 +67,7 @@ async function glassesPost(path: string, what: string, body?: object): Promise<v
   }
 }
 
+const NO_INSETS = { left: 0, right: 0 }; // the map in Camera View has no floating cards to frame around
 const insetsFor = (width: number) => (width <= 1500 ? { left: 424, right: 344 } : { left: 494, right: 384 });
 
 const resolutions: Record<Resolution, ResolutionValue> = { rescued: { tag: 'Rescued' }, handed_off: { tag: 'HandedOff' }, false_alarm: { tag: 'FalseAlarm' }, duplicate: { tag: 'Duplicate' } };
@@ -134,6 +136,11 @@ export default function App({ config }: { config: DashboardConfig }) {
   const chains = useMemo(() => chainOptions(board, site), [board, site]);
   const activeChain = chainId !== null && chains.some((row) => row.id === chainId) ? chainId : chains[0]?.id ?? null;
   const house = houseId ? houses.views.find((view) => view.house.id === houseId) : undefined;
+  const myName = board.participants.find((row) => row.identity.toHexString() === identityHex)?.name ?? '';
+  const controls = useMemo(() => robotControls(board, site, myName), [board, site, myName]);
+  // The robot this screen drives, which Camera View's map follows.
+  const drivenRow = board.robots.find((row) => controls.some((item) => item.robotId === row.robotId && item.control.kind === 'mine'));
+  const driven = drivenRow && typeof drivenRow.lat === 'number' && typeof drivenRow.lon === 'number' ? { lat: drivenRow.lat, lon: drivenRow.lon } : undefined;
 
   const showToast = (message: string) => { setToast(message); window.setTimeout(() => setToast(''), 6000); };
   const call = async (action: () => Promise<unknown>, done: string) => {
@@ -198,6 +205,14 @@ export default function App({ config }: { config: DashboardConfig }) {
       showToast(error instanceof Error ? error.message : String(error));
     });
   };
+  // Remote driving from Camera View (docs/specs/robot.md 18.1).
+  const robotLabel = (robotId: string) => controls.find((row) => row.robotId === robotId)?.name ?? robotId;
+  const takeOver = (robotId: string) => call(() => connection!.reducers.takeOver({ robotId, reason: 'operator took over in Camera View' }),
+    `${robotLabel(robotId)} is stopping its mission. You drive once it takes control.`);
+  const handBack = (missionId: bigint) => call(() => connection!.reducers.cancelMission({ missionId }), 'Handed back. The robot resumes its missions.');
+  const drive = (robotId: string, command: DriveCommand, seq: bigint) => connection
+    ? connection.reducers.teleopDrive({ robotId, vxMps: command.vx, vyMps: command.vy, wzDps: command.wz, seq })
+    : Promise.reject(new Error('No database connection.'));
   const runActive = Boolean(board.run && !board.run.endedAt);
   const toggleRun = () => {
     if (runActive && board.run) void call(() => connection!.reducers.endRun({ runId: board.run!.id, notes: '' }), 'Run recording stopped.').catch(() => {});
@@ -259,7 +274,11 @@ export default function App({ config }: { config: DashboardConfig }) {
     {/* Kept mounted (hidden) while the demo runs: it is Cayden's glasses connection, and closing it would release his assignment. */}
     {(glassesOpen || demoBusy) && <GlassesPanel url={glassesViewUrl(DEMO_RESCUER, true)} hidden={!glassesOpen || page !== 'board'} status={demoStep ? demoStepLabel[demoStep] : ''}
       onClose={() => { setGlassesOpen(false); if (!demoBusy) setDemoStep(null); }} />}
-    {cameras && <CameraView robots={robotFrames(board, site)} rescuers={glassesRescuers(board)} glassesUrl={glassesViewUrl} replay={replayMode} onClose={() => setCameras(false)} />}
+    {cameras && <CameraView robots={robotFrames(board, site)} controls={controls} rescuers={glassesRescuers(board)} glassesUrl={glassesViewUrl} replay={replayMode} readOnly={readOnly}
+      map={site && <SiteMap site={site} origin={driven ?? origin} houses={houses.views} survivors={layersData.survivors} rescuers={layersData.rescuers} robots={layersData.robots}
+        routes={layersData.routes} layers={layers} selectedSurvivorId={null} selectedHouseId={null} insets={NO_INSETS}
+        onSelectHouse={() => {}} onSelectSurvivor={() => {}} onScale={() => {}} onMoved={() => {}} />}
+      onTakeOver={takeOver} onHandBack={handBack} onDrive={drive} onDriveError={showToast} onClose={() => setCameras(false)} />}
     {toast && <div className="toast" role="status">{toast}</div>}
   </main>;
 }

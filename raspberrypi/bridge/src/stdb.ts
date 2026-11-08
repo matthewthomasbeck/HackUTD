@@ -1,7 +1,7 @@
 // The robot's one SpacetimeDB connection (robot.md 9.2), through the TypeScript SDK and the
 // generated bindings in backend/spacetimedb-bindings.
 // - The token file is the robot's identity: mode 0600, one file per server (config.tokenPathFor).
-// - After connect: subscribe to the six queries, call register_participant(ROBOT_ID, robot), and
+// - After connect: subscribe to the seven queries, call register_participant(ROBOT_ID, robot), and
 //   only then report ready, so nothing is sent (and rejected) before the role exists.
 // - withAutomaticReconnect handles drops; our own backoff (1, 2, 4 ... 30 s) covers the first
 //   connect and any case where the SDK stops retrying.
@@ -13,7 +13,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DbConnection } from '../../../backend/spacetimedb-bindings/index.js';
-import { Role, type Mission, type Site } from '../../../backend/spacetimedb-bindings/types.js';
+import { Role, type Mission, type Site, type Teleop } from '../../../backend/spacetimedb-bindings/types.js';
 import { tokenPathFor, type BridgeConfig } from './config.ts';
 import type { ReducerCall } from './mapping.ts';
 import type { DetectionRef } from './media.ts';
@@ -27,6 +27,8 @@ export interface StdbHandlers {
   onMissionDelete: (row: Mission) => void;
   onSiteChange: () => void;
   onRobotRow: () => void;
+  /** live: a reducer just wrote the row (not a row replayed by a new subscription). */
+  onTeleop: (row: Teleop, live: boolean) => void;
 }
 
 const CALL_TIMEOUT_MS = 15_000;
@@ -40,6 +42,7 @@ export function subscriptionQueries(robotId: string): string[] {
     "SELECT * FROM mission WHERE robot_id = ''",
     `SELECT * FROM robot WHERE robot_id = '${robotId}'`,
     `SELECT * FROM detection WHERE robot_id = '${robotId}'`,
+    `SELECT * FROM teleop WHERE robot_id = '${robotId}'`,
     'SELECT * FROM site',
     'SELECT * FROM search_cell',
   ];
@@ -49,6 +52,14 @@ export function subscriptionQueries(robotId: string): string[] {
 export function classifyError(error: unknown): Exclude<SendOutcome, 'ok'> {
   const name = error instanceof Error ? error.name : '';
   return name === 'SenderError' || name === 'InternalError' ? 'rejected' : 'network';
+}
+
+/**
+ * True for a row change a reducer just made: `Transaction` when another client called it (the dashboard's
+ * teleop_drive), `Reducer` when this client did. False for rows a (re)subscription replays (`SubscribeApplied`).
+ */
+export function isLiveEvent(tag: string): boolean {
+  return tag === 'Transaction' || tag === 'Reducer';
 }
 
 /** Our own reconnect waits: 1, 2, 4, 8, 16, 30, 30 ... seconds. */
@@ -245,6 +256,8 @@ export class StdbLink {
     conn.db.mission.onUpdate((_ctx, oldRow, newRow) => this.handlers.onMissionUpdate(oldRow, newRow));
     conn.db.mission.onDelete((_ctx, row) => this.handlers.onMissionDelete(row));
     conn.db.robot.onInsert(() => this.handlers.onRobotRow());
+    conn.db.teleop.onInsert((ctx, row) => this.handlers.onTeleop(row, isLiveEvent(ctx.event.tag)));
+    conn.db.teleop.onUpdate((ctx, _oldRow, newRow) => this.handlers.onTeleop(newRow, isLiveEvent(ctx.event.tag)));
     conn.db.site.onInsert(() => this.handlers.onSiteChange());
     conn.db.site.onUpdate(() => this.handlers.onSiteChange());
   }

@@ -232,6 +232,41 @@ printf 'PASS backstop proposes for an unproposed IMMEDIATE while the orchestrato
 kill "${HB3_PID}" "${HB4_PID}" "${WS3_PID}" "${WS4_PID}" 2>/dev/null || true
 wait "${HB3_PID}" "${HB4_PID}" "${WS3_PID}" "${WS4_PID}" 2>/dev/null || true
 
+# Remote driving (robot.md 18.1): take over, drive, hand back.
+new_identity; DRIVER_TOKEN="${TOKEN}"
+call_ok "${DRIVER_TOKEN}" register_participant '["coordinator-T",{"coordinator":[]}]'
+new_identity; DRIVER2_TOKEN="${TOKEN}"
+call_ok "${DRIVER2_TOKEN}" register_participant '["coordinator-U",{"coordinator":[]}]'
+call_ok "${SIM_TOKEN}" robot_heartbeat '["simtele",{"READY":[]},{"some":90},{"none":[]}]'
+call_ok "${DRIVER_TOKEN}" create_mission '["simtele",{"hold":[]},[],{"none":[]},{"none":[]},"wait here",0]'
+call_ok "${SIM_TOKEN}" claim_next_mission '["simtele"]'
+HOLD_ID="$(sql_value "${SIM_TOKEN}" "SELECT id FROM mission WHERE robot_id = 'simtele' AND reason = 'wait here'" | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8"))[0].rows[0][0]')"
+call_fail "${DRIVER_TOKEN}" create_mission '["simtele",{"teleop":[]},[],{"none":[]},{"none":[]},"drive",0]'
+call_fail "${ORCHESTRATOR_TOKEN}" take_over '["simtele","agent wants to drive"]'
+call_fail "${RESCUER_TOKEN}" take_over '["simtele","rescuer wants to drive"]'
+call_ok "${DRIVER_TOKEN}" take_over '["simtele","drive into the rubble"]'
+[[ "$(sql_count "${SIM_TOKEN}" "SELECT id FROM event_log WHERE kind = 'mission_requeued' AND entity_id = ${HOLD_ID}")" == 1 ]]
+[[ "$(sql_count "${SIM_TOKEN}" "SELECT robot_id FROM teleop WHERE robot_id = 'simtele' AND vx_mps = 0")" == 1 ]]
+printf 'PASS take_over pauses the running mission and zeroes the teleop row\n'
+call_fail "${DRIVER2_TOKEN}" take_over '["simtele","second operator"]'
+call_fail "${DRIVER_TOKEN}" teleop_drive '["simtele",0.1,0,0,1]'
+call_ok "${SIM_TOKEN}" claim_next_mission '["simtele"]'
+TELEOP_ID="$(sql_value "${SIM_TOKEN}" "SELECT id FROM mission WHERE robot_id = 'simtele' AND reason = 'drive into the rubble'" | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8"))[0].rows[0][0]')"
+[[ "$(sql_value "${SIM_TOKEN}" "SELECT current_mission_id FROM robot WHERE robot_id = 'simtele'")" == *"${TELEOP_ID}"* ]]
+printf 'PASS claim_next_mission hands out the teleop mission before the paused one\n'
+call_ok "${DRIVER_TOKEN}" teleop_drive '["simtele",0.15,-0.05,20,2]'
+[[ "$(sql_count "${SIM_TOKEN}" "SELECT robot_id FROM teleop WHERE robot_id = 'simtele' AND vx_mps = 0.15 AND wz_dps = 20 AND seq = 2")" == 1 ]]
+printf 'PASS teleop_drive stores the newest command\n'
+call_fail "${DRIVER_TOKEN}" teleop_drive '["simtele",0.5,0,0,3]'
+call_fail "${DRIVER_TOKEN}" teleop_drive '["simtele",0,0,90,3]'
+call_fail "${DRIVER2_TOKEN}" teleop_drive '["simtele",0.1,0,0,3]'
+call_fail "${RESCUER_TOKEN}" teleop_drive '["simtele",0.1,0,0,3]'
+call_fail "${SIM_TOKEN}" teleop_drive '["simtele",0.1,0,0,3]'
+call_ok "${DRIVER_TOKEN}" cancel_mission "[${TELEOP_ID}]"
+[[ "$(sql_count "${SIM_TOKEN}" "SELECT robot_id FROM teleop WHERE robot_id = 'simtele'")" == 0 ]]
+call_fail "${DRIVER_TOKEN}" teleop_drive '["simtele",0.1,0,0,4]'
+printf 'PASS hand back ends remote control and deletes the teleop row\n'
+
 RESULT="$(sql_value "${SIM_TOKEN}" 'SELECT id FROM survivor')"
 printf '%s' "${RESULT}" | node -e 'const x=JSON.parse(require("fs").readFileSync(0,"utf8")); if(x[0].rows.length<5) process.exit(1)'
 printf 'PASS survivor records remain append-only through smoke flow\n'

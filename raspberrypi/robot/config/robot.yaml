@@ -110,6 +110,7 @@ terrain:
   camera_hint: { enabled: false, frame_every_s: 1.0, max_age_ms: 1500, weight: 0.3 }
 scan: { seconds_per_cell: 10, mode: rotate, rotate_wz_dps: 20, dedupe_deg: 15, dedupe_m: 1.0, min_view_m: 0.5, min_fresh_frac: 0.9, min_clear_frac: 0.7 }
 inspect: { standoff_m: 1.0, approach_timeout_s: 10, settle_s: 2, still_gyro_dps: 2.0 }
+teleop: { deadman_ms: 300 }         # remote driving: no command this long and the robot stops
 seek:                               # seek_thermal mission (robotctl start seek_thermal); tune on the floor
   scan_step_s: 1.0                  # turn this long (at scan.rotate_wz_dps)...
   scan_dwell_s: 1.0                 # ...then hold still this long to look
@@ -131,9 +132,9 @@ breathing: { clip_s: 20 }                                   # validation: >= 15
 nav: { match_radius_m: 5, min_clearance_m: 0.30, blocked_timeout_s: 5 }
 hold: { max_s: 0, inspect_candidates: false }
 missions: { auto_start: true, max_cells: 20, target_margin_m: 50, max_target_distance_m: 600, search_without_path: true, on_bridge_loss: finish_step_then_hold }   # auto_start, on_bridge_loss TBD team
-site: { demo_mode_default: true, center_lat: 32.9968745, center_lon: -96.7704708, radius_m: 483 }   # until the bridge sends `site`; center from backend/sim/demo-site.json
+site: { demo_mode_default: true, center_lat: 32.9861898, center_lon: -96.7516083, radius_m: 350 }   # until the bridge sends `site`; center from backend/sim/demo-site.json
 location: { force_demo: false }
-home: { lat: 32.9966948, lon: -96.7704708 }                  # demo home: backend/sim/demo-site.json sim robot home (20 m south of center)
+home: { lat: 32.9862976, lon: -96.7510086 }                  # demo home: backend/sim/demo-site.json sim robot home (on Rutford Ave, 56 m east and 12 m north of center)
 heading: { initial_deg: 0, gps_min_speed_mps: 0.5, source: imu, gyro_axis: z, gyro_sign: -1 }   # gyro_axis and gyro_sign TBD per IMU mounting (-1: positive gz is counterclockwise)
 odometry: { scale: 1.0 }                                    # TBD: drive 2 m and measure
 paths_file: /etc/robot/demo_paths.yaml

@@ -80,7 +80,7 @@ Live: SpacetimeDB only, the Maincloud database `assess-0hw81` (or a local Spacet
 Every rule, timer, and subscription in the module is real.
 The dashboard and the glasses view (on the G2 or the fallback page) are real clients that render live from SpacetimeDB subscriptions.
 
-Simulated (scripted by the simulator): the robot (`sim-dog`), its search of 7716 Worthing St (house 3), the find, the breathing result (8 per minute) and critical score (IMMEDIATE), and any rescuer actions.
+Simulated (scripted by the simulator): the robot (`sim-dog`), its search of 2520 Rutford Ave, UT Dallas (house 3), the find, the breathing result (8 per minute) and critical score (IMMEDIATE), and any rescuer actions.
 
 Not live in the judged demo: the Nemotron agents, the perception service, the real robot, and the real G2 hardware.
 They are built and tested separately: agents 109 tests, 8 scenarios, and a Brev real-model validation; perception 753 tests; the robot foundation in `raspberrypi/robot/` and the Pico firmware in `pico/`.

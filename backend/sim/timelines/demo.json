@@ -2,10 +2,10 @@
   { "at": "0:00", "cmd": "run start Demo" },
   { "cmd": "hidden" },
   { "cmd": "robot start" },
-  { "say": "The robot dog enters 7716 Worthing St (house 3) to search it" },
+  { "say": "The robot dog searches the east side of 2520 Rutford Ave (house 3)" },
   { "after_s": 2, "cmd": "search house 3" },
   { "await": "survivor_in", "house": "house 3", "timeout_s": 120, "else": "robot replay house3", "say_on_timeout": "Search did not finish; replaying the house 3 find" },
-  { "say": "Found: IMMEDIATE, breathing 8/min, front yard under rubble. The dashboard and glasses show it now." },
+  { "say": "Found: IMMEDIATE, breathing 8/min, east side, under rubble. The dashboard and glasses show it now." },
   { "await": "key", "say": "Press Enter to end the run" },
   { "cmd": "run end demo" }
 ]

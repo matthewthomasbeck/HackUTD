@@ -9,6 +9,14 @@ import { replayHouse3 } from './replay.ts';
 import { SCALE_HOLD_REASON } from './scale.ts';
 
 const SWEEP_S = 5;
+// Remote driving, as the robot's TeleopBehavior (docs/specs/robot.md 18.1): drive on the newest teleop row and stop
+// when it has not changed for the dead-man time. A full stick (the robot's 0.2 m/s limit) moves the sim dog at
+// SIM_DRIVE_MPS, fast enough to show on the map and slow enough to steer, whatever timing.speedup is.
+const TELEOP_DEADMAN_MS = 300;
+const TELEOP_MAX_LIN_MPS = 0.2;
+const TELEOP_STEP_MS = 100;
+const TELEOP_REPORT_MS = 250;
+const SIM_DRIVE_MPS = 4;
 
 export class SimRobotRunner {
   private readonly timers = new Map<string, NodeJS.Timeout[]>();
@@ -148,11 +156,33 @@ export class SimRobotRunner {
     }
   }
 
-  private async runMission(actor: SimActor, mission: Mission, signal: AbortSignal): Promise<void> {
+  // Runs one mission until it is done, or until its row stops being this dog's leased or active mission (cancelled, or
+  // paused by a take-over), as the bridge's cancel stops the real robot.
+  private async runMission(actor: SimActor, mission: Mission, loopSignal: AbortSignal): Promise<void> {
+    const ended = new AbortController();
+    const stop = () => ended.abort();
+    loopSignal.addEventListener('abort', stop, { once: true });
+    const watch = setInterval(() => {
+      const row = Array.from(actor.connection.db.mission.iter()).find((item) => item.id === mission.id);
+      if (!row || row.robotId !== this.dogId || (row.status.tag !== 'Leased' && row.status.tag !== 'Active')) stop();
+    }, 250);
+    try {
+      await this.runMissionSteps(actor, mission, ended.signal);
+    } finally {
+      clearInterval(watch);
+      loopSignal.removeEventListener('abort', stop);
+    }
+  }
+
+  private async runMissionSteps(actor: SimActor, mission: Mission, signal: AbortSignal): Promise<void> {
     const reducers = actor.connection.reducers;
     this.states.set(this.dogId, RobotState.Active);
     console.log(`${this.dogId} running mission ${mission.id} (${mission.kind.tag})`);
     if (mission.status.tag === 'Leased') await reducers.missionProgress({ missionId: mission.id, status: MissionStatus.Active, note: 'starting', observedAt: undefined });
+    if (mission.kind.tag === 'Teleop') {
+      await this.drive(actor, signal); // until the operator hands it back; a teleop mission never ends by itself
+      return;
+    }
     const terrain = new TerrainReporter(this.config, actor, this.dogId, mulberry32(this.config.scale.seed + Number(mission.id)));
     let note = '';
     if (mission.kind.tag === 'SearchCells') {
@@ -232,6 +262,31 @@ export class SimRobotRunner {
     }
   }
 
+  private async drive(actor: SimActor, signal: AbortSignal): Promise<void> {
+    const scale = SIM_DRIVE_MPS / TELEOP_MAX_LIN_MPS;
+    let lastSeq: bigint | undefined;
+    let changedAt = 0;
+    let reportedAt = 0;
+    let moved = false;
+    while (!signal.aborted) {
+      const row = actor.connection.db.teleop.robotId.find(this.dogId);
+      const now = Date.now();
+      if (row && row.seq !== lastSeq) { lastSeq = row.seq; changedAt = now; }
+      if (row && now - changedAt <= TELEOP_DEADMAN_MS && (row.vxMps !== 0 || row.vyMps !== 0 || row.wzDps !== 0)) {
+        this.positions.set(this.dogId, teleopStep(this.positions.get(this.dogId)!, row, TELEOP_STEP_MS / 1000, scale));
+        moved = true;
+      }
+      if (moved && now - reportedAt >= TELEOP_REPORT_MS) {
+        moved = false;
+        reportedAt = now;
+        const position = this.positions.get(this.dogId)!;
+        void actor.connection.reducers.robotReportPosition({ robotId: this.dogId, ...position.point, gpsFix: false, indoorOffsetM: 0, headingDeg: position.heading, observedAt: undefined })
+          .catch((error: unknown) => console.error(`Sim robot ${this.dogId} position failed: ${errorText(error)}`));
+      }
+      await delay(TELEOP_STEP_MS, signal);
+    }
+  }
+
   private ownMission(actor: SimActor): Mission | undefined {
     return Array.from(actor.connection.db.mission.iter())
       .filter((row) => row.robotId === this.dogId && (row.status.tag === 'Leased' || row.status.tag === 'Active'))
@@ -257,6 +312,20 @@ export class SimRobotRunner {
   private pointFor(offset: Offset): LatLon {
     return offsetToLatLon({ lat: this.config.site.center_lat, lon: this.config.site.center_lon }, offset);
   }
+}
+
+// One remote driving step. heading is a compass bearing (clockwise from north) and + wz turns left (counterclockwise),
+// so a turn subtracts; vx is forward along the heading and vy is to the left. scale multiplies the linear speeds.
+export function teleopStep(position: { point: LatLon; heading: number }, command: { vxMps: number; vyMps: number; wzDps: number }, dtS: number, scale: number): { point: LatLon; heading: number } {
+  const heading = ((position.heading - command.wzDps * dtS) % 360 + 360) % 360;
+  const radians = heading * Math.PI / 180;
+  const forward = command.vxMps * scale * dtS;
+  const left = command.vyMps * scale * dtS;
+  const point = offsetToLatLon(position.point, {
+    east_m: forward * Math.sin(radians) - left * Math.cos(radians),
+    north_m: forward * Math.cos(radians) + left * Math.sin(radians),
+  });
+  return { point, heading };
 }
 
 class TerrainReporter {

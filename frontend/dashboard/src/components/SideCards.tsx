@@ -57,8 +57,8 @@ export function HousesCard({ counts, missions, readOnly, onApprove, onCancel }: 
   onApprove: (id: bigint) => void; onCancel: (id: bigint) => void;
 }) {
   const { collapsed, toggle } = useCollapsed();
-  return <section className={`fcard ${collapsed ? 'collapsed' : ''}`} aria-label="Houses in the block">
-    <CardHeader title="Houses in the block" count={counts.total} collapsed={collapsed} onToggle={toggle} />
+  return <section className={`fcard ${collapsed ? 'collapsed' : ''}`} aria-label="Buildings nearby">
+    <CardHeader title="Buildings nearby" count={counts.total} collapsed={collapsed} onToggle={toggle} />
     {!collapsed && <>
     <div className="seg" aria-hidden="true">
       <i className="seg-clear" style={{ flex: counts.clear }} /><i className="seg-open" style={{ flex: counts.open }} /><i className="seg-todo" style={{ flex: counts.toSearch }} />

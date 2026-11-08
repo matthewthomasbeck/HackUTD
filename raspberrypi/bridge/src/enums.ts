@@ -17,7 +17,7 @@ export const ENUMS = {
     proposed: 'Proposed', queued: 'Queued', leased: 'Leased', active: 'Active',
     done: 'Done', failed: 'Failed', cancelled: 'Cancelled',
   },
-  mission_kind: { search_cells: 'SearchCells', inspect: 'Inspect', return_home: 'ReturnHome', hold: 'Hold' },
+  mission_kind: { search_cells: 'SearchCells', inspect: 'Inspect', return_home: 'ReturnHome', hold: 'Hold', teleop: 'Teleop' },
   detection_source: { thermal: 'Thermal', camera: 'Camera' },
   terrain_class: {
     flat: 'Flat', debris: 'Debris', step: 'Step', gap: 'Gap', blocked: 'Blocked', unknown: 'Unknown',

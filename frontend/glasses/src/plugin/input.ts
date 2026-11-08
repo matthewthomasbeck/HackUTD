@@ -10,6 +10,9 @@ export interface InputDeps {
   shutdown(exitMode: 0 | 1): void;
   /** The current page's ack_assignment_id, or null. */
   getAckId(): number | string | null;
+  /** Display off (tap, then long press) keeps the app, link, and GPS running with a blank display. */
+  isDisplayOff(): boolean;
+  setDisplayOff(off: boolean): void;
   onForeground(): void;
   onExit(): void;
   now?: () => number;
@@ -17,6 +20,8 @@ export interface InputDeps {
 }
 
 const REPEAT_MS = 150;
+/** A long press this soon after a tap turns the display off instead of asking a question. */
+export const DISPLAY_OFF_WINDOW_MS = 1500;
 
 export function sourceName(raw: unknown): InputSource {
   switch (raw) {
@@ -48,6 +53,7 @@ export function createInputHandler(deps: InputDeps): (event: EvenHubEvent) => vo
   const log = deps.log ?? ((...a: unknown[]) => console.log('[input]', ...a));
   let lastKey = '';
   let lastAt = -Infinity;
+  let lastTapAt = -Infinity;
 
   function repeated(key: string): boolean {
     const t = now();
@@ -67,6 +73,20 @@ export function createInputHandler(deps: InputDeps): (event: EvenHubEvent) => vo
     if (!resolved) return;
     const { type, source } = resolved;
 
+    // Display off: the next tap, long press, or scroll only turns it back on, so a waking tap never accepts a task.
+    // The release of the long press that turned it off is not a wake. Double tap still exits below.
+    if (deps.isDisplayOff()) {
+      const wakes = type === OsEventTypeList.CLICK_EVENT || type === OsEventTypeList.LONG_PRESS_EVENT
+        || type === OsEventTypeList.SCROLL_TOP_EVENT || type === OsEventTypeList.SCROLL_BOTTOM_EVENT;
+      if (wakes) {
+        if (!repeated(`wake:${source}`)) {
+          log('display on', source);
+          deps.setDisplayOff(false);
+        }
+        return;
+      }
+    }
+
     switch (type) {
       case OsEventTypeList.DOUBLE_CLICK_EVENT:
         // Double tap always exits, whatever the view. Never a product action.
@@ -78,6 +98,7 @@ export function createInputHandler(deps: InputDeps): (event: EvenHubEvent) => vo
         return;
       case OsEventTypeList.CLICK_EVENT: {
         if (repeated(`tap:${source}`)) return;
+        lastTapAt = now();
         const ackId = deps.getAckId();
         log('tap', source, ackId !== null ? `ack ${ackId}` : '');
         if (ackId !== null) {
@@ -94,7 +115,14 @@ export function createInputHandler(deps: InputDeps): (event: EvenHubEvent) => vo
         if (!repeated(`scroll_down:${source}`)) sendInput('scroll_down', source);
         return;
       case OsEventTypeList.LONG_PRESS_EVENT:
-        if (!repeated(`long_press:${source}`)) sendInput('long_press', source);
+        if (repeated(`long_press:${source}`)) return;
+        if (now() - lastTapAt <= DISPLAY_OFF_WINDOW_MS) {
+          lastTapAt = -Infinity;
+          log('display off', source);
+          deps.setDisplayOff(true);
+          return;
+        }
+        sendInput('long_press', source);
         return;
       case OsEventTypeList.FOREGROUND_ENTER_EVENT:
         deps.onForeground();

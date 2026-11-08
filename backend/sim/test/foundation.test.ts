@@ -9,8 +9,8 @@ test('loads the committed demo site without changing its configured center', asy
   const raw = JSON.parse(await readFile(new URL('../demo-site.json', import.meta.url), 'utf8'));
   const config = loadDemoConfig();
   assert.deepEqual(config, raw);
-  assert.equal(config.site.center_lat, 32.9968745);
-  assert.equal(config.site.center_lon, -96.7704708);
+  assert.equal(config.site.center_lat, 32.9861898);
+  assert.equal(config.site.center_lon, -96.7516083);
 });
 
 test('validates required config shape and rejects invalid scale settings', () => {

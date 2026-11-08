@@ -42,7 +42,7 @@ It has four views that share one set of components:
 Approved by Cayden on 2026-11-08 after four review rounds (the mockup and its versions are in `.lavish/`).
 References, for approach only (no copied code or assets): Standard Response (Cal Hacks 13.0, the map as the whole screen with floating cards), Stochastic (agent tints, hand-off strip, shape plus word for every status), and the HackUTD Zero Day site (colors and the Satoshi font).
 
-- The map is the screen: the real block around 7716 Worthing St, drawn from OpenStreetMap outlines, with floating cards on top.
+- The map is the screen: the buildings around 2520 Rutford Ave on the UT Dallas campus (since 2026-11-08; before that the Worthing St block in Dallas), drawn from OpenStreetMap outlines, with floating cards on top.
 - One question first: "Who needs help first", the ranked survivors in the top-left card.
 - Two pages only: Dashboard and Agents.
 - Night-purple top bar (HackUTD Zero Day colors), light map and cards underneath, so the projector does not wash out the data.
@@ -111,6 +111,20 @@ Their output goes to `~/Library/Logs/UnderDog/demo-services.log`, and a failure 
 Only one run of the services is alive at a time (`.demo.pid`), and only one UnderDog: a second launch brings the first window forward.
 `npm run demo` passes `--no-services` to the app, since it runs the services itself; on Maincloud the app starts nothing.
 
+### Camera View and Take over (2026-11-08)
+
+Camera View (bottom dock) shows the robot's live camera, model detections, and thermal feeds (from `raspberrypi/preview`, set with `--robot-preview-url` in the app or `?robotPreview=` on the website), the glasses heads-up, and saved findings.
+A robot bar on top says what the selected robot is doing (state, mission in words, battery), with a robot picker when there is more than one.
+
+Take over (contract version 8.3, `robot.md` 18.1) lets the person at the dashboard drive the robot:
+
+1. Take over calls `take_over(robot_id, reason)`. The robot's running mission goes back into its queue, the bridge cancels it on the robot, and the robot claims the `teleop` mission (about 1 s with the sim, up to `CLAIM_INTERVAL_MS` plus a heartbeat on the real robot). Until then the pad says it is waiting.
+2. The drive layout replaces the four tiles: the robot view (Camera, Model, or Thermal) on the left; the drive pad and a live map centred on the robot on the right. Everything fits the window without scrolling.
+3. Hold a pad button or key to drive: W/S or the up and down arrows forward and back, A/D sideways, Q/E or the left and right arrows to turn (the same keys as `robotctl teleop`), Space stops. Each held input sends `teleop_drive` every 100 ms at the limits (0.2 m/s, 45 deg/s), and one zero command goes out on release. Losing window focus lets go of every key. The drive keys never reach the board shortcuts (A does not open Agents).
+4. Hand back to autonomy, Esc, or × calls `cancel_mission` on the `teleop` mission; the robot resumes its paused mission. Another screen sees "Remote control by NAME" and can end that control.
+
+The robot stops by itself 300 ms after the last command (closed tab, dropped Wi-Fi), and its safety gate still limits speed and acceleration. In the judged demo the sim dog obeys the same commands and moves on the map (a full stick is 4 m/s on the map so it shows); the real robot and its live feeds are not part of the judged demo.
+
 ### Play demo (2026-11-08)
 
 On a demo_mode site, the top bar has a Play demo button next to Record run.
@@ -121,7 +135,7 @@ It runs the scripted house 3 rescue through the real path, so the board, the gla
    Its title bar buttons close it (red), fold it to the title bar (yellow, or double-click the title bar), and put it back in the default place and size (green).
    Its place and size are remembered in this browser (`localStorage`, key `underdog:glasses-window`).
    Folding and closing during a run only hide the display, because unloading it would drop his connection and release his assignment.
-2. It resets the glasses service's demo walker (`POST /demo/cayden/reset`), which puts Cayden at the start on Worthing St.
+2. It resets the glasses service's demo walker (`POST /demo/cayden/reset`), which puts Cayden at the start in the parking lot south of Franklyn Jenifer Dr.
 3. If house 3 has no open survivor, it queues a search of house 3 for `sim-dog` (`create_mission`) and waits for the simulator's robot to report the hidden person.
 4. It proposes Cayden (`propose_assignment`), then accepts as Cayden through the glasses service (`POST /rescuer/cayden/action`, the same accept a ring tap sends).
 5. It starts the walker (`POST /demo/cayden/start`) and waits until Cayden is within 8 m of the survivor.
@@ -175,7 +189,7 @@ frontend/dashboard/
   scripts/
     app-dev.mjs            npm run app: Vite dev server, then Electron
   public/
-    site/block.geojson     the 72 buildings of the Worthing St block (OpenStreetMap, ODbL), with row labels
+    site/block.geojson     the 14 tracked buildings within 180 m of 2520 Rutford Ave (OpenStreetMap, ODbL; built by backend/sim/scripts/build-site.mjs)
     site/context.geojson   the neighborhood around it: 522 buildings, roads, parks, water
     brand/underdog-logo.png   the logo
   src/
@@ -187,7 +201,7 @@ frontend/dashboard/
     model/                 headline, ranking, labels, timers, agents, chains, accounting, map actions
     site/
       geometry.ts          load and parse the site files, meters, point in house, block homes
-      houses.ts            each house's state from cells and survivors; place names ("7716 Worthing St", "Building near Coit Rd")
+      houses.ts            each house's state from cells and survivors; place names ("2520 Rutford Ave", "Karl Hoblitzelle Hall", "Building near Drive D")
       route.ts             walking routes along the streets (Dijkstra on the OSM road graph)
     view/
       derive.ts            everything the cards show, from BoardState (pure, unit tested)
@@ -198,7 +212,8 @@ frontend/dashboard/
       SideCards.tsx        headline, rescuers and robot, houses (with mission approvals), map key
       HousePanel.tsx       one house: state, reports, send robot, mark, add a report
       CardHeader.tsx       card header whose count folds the card
-      CameraView.tsx       robot stills and the glasses heads-up
+      CameraView.tsx       live robot feeds, the glasses heads-up, the robot bar, and Take over
+      DrivePad.tsx         remote driving controls (hold to drive)
       AgentsPage.tsx       hand-off chain, agent cards, database fallback, task board
       Mascot.tsx           the tornado mascot
       TransportBar.tsx     replay controls
@@ -329,7 +344,7 @@ The dashboard never calls robot, agent, auditor, perception, or sim reducers (`p
 
 ```
 +---------------------------------------------------------------------------------------------+
-| BAR: dog logo UnderDog | Worthing St block | Dashboard | Agents |      System (fold) | Record run |
+| BAR: dog logo UnderDog | UT Dallas, 2520 Rutford Ave | Dashboard | Agents |      System (fold) | Record run |
 +---------------------------------------------------------------------------------------------+
 | +-------------------+                                                  +------------------+ |
 | | WHO NEEDS HELP    |                                                  | 0 critical       | |
@@ -349,7 +364,7 @@ The dashboard never calls robot, agent, auditor, perception, or sim reducers (`p
 - Each card's count (or title) folds the card to its header; a folded count shows as a dark pill.
   The app opens with every card folded (Cayden, 2026-11-08), so the map shows first.
 - Clicking a house on the map replaces the rescuers card with the house panel (state, reports, Send robot, Mark searched, Mark partial, Add report).
-- Bottom dock: Status toggles the house colors; hovering Status shows the Rescuers and Robots layer toggles; Camera view opens robot stills next to the live glasses heads-up; zoom buttons and Recenter.
+- Bottom dock: Status toggles the house colors; hovering Status shows the Rescuers and Robots layer toggles; Camera view opens the live robot feeds next to the glasses heads-up, and Take over to drive the robot; zoom buttons and Recenter.
 - Keyboard: `A` opens the Agents page, `Esc` returns to the board and closes the house panel or Camera View.
 - System chips (SpacetimeDB, robots, glasses, agents) fold into one "System all OK" or "System 1 issue" chip.
   For the judged demo (Cayden, 2026-11-08) the robot, glasses, and agents chips always read "Dog 1 online", "1 glasses", and "3 of 3 agents"; only the SpacetimeDB chip is live, and the cards and map still show the live rows.
@@ -788,7 +803,7 @@ Run `npm run dev` (Vite on `0.0.0.0:5180`) on Laptop A, so Screen B opens `http:
 - `fold.test.ts`: a fixture event list folds to the expected survivor states at three times; a bad `payload_json` is skipped and counted.
 - `fold.test.ts` also: two `terrain` events (`debris`, then `flat`) give the robot entity the right class at each time.
 - `snapshots.test.ts`: seeking via a snapshot gives the same state as folding from the start.
-- `site.test.ts`: 7716 Worthing St is found from its GPS point; the 68 homes come in reading order; a house takes its worst open survivor, else its cell; place names ("Building near …", "Open ground near …"); walking routes never cross a house; short map tags; crew names without simulator markers.
+- `site.test.ts`: 2520 Rutford Ave is found from its center and from the person inside it; the 14 tracked buildings come north to south; a house takes its worst open survivor, else its cell; place names ("Building near …", "Open ground near …"); walking routes never cross a house; short map tags; crew names without simulator markers.
 - `connection.test.ts`: `?uri=` overrides the build-time address (the desktop app's server switch).
 
 ### End-to-end tests (Playwright)

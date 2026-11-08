@@ -77,6 +77,8 @@ import SetCriticalScoreReducer from "./set_critical_score_reducer";
 import SetSiteTimingsReducer from "./set_site_timings_reducer";
 import StartEnRouteReducer from "./start_en_route_reducer";
 import StartRunReducer from "./start_run_reducer";
+import TakeOverReducer from "./take_over_reducer";
+import TeleopDriveReducer from "./teleop_drive_reducer";
 
 // Import all procedure arg schemas
 
@@ -105,6 +107,7 @@ import RunRow from "./run_table";
 import SearchCellRow from "./search_cell_table";
 import SiteRow from "./site_table";
 import SurvivorRow from "./survivor_table";
+import TeleopRow from "./teleop_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -417,6 +420,17 @@ const tablesSchema = __schema({
       { name: 'survivor_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, SurvivorRow),
+  teleop: __table({
+    name: 'teleop',
+    indexes: [
+      { accessor: 'robot_id', name: 'teleop_robot_id_idx_btree', algorithm: 'btree', columns: [
+        'robotId',
+      ] },
+    ],
+    constraints: [
+      { name: 'teleop_robot_id_key', constraint: 'unique', columns: ['robotId'] },
+    ],
+  }, TeleopRow),
   criticalOpen: __table({
     name: 'critical_open',
     indexes: [
@@ -492,6 +506,8 @@ const reducersSchema = __reducers(
   __reducerSchema("set_site_timings", SetSiteTimingsReducer),
   __reducerSchema("start_en_route", StartEnRouteReducer),
   __reducerSchema("start_run", StartRunReducer),
+  __reducerSchema("take_over", TakeOverReducer),
+  __reducerSchema("teleop_drive", TeleopDriveReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */

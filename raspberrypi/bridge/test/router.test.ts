@@ -7,7 +7,7 @@ import { LineSplitter, parseLine } from '../src/local_socket.ts';
 import type { LocalMessage } from '../src/mapping.ts';
 import { Router } from '../src/router.ts';
 import { Spool, type SendOutcome } from '../src/spool.ts';
-import { classifyError, reconnectDelayMs, subscriptionQueries } from '../src/stdb.ts';
+import { classifyError, isLiveEvent, reconnectDelayMs, subscriptionQueries } from '../src/stdb.ts';
 import { tokenPathFor } from '../src/config.ts';
 
 function setup() {
@@ -101,7 +101,8 @@ test('SenderError is a rejection; other errors are network failures', () => {
 
 test('reconnect backoff, subscriptions, and per-server token files', () => {
   assert.deepEqual([0, 1, 2, 3, 4, 5, 6].map(reconnectDelayMs), [1000, 2000, 4000, 8000, 16000, 30000, 30000]);
-  assert.equal(subscriptionQueries('dog1').length, 6);
+  assert.equal(subscriptionQueries('dog1').length, 7);
+  assert.ok(subscriptionQueries('dog1').includes("SELECT * FROM teleop WHERE robot_id = 'dog1'"));
   assert.ok(subscriptionQueries('dog1').includes("SELECT * FROM mission WHERE robot_id = 'dog1'"));
   assert.equal(tokenPathFor('./.data/token', 'ws://localhost:3000'), './.data/token.localhost_3000');
   assert.equal(tokenPathFor('./.data/token', 'https://maincloud.spacetimedb.com'), './.data/token.maincloud.spacetimedb.com');
@@ -159,4 +160,11 @@ test('a spool disk error during replay is logged, not an unhandled rejection', a
   router.startKick();
   await router.idle();
   assert.ok(logs.some((line) => line.includes('ENOSPC')));
+});
+
+test('teleop rows are live when any client\'s reducer wrote them, never when a subscription replays them', () => {
+  assert.equal(isLiveEvent('Transaction'), true, 'the dashboard called teleop_drive');
+  assert.equal(isLiveEvent('Reducer'), true);
+  assert.equal(isLiveEvent('SubscribeApplied'), false, 'an old command after a reconnect');
+  assert.equal(isLiveEvent('UnsubscribeApplied'), false);
 });
