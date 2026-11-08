@@ -16,7 +16,9 @@ cp .env.example .env        # then fill in PUBLIC_BASE_URL with the laptop LAN I
 ```
 
 Never commit `.env` or `data/identity.json` (both are git-ignored).
-After the first working install on the demo laptop, run `pip freeze > requirements.lock` and commit it.
+`requirements.lock` pins the working primary environment (2026-11-08, Python 3.12, macOS arm64).
+To reproduce it exactly, use `pip install -r requirements.lock` instead of `requirements.txt`.
+After changing dependencies, rerun the tests and regenerate it with `pip freeze`.
 
 ## Run
 

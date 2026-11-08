@@ -12,7 +12,7 @@ function packetOf(req: ChatRequest): string {
 /** comms agent: a short briefing to the rescuer named in the packet. */
 const briefFromPacket: MockPolicy = (req) => {
   const p = packetOf(req);
-  const who = /for (Rescuer \w+) \(identity ([0-9a-f]{64})\)/.exec(p);
+  const who = /for (Rescuer \w+), assignment/.exec(p);
   const surv = /SURVIVOR #(\d+): (\w+)/.exec(p);
   if (!who || !surv) return null;
   const place = /, (house \d+)/.exec(p)?.[1] ?? `survivor #${surv[1]}`;
@@ -24,7 +24,7 @@ const briefFromPacket: MockPolicy = (req) => {
         name: "send_briefing",
         arguments: {
           reason: nav ? `navigation hint for ${who[1]}` : `brief ${who[1]} on #${surv[1]}`,
-          audience: who[2],
+          audience: who[1],
           text,
           priority: nav ? "info" : "critical",
           survivor_id: Number(surv[1]),
@@ -49,8 +49,8 @@ const MAX_CALLS = 8;
 const greedyOrchestrator: MockPolicy = (req) => {
   const p = packetOf(req);
   const lines = p.split("\n");
-  const ids = new Map<string, string>();
-  for (const m of p.matchAll(/(Rescuer \w+) available[^;]*?, id ([0-9a-f]{64})/g)) ids.set(m[1], m[2]);
+  const available = new Set<string>();
+  for (const m of p.matchAll(/(Rescuer \w+) available/g)) available.add(m[1]);
 
   const missions: NonNullable<FixtureReply["tool_calls"]> = [];
   const robotLine = lines.find((l) => l.startsWith("ROBOT:")) ?? "";
@@ -79,7 +79,7 @@ const greedyOrchestrator: MockPolicy = (req) => {
     const pick = m[3]
       .split("; ")
       .map((x) => /^(Rescuer \w+) (\d+) m.*?, (\d+) active$/.exec(x))
-      .find((x) => x && ids.has(x[1]) && !used.has(x[1]));
+      .find((x) => x && available.has(x[1]) && !used.has(x[1]));
     if (!pick) {
       blockedTier = Math.min(blockedTier, tier);
       continue;
@@ -88,7 +88,7 @@ const greedyOrchestrator: MockPolicy = (req) => {
     const sid = Number(m[1]);
     calls.push({
       name: "propose_assignment",
-      arguments: { reason: `${m[2]} #${sid}; ${pick[1]} at ${pick[2]} m, load ${pick[3]}, best by load then distance`, survivor_id: sid, rescuer_identity: ids.get(pick[1])! },
+      arguments: { reason: `${m[2]} #${sid}; ${pick[1]} at ${pick[2]} m, load ${pick[3]}, best by load then distance`, survivor_id: sid, rescuer_identity: pick[1] },
     });
     calls.push({ name: "delegate", arguments: { reason: `brief ${pick[1]} on #${sid}`, to_agent: "comms_agent", kind: "brief_rescuer", priority: m[2] === "IMMEDIATE" ? "critical" : "high", survivor_id: sid } });
   }

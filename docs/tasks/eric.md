@@ -9,9 +9,10 @@ Total with AI: about 15 h (each task 1 to 2 h with coding agents; hardware tasks
 ## Current status (2026-11-08)
 
 The primary implementation is `backend/perception/` and `backend/agent/`.
-The completed-item audit passed **761 primary perception tests with no skips,
-99 primary agent tests plus 30 separate reference agent tests, and the agent
-TypeScript check**. See [the 75-item audit](../notes/2026-11-08-eric-completed-task-audit.md)
+Fresh run on branch `eric-quick-wins` (2026-11-08): **766 primary perception tests
+with no skips, 115 primary agent tests, all 8 mock agent scenarios, the agent
+TypeScript check, and 62 robot tests**. The earlier completed-item audit passed
+761 perception and 99 agent tests plus 30 separate reference agent tests. See [the 75-item audit](../notes/2026-11-08-eric-completed-task-audit.md)
 for evidence, fixed defects, and reopened claims. The recorded Brev validation passed
 native and JSON model smoke tests, three consecutive chains in each mode,
 priority ordering, seeded auditor disagreement, and watchdog recovery.
@@ -35,11 +36,11 @@ acceptance. Steps combining code and an unverified live check are split below.
 | --- | --- | --- |
 | E0 | Brev setup, both models' tool/JSON smoke tests, configuration and recorded results | Post results to the team; repeat smoke on judging day |
 | E1 | Public data preparation and 140 comparison runs in the reference implementation | Port the public benchmark to the primary pipeline; broaden scene coverage and check robot-camera compatibility |
-| E2 | Media service, storage, job queue, endpoint tests | Primary environment lock; Pi upload over the team network |
+| E2 | Media service, storage, job queue, endpoint tests, primary environment lock | Pi upload over the team network |
 | E3 | Video/ROI/PIC pipeline, quality gates, worker, watcher, HTTP client/helper, synthetic tests, local database/helper smoke and captured SQL fixture | Primary public-data evaluation and tuning; robot capture |
 | E4 | Score formula, confidence caps, ordered writes and re-score logic | Primary E1 results/score batch; live dashboard and waiting-time demonstration |
 | E5 | Person/pose/box code and still-image output | Live service health, full E1 ROI review and dashboard display; real YOLO smoke currently recorded for the reference version |
-| E6 | Shared runner, schemas, tested guards, task handling, budgets, dry runs, upstream binding acceptance, three local identities and actual task/log round trips | Full G8 identity policy; complete runtime/simulator dry-run chain; verify Maincloud identities/roles |
+| E6 | Shared runner, schemas, tested guards, task handling, budgets, dry runs, upstream binding acceptance, three local identities, actual task/log round trips, full G8 identity policy (callsigns only) | Complete runtime/simulator dry-run chain; verify Maincloud identities/roles |
 | E7 | Orchestrator, auditor, comms, mock scenarios and recorded real Brev chains | Intermittent native-chain failure; live scenario harness, two-process integration, dashboard/glasses acknowledgement |
 | E8 | Transcription engines/endpoint/fallback code, question fixtures and template answer path | Model-generated rescuer answers, hosted Riva verification, full glasses voice loop |
 | E9 | CLIP baseline, terrain endpoints, labelling/training tools and safety fusion | Independently labelled hazard data, trained/evaluated probe, enabled advisory path and map integration |
@@ -337,7 +338,7 @@ Environment variables: `STDB_URI`, `STDB_DATABASE`, `STDB_TOKEN`, `PUBLIC_BASE_U
 Checklist:
 
 - [x] 1a. Create the primary environment and requirements using `opencv-python`; the audited 761-test primary suite passes with no skips.
-- [ ] 1b. Commit a lock generated from the working primary demo environment; the reference environment lock does not replace it.
+- [x] 1b. Commit a lock generated from the working primary demo environment; the reference environment lock does not replace it. Done 2026-11-08: `backend/perception/requirements.lock` is `pip freeze` of the primary `.venv` (Python 3.12.12, macOS arm64) after the 766-test suite passed.
 - [x] 2. `config.py`: load `config.toml`, then `.env`, then `PERCEPTION_<SECTION>_<KEY>` overrides.
 - [x] 3. `store.py`: SQLite at `data/perception.db` with the `media` index table (`name, path, kind, robot_id, run_id, original_filename, bytes, sha256, created_at`) and a `jobs` table.
 - [x] 4. `media.py` and `POST /media`: name format, extension allow list, size limit, never use the client filename on disk.
@@ -658,7 +659,7 @@ Checklist:
 - [x] 1. `config.ts` (typed, fails fast on a missing key unless `LLM_MODE=mock`), `log.ts` (console plus JSONL trace).
 - [x] 2. `geo.ts` (haversine, R = 6,371,000 m, bearing, 8 compass words) and `priority.ts` (tiers 0, 1, 2; G3), with tests.
 - [x] 3a. `tools/schemas.ts` with the core schemas from agent.md 7.1 to 7.4 as one source for native and JSON modes, and tested guards for forbidden wording, briefing length/ASCII, permissions and assignments. Known participant names are redacted on every model turn, including tool results.
-- [ ] 3b. Complete G8: resolve the spec's conflicting identity requirements and prevent prohibited identity/contact data in model requests. Persistent rescuer hex identities currently reach the models; the audit did not declare full G8 compliance.
+- [x] 3b. Complete G8: resolve the spec's conflicting identity requirements and prevent prohibited identity/contact data in model requests. Done 2026-11-08: `redactForModel` in `guards.ts` turns every participant identity hex into a callsign or role on every outbound turn, the model-facing `rescuer_identity` and `audience` take callsigns, and `resolveCallsigns` maps them back to hex before dispatch, so ajv, guards and reducers still see hex. Tests: `test/guards.test.ts` and the native and JSON G8 cases in `test/loop-runtime.test.ts` (no 64-hex string in any request). The rule is written into `specs/agent.md` G8.
 - [x] 4. `stdb/connect.ts` and `stdb/convert.ts` (camelCase to snake_case, bigint ids to numbers, tagged enums to strings, `Identity` to hex, `Timestamp` to internal epoch milliseconds; wire JSON timestamps remain ISO).
 - [x] 5. `world.ts` (active run filter, rescuer fresh and available, robot idle) and `FakeWorld` with the same interface.
 - [x] 6. Connect three identities to the local module, register them, and print the active run (`npm run smoke:stdb`, 2026-11-08).

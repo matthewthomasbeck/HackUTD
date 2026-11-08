@@ -109,7 +109,7 @@ export function commsPacket(w: World, input: CycleInput): string {
   const cs = w.callsign(tg.rescuer);
   const s = tg.survivor;
   const head = kind === "nav" ? "NAVIGATION" : `TASK: ${kind}${t ? " #" + t.id : ""}`;
-  lines.push(`${head} for ${cs} (identity ${tg.rescuer}), assignment #${tg.assignment?.id ?? 0}, CHAIN ${input.chainId}`);
+  lines.push(`${head} for ${cs}, assignment #${tg.assignment?.id ?? 0}, CHAIN ${input.chainId}`);
   const note = s.location_note ? `, ${s.location_note}` : "";
   lines.push(`SURVIVOR #${s.id}: ${survivorDisplay(w, s)}, ${w.placeOf(s)}${note}`);
   const near = w.rescuersNear(s.lat, s.lon, false).find((r) => r.identity === tg.rescuer);

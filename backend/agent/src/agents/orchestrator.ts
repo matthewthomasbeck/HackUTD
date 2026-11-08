@@ -209,7 +209,7 @@ export function orchestratorPacket(w: World, input: CycleInput, ctx: CycleCtx): 
       return n?.distance_m != null ? ` ${n.distance_m} m ${n.compass} of #${top.id}` : "";
     })() : "";
     const state = r.available ? "available" : `busy (proposal #${r.proposed_assignment_id})`;
-    return `${r.callsign} ${state}${where}, active ${r.active_assignments}, id ${r.identity}`;
+    return `${r.callsign} ${state}${where}, active ${r.active_assignments}`;
   });
   lines.push(`RESCUERS: ${resc.length ? resc.join("; ") : "none"}`);
   lines.push(cellsLine(w));

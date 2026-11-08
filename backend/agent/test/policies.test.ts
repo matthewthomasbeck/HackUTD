@@ -50,7 +50,8 @@ describe("greedy_orchestrator mock policy", () => {
     const packet = orchestratorPacket(ctx.world, ctx.input, ctx);
     expect(packet).toContain("lapsed, do not propose: Rescuer A");
     const propose = greedy(packet).tool_calls.find((c: any) => c.name === "propose_assignment");
-    expect(propose.arguments.rescuer_identity).toBe(RESCUER.B);
+    // Models name rescuers by callsign (G8); the loop maps it back to identity hex.
+    expect(propose.arguments.rescuer_identity).toBe("Rescuer B");
   });
 
   it("lists free rescuers before busier ones, as the watchdog ranks them", () => {

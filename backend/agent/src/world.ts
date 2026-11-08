@@ -195,6 +195,12 @@ export class World {
     const hex = identity.toLowerCase();
     return this.participants().find((p) => p.identity === hex) ?? null;
   }
+  /** The rescuer identity behind a callsign ("Rescuer A", any case), else null. Models only see callsigns (G8). */
+  identityForCallsign(callsign: string): string | null {
+    const want = callsign.trim().toLowerCase();
+    const p = this.participants().find((x) => x.role === "rescuer" && this.callsign(x.identity).toLowerCase() === want);
+    return p?.identity ?? null;
+  }
   participantByName(name: string): Participant | null {
     return this.participants().find((p) => p.name === name) ?? null;
   }

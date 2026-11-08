@@ -168,6 +168,7 @@ add_executable(robot_tests
   tests/test_state_machine.cpp
   tests/test_safety_gate.cpp
   tests/test_threads.cpp
+  tests/test_log.cpp
   tests/test_pico_text.cpp
   tests/test_dc_driver.cpp
   tests/test_mecanum.cpp

@@ -44,6 +44,22 @@ describe("loop.ts", () => {
     expect(h.store.rows("survivor")[0].location_note).toContain("Ana Lopez");
   });
 
+  it.each(["native", "json"])("G8 in %s mode: no identity hex reaches a model, and a callsign proposal commits the right rescuer", async (mode) => {
+    const { h } = fakeWorld({ env: { TOOL_MODE: mode }, rules: [
+      { agent: "orchestrator", turn: 0, reply: { tool_calls: [{ name: "list_rescuers", arguments: { near_survivor_id: 1, reason: "who is near" } }] } },
+      { agent: "orchestrator", turn: 1, reply: { tool_calls: [{ name: "propose_assignment", arguments: { survivor_id: 1, rescuer_identity: "Rescuer A", reason: "IMMEDIATE #1; Rescuer A because nearest and free" } }] } },
+      { agent: "orchestrator", turn: "any", reply: { content: '{"done":true,"summary":"done"}' } },
+    ] });
+    survivorAt(h, 3);
+    const send = vi.spyOn(h.mock, "send");
+    await runCycle(ctxFor(h, "orchestrator"));
+    const sent = JSON.stringify(send.mock.calls.map((c) => ({ messages: c[0].messages, tools: c[0].tools })));
+    expect(sent).not.toMatch(/[0-9a-f]{64}/i);
+    expect(sent).toContain("Rescuer A");
+    const a = h.store.rows("assignment")[0];
+    expect(a).toMatchObject({ survivor_id: 1, rescuer_identity: RESCUER.A, status: "proposed" });
+  });
+
   it("asks the serving engine for valid JSON in JSON tool mode", async () => {
     const { h } = fakeWorld({ env: { TOOL_MODE: "json" }, rules: [{ agent: "orchestrator", turn: "any", reply: { content: "done" } }] });
     const send = vi.spyOn(h.mock, "send");

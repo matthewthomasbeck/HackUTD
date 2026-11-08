@@ -61,6 +61,40 @@ export function redactNames(text: string, w: World): string {
   return out;
 }
 
+const IDENTITY_HEX = /\b[0-9a-fA-F]{64}\b/g;
+
+/** G8 for everything sent to a model: names as above, and each person's identity hex becomes the
+ * rescuer's callsign (or the person's role). Hex that is not a participant (an agent) is left. */
+export function redactForModel(text: string, w: World): string {
+  return redactNames(text, w).replace(IDENTITY_HEX, (hex) => {
+    const p = w.participant(hex);
+    if (!p) return hex;
+    return p.role === "rescuer" ? w.callsign(p.identity) : p.role;
+  });
+}
+
+/** The way back: a model names rescuers by callsign, so map rescuer_identity and audience to the
+ * identity hex before dispatch validates and runs the call. Anything else passes unchanged. */
+export function resolveCallsigns(args: unknown, w: World): unknown {
+  let obj = args;
+  if (typeof args === "string") {
+    try {
+      obj = JSON.parse(args);
+    } catch {
+      return args; // dispatch reports the parse error
+    }
+  }
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return args;
+  const out: Record<string, unknown> = { ...(obj as Record<string, unknown>) };
+  for (const key of ["rescuer_identity", "audience"]) {
+    const v = out[key];
+    if (typeof v !== "string") continue;
+    const hex = w.identityForCallsign(v);
+    if (hex) out[key] = hex;
+  }
+  return out;
+}
+
 /** A reason "says why" when it gives a cause (heuristic; agent.md leaves the wording open). */
 const EXPLAINS =
   /\b(because|since|due to|load|fewer|auditor|about to be free|free soon|terrain|blocked|access|entry|route|already (there|nearby|inside)|knows)\b/i;
