@@ -600,6 +600,8 @@ The sweep re-checks every condition from the data and repairs missing timers, in
 - `immediate`, `unassigned` survivors with no `escalation_timer` row: insert level 1 (or level 2 if `since + N` has passed) with `since` = the later of the last `score_changed` to immediate and the last move to `unassigned`, read from `event_log` (else `now`).
   Each level fires once per unattended period: the next level is 1 if no `escalation` event was logged for the survivor since `since`, 2 if only level 1 was, and none once `escalation_commander` was (the sweep never re-arms a level that already fired, and leaves a single existing row alone).
 - `agent_watchdog`: insert if missing.
+- Backstop: `immediate`, `unassigned` survivors with no open proposal whose last proposal change (the start of the unattended period or the newest update of any of its assignments) is at least `UNPROPOSED_BACKSTOP_S` old (30 s, 15 s in demo mode) get the watchdog's deterministic proposal (section 7.4), even while the orchestrator heartbeats; it is logged as `agent_watchdog_fallback` and an `agent_action` with reason `unproposed immediate backstop`.
+  Agents still propose first; the backstop only covers a live orchestrator that has not proposed in time, so the unattended headline stays at 0.
 - The sweep files no audit flags: "too long unattended" belongs to the escalation timer and the watchdog, and only the auditor's reviews file flags.
 
 The sweep and the timers call the same handler functions, which check state first, so a double fire changes nothing.

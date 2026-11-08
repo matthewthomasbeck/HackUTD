@@ -16,7 +16,7 @@ import { checkLatLon, checkNumber, checkConfidence, checkUrl, freeText, checkNam
 import { logEvent, diff, created, activeRunId, rowToPlain, type Plain } from './lib/events';
 import { cellForPoint, siteForPoint, haversineM, metersToDeg } from './lib/geo';
 import { createProposal, setSurvivorStatus, releaseAssignment, acceptProposal, renewRescuer, insertBriefing, chainFor, siteTimings, activeAssignmentsOf, assignmentsOfSurvivor, completeAssignment } from './lib/state';
-import { DISCONNECT_GRACE_S, ROBOT_DISCONNECT_GRACE_S, ROBOT_HEARTBEAT_S, RESCUER_HEARTBEAT_S, AGENT_TASK_LEASE_S, AGENT_TASK_MAX_ATTEMPTS, MIN_THERMAL_CONFIDENCE, MODULE_ACTOR, MAX_OPEN_AGENT_PROPOSALS, MAX_OPEN_TASKS_PER_AGENT, MAX_GRID_CELLS, UNATTENDED_HEADLINE_S, MERGE_RADIUS_M, DUPLICATE_RADIUS_M, OBSERVED_AT_MAX_FUTURE_US } from './config';
+import { DISCONNECT_GRACE_S, ROBOT_DISCONNECT_GRACE_S, ROBOT_HEARTBEAT_S, RESCUER_HEARTBEAT_S, AGENT_TASK_LEASE_S, AGENT_TASK_MAX_ATTEMPTS, MIN_THERMAL_CONFIDENCE, MODULE_ACTOR, MAX_OPEN_AGENT_PROPOSALS, MAX_OPEN_TASKS_PER_AGENT, MAX_GRID_CELLS, UNATTENDED_HEADLINE_S, UNPROPOSED_BACKSTOP_S, UNPROPOSED_BACKSTOP_DEMO_S, MERGE_RADIUS_M, DUPLICATE_RADIUS_M, OBSERVED_AT_MAX_FUTURE_US } from './config';
 
 type RoleValue = Infer<typeof Role>;
 
@@ -341,17 +341,31 @@ export const escalate = spacetimedb.reducer({ onSchedule: escalation_timer }, { 
 export const watchdog_fired = spacetimedb.reducer({ onSchedule: agent_watchdog }, { arg: agent_watchdog.rowType }, ctx => {
   // The firing schedule row is removed after this reducer, so re-arm by inserting a fresh row.
   insertWatchdog(ctx, ctx.timestamp);
-  const urgent = [...ctx.db.survivor.iter()].filter(s => s.status.tag === 'unassigned' && s.critical_level.tag === 'immediate' && assignmentsOfSurvivor(ctx, s.id, 'proposed').length === 0);
+  proposeNearestForUrgent(ctx, () => true, 'watchdog fallback nearest rescuer', 'orchestrator watchdog fallback');
+});
+
+// Last time this survivor's proposal state changed: the start of its unattended period or its newest assignment row change.
+function unproposedSince(ctx: Ctx, s: Infer<typeof survivor.rowType>): bigint {
+  let latest = unassignedSince(ctx, s).microsSinceUnixEpoch;
+  for (const a of ctx.db.assignment.survivor_id.filter(s.id)) if (a.updated_at.microsSinceUnixEpoch > latest) latest = a.updated_at.microsSinceUnixEpoch;
+  return latest;
+}
+
+// Proposes the least loaded, then nearest, free rescuer for each unassigned immediate survivor with no open proposal that passes `due`.
+// The agent watchdog uses it when the orchestrator is silent; the sweep uses it as a backstop when an agent is alive but stuck.
+function proposeNearestForUrgent(ctx: Ctx, due: (s: Infer<typeof survivor.rowType>) => boolean, proposalReason: string, actionReason: string): void {
+  const urgent = [...ctx.db.survivor.iter()].filter(s => s.status.tag === 'unassigned' && s.critical_level.tag === 'immediate' && assignmentsOfSurvivor(ctx, s.id, 'proposed').length === 0 && due(s));
+  if (!urgent.length) return;
   urgent.sort((a,b) => b.critical_score - a.critical_score || Number(a.created_at.microsSinceUnixEpoch - b.created_at.microsSinceUnixEpoch) || Number(a.id-b.id));
   const candidates = [...ctx.db.participant.iter()].filter(p => p.role.tag === 'rescuer' && p.online && p.lat !== undefined && p.lon !== undefined && p.last_heartbeat.microsSinceUnixEpoch + BigInt(RESCUER_HEARTBEAT_S)*1_000_000n > ctx.timestamp.microsSinceUnixEpoch && ![...ctx.db.assignment.rescuer_identity.filter(p.identity)].some(a => a.status.tag === 'proposed'));
   for (const s of urgent) {
     if (!candidates.length) break;
     candidates.sort((a,b) => activeAssignmentsOf(ctx,a.identity).length-activeAssignmentsOf(ctx,b.identity).length || haversineM(a.lat!,a.lon!,s.lat,s.lon)-haversineM(b.lat!,b.lon!,s.lat,s.lon) || a.identity.toHexString().localeCompare(b.identity.toHexString()));
-    const target = candidates.shift()!; const proposal = createProposal(ctx,{survivor:s,target,reason:'watchdog fallback nearest rescuer',createdBy:MODULE_ACTOR,reassign:false,review:true});
+    const target = candidates.shift()!; const proposal = createProposal(ctx,{survivor:s,target,reason:proposalReason,createdBy:MODULE_ACTOR,reassign:false,review:true});
     logEvent(ctx,'agent_watchdog_fallback','assignment',proposal.id,`watchdog proposed rescuer ${target.name}`);
-    ctx.db.agent_action.insert({id:0n,run_id:activeRunId(ctx),chain_id:chainFor(ctx,s.id),agent:MODULE_ACTOR,step:0,model:'rules',tool:'propose_assignment',args_json:JSON.stringify({survivor_id:s.id.toString(),rescuer:target.name}),result:'proposed',reason:'orchestrator watchdog fallback',created_at:ctx.timestamp});
+    ctx.db.agent_action.insert({id:0n,run_id:activeRunId(ctx),chain_id:chainFor(ctx,s.id),agent:MODULE_ACTOR,step:0,model:'rules',tool:'propose_assignment',args_json:JSON.stringify({survivor_id:s.id.toString(),rescuer:target.name}),result:'proposed',reason:actionReason,created_at:ctx.timestamp});
   }
-});
+}
 
 export const sweep = spacetimedb.reducer({ onSchedule: sweep_timer }, { arg: sweep_timer.rowType }, ctx => {
   ensureSchedules(ctx); const now = ctx.timestamp.microsSinceUnixEpoch;
@@ -407,6 +421,8 @@ export const sweep = spacetimedb.reducer({ onSchedule: sweep_timer }, { arg: swe
     const level = fired.has('escalation') ? 2 : 1;
     armEscalation(ctx, s.id, level, since, since.microsSinceUnixEpoch + BigInt(level === 1 ? n : 2 * n) * 1_000_000n);
   }
+  const backstopUs = BigInt(isDemo(ctx) ? UNPROPOSED_BACKSTOP_DEMO_S : UNPROPOSED_BACKSTOP_S) * 1_000_000n;
+  proposeNearestForUrgent(ctx, s => now - unproposedSince(ctx, s) >= backstopUs, 'backstop: no proposal for an immediate survivor', 'unproposed immediate backstop');
 });
 
 export const post_briefing = spacetimedb.reducer(

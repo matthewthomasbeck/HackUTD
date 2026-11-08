@@ -24,6 +24,9 @@ export const ROBOT_DISCONNECT_GRACE_S = 5;
 export const SESSION_MIN_S = 1;
 export const AGENT_WATCHDOG_S = 30;
 export const AGENT_WATCHDOG_DEMO_S = 15;
+// Backstop: an immediate survivor with no open proposal for this long gets a module proposal even while agents are alive.
+export const UNPROPOSED_BACKSTOP_S = 30;
+export const UNPROPOSED_BACKSTOP_DEMO_S = 15;
 export const AGENT_TASK_LEASE_S = 30;
 export const AGENT_TASK_MAX_ATTEMPTS = 3;
 export const SWEEP_INTERVAL_S = 10;
