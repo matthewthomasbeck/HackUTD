@@ -3,6 +3,7 @@
 Owner of perception and terrain models; PROPOSED owner of the Nemotron agents (Eric designed the agent split).
 Specs: `docs/specs/perception.md`, `docs/specs/agent.md`, `docs/AGENT_WORKFLOW.md`, `docs/research/perception.md`, `docs/research/agents.md`, `docs/specs/CONTRACTS.md`.
 Overview and checkpoints: `docs/TASKS.md`.
+Also owns robot task R1 (state machine, safety gate, main loop) and the C++ part of R0, taken over from Camille on 2026-11-07; the task text stays in `docs/tasks/camille.md`.
 Total with AI: about 15 h (each task 1 to 2 h with coding agents; hardware tasks are bench time, not typing).
 
 ## Current status (2026-11-08)
@@ -14,11 +15,11 @@ native and JSON model smoke tests, three consecutive chains in each mode,
 priority ordering, seeded auditor disagreement, and watchdog recovery.
 Those model scenarios use a fake database, not a published SpacetimeDB module.
 
-Upstream check: fetched `origin/main` at `93b49a7` already contains Cayden's
-module, generated bindings, simulator, dashboard and glasses code. Eric must
-integrate those sources and confirm the running deployment/roles; do not wait
-for those components to be written from scratch. Live interoperability is still
-unverified.
+Upstream update: merged `origin/main` at `93b49a7`, bringing Cayden's module,
+generated bindings, simulator, dashboard and glasses code into this checkout.
+Next, verify Eric's adapters against those sources and confirm the running
+deployment/roles. Do not wait for these components to be written from scratch.
+Live interoperability remains unverified.
 
 A checked implementation step means code and the stated local tests exist.
 It does not complete that task's separate live integration or "Done when"
@@ -32,7 +33,7 @@ acceptance. Steps combining code and an unverified live check are split below.
 | E3 | Video/ROI/PIC pipeline, quality gates, worker, watcher, HTTP client/helper source, synthetic tests | Live database/helper smoke; primary public-data evaluation and tuning; robot capture |
 | E4 | Score formula, confidence caps, ordered writes and re-score logic | Primary E1 results/score batch; live dashboard and waiting-time demonstration |
 | E5 | Person/pose/box code and still-image output | Live service health, full E1 ROI review and dashboard display; real YOLO smoke currently recorded for the reference version |
-| E6 | Shared runner, schemas/guards, task handling, budgets, dry runs and adapter source | Integrate upstream bindings, connect three live identities, verify actual task/log round trip |
+| E6 | Shared runner, schemas/guards, task handling, budgets, dry runs and adapter source | Verify integrated upstream bindings, connect three live identities, verify actual task/log round trip |
 | E7 | Orchestrator, auditor, comms, mock scenarios and real Brev chains | Live database watchdog/leases, two-process integration, dashboard/glasses acknowledgement |
 | E8 | Transcription engines/endpoint/fallback code, question fixtures and template answer path | Model-generated rescuer answers, hosted Riva verification, full glasses voice loop |
 | E9 | CLIP baseline, terrain endpoints, labelling/training tools and safety fusion | Independently labelled hazard data, trained/evaluated probe, enabled advisory path and map integration |

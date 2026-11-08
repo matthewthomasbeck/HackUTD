@@ -1,0 +1,182 @@
+/* Fallback page styles. Only design tokens from tokens.css; no raw colors, fonts, or sizes. */
+@import "../../../design-tokens/tokens.css";
+
+html,
+body {
+  background: var(--glasses-bg);
+}
+
+.stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-5);
+  padding: var(--space-5);
+}
+
+.display-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Normal mode: the 576x288 display at 2x (main.ts sets the width), square pixels. */
+.display {
+  display: block;
+  aspect-ratio: 2 / 1;
+  max-width: 100%;
+  image-rendering: pixelated;
+  background: var(--glasses-bg);
+  outline: var(--border-w) solid var(--border);
+}
+
+.attribution {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-attrib);
+}
+
+.panel {
+  flex: 1 1 calc(var(--space-8) * 5);
+  max-width: calc(var(--space-8) * 7);
+  background: var(--panel);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  font-size: var(--fs-min);
+}
+
+.panel-title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-row);
+  font-weight: var(--fw-bold);
+}
+
+.panel-heading {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--fs-min);
+  font-weight: var(--fw-bold);
+  color: var(--text-muted);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.facts dt {
+  color: var(--text-muted);
+}
+
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.mono,
+.fit,
+kbd {
+  font-family: var(--font-mono);
+}
+
+/* Link state always has its word; the color only repeats it. */
+.link[data-state="open"] {
+  color: var(--status-resolved-ink);
+}
+.link[data-state="connecting"],
+.link[data-state="retrying"] {
+  color: var(--crit-delayed-ink);
+}
+.link[data-state="stopped"] {
+  color: var(--crit-immediate-ink);
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.buttons button {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.buttons button:hover {
+  border-color: var(--text-muted);
+}
+
+.buttons button:focus-visible {
+  outline: var(--border-w-strong) solid var(--focus);
+  outline-offset: var(--border-w);
+}
+
+.buttons button:active {
+  background: var(--panel);
+}
+
+.keys {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-1);
+}
+
+kbd {
+  display: inline-block;
+  min-width: var(--space-5);
+  text-align: center;
+  padding: 0 var(--space-1);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.fit {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: var(--fs-min);
+}
+.fit[data-ok="true"] {
+  color: var(--status-resolved-ink);
+}
+.fit[data-ok="false"] {
+  color: var(--crit-immediate-ink);
+}
+
+.ws-url {
+  margin: var(--space-4) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-attrib);
+  overflow-wrap: anywhere;
+}
+
+/* Record mode: only the canvas, filling the window on pure black, no cursor. */
+body.record {
+  overflow: hidden;
+  cursor: none;
+}
+body.record .stage {
+  display: grid;
+  place-items: center;
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+}
+body.record .panel,
+body.record .attribution {
+  display: none;
+}
+body.record .display {
+  width: min(100vw, 200vh);
+  max-width: none;
+  outline: none;
+}

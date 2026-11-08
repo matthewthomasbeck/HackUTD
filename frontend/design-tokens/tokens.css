@@ -1,0 +1,179 @@
+/*
+ * Design tokens for the HackUTD rubble search project.
+ * The one source of colors, type, spacing, and radii (docs/DESIGN.md, rule 2).
+ * Code uses only these variables: no raw hex, font, or spacing value outside this file.
+ * Light values live on :root (the dashboard default, for a projector).
+ * Dark values live on [data-theme="dark"].
+ * The Figma variables use the same names, without the leading "--".
+ * Run `node frontend/design-tokens/check-contrast.mjs` after any color change.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces and text (dashboard.md, Okabe-Ito based) */
+  --bg: #F7F8FA;
+  --panel: #FFFFFF;
+  --text: #111827;
+  --text-muted: #4B5563;
+  --border: #D1D5DB;
+  --focus: #0072B2;
+
+  /* Critical levels: badge fill, badge text, and ink (colored text on --panel or --bg).
+     Status is never color only: always pair a token with its label (IMMEDIATE, DELAYED, MINOR, NOT SCORED, RESOLVED). */
+  --crit-immediate: #D55E00;
+  --crit-immediate-fg: #FFFFFF; /* bold 18.66 px or larger only (3.9:1) */
+  --crit-immediate-ink: #A84800;
+  --crit-delayed: #F0E442;
+  --crit-delayed-fg: #111827;
+  --crit-delayed-outline: #5C5300;
+  --crit-delayed-ink: #5C5300;
+  --crit-minor: #0072B2;
+  --crit-minor-fg: #FFFFFF;
+  --crit-minor-ink: #0072B2;
+  --crit-unknown: #6B7280;
+  --crit-unknown-fg: #FFFFFF;
+  --crit-unknown-ink: #4B5563;
+  /* PROPOSED only: DESIGN.md leaves the resolved green TBD; confirm in Figma. */
+  --status-resolved: #2E7D32;
+  --status-resolved-fg: #FFFFFF;
+  --status-resolved-ink: #2E7D32;
+
+  /* Map things (dashboard.md) */
+  --robot: #111827;
+  --rescuer: #CC79A7;
+  --cell-searched: #009E73;
+  --cell-partial: #E69F00;
+
+  /* One tint per agent: ink (text, icon, border) and a pale chip surface.
+     Hues are kept away from the critical colors; chips always carry the agent name. */
+  /* PROPOSED only: the agent colors are TBD in DESIGN.md; confirm in Figma. */
+  --agent-orchestrator: #4338CA;
+  --agent-orchestrator-bg: #EEF0FF;
+  --agent-auditor: #7A4E12;
+  --agent-auditor-bg: #FBF1E3;
+  --agent-comms: #0F766E;
+  --agent-comms-bg: #E6F6F4;
+
+  /* Glasses: the G2 green on black. Only for the glasses fallback page, the video, and the slides.
+     Green is the spec tint rgb(0.25v, v, 0.45v) at v = 255 (glasses.md section 6). */
+  --glasses-bg: #000000;
+  --glasses-green: rgb(64 255 115);
+  /* Text brightness levels 0 to 4 (text_color) as alpha over --glasses-bg */
+  --glasses-level-0: 0.25;
+  --glasses-level-1: 0.45;
+  --glasses-level-2: 0.65;
+  --glasses-level-3: 0.85;
+  --glasses-level-4: 1;
+
+  /* Type: one sans for UI, one mono for numbers and ids. No web fonts. */
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* PROPOSED stack: DESIGN.md requires a mono font but does not pick one. */
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --fw-regular: 400;
+  --fw-bold: 700;
+  --fs-attrib: 12px; /* map attribution only */
+  --fs-min: 18px;
+  --fs-row: 22px;
+  --fs-label: 28px;
+  --fs-headline: 32px;
+  --fs-big: 44px;
+  --fs-commander: 64px;
+  --lh-tight: 1.15;
+  --lh-normal: 1.4;
+
+  /* PROPOSED scale only: task D1 gives these as an example; confirm in Figma. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Radius scale is proposed; 12px evidence-card corners are in DESIGN.md. */
+  /* PROPOSED scale except --radius-lg at 12px for evidence cards. */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px; /* evidence cards */
+  --radius-pill: 999px;
+  /* Proposed layout tokens used by the dashboard foundation. */
+  --letter-spacing-eyebrow: 0.08em;
+  --layout-page-min-height: 100vh;
+  --layout-notice-max-width: 42rem;
+  --layout-sidebar-width: 240px;
+  --layout-detail-width: 440px;
+  --layout-topbar-height: 116px;
+  --layout-stage-height: 260px;
+  --layout-pipeline-card-height: 192px;
+  --layout-map-height: 360px;
+  --layout-avatar-size: 36px;
+  --layout-list-row-height: 88px;
+  --layout-modal-width: 480px;
+  --layout-control-min-height: 44px;
+  --layout-agent-card-min-width: 240px;
+  --layout-map-marker-size: 18px;
+  --layout-media-height: 200px;
+  --layout-detail-scroll-height: 520px;
+  --border-w: 1px;
+  --border-w-strong: 2px;
+  --shadow-card: 0 1px 2px rgb(17 24 39 / 0.06), 0 4px 12px rgb(17 24 39 / 0.08);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0B0F14;
+  --panel: #121821;
+  --text: #E8EDF2;
+  --text-muted: #9AA6B2;
+  --border: #2A3441;
+  --focus: #56B4E9;
+
+  --crit-immediate: #E66100;
+  --crit-immediate-fg: #000000;
+  --crit-immediate-ink: #FF8A3D;
+  --crit-delayed: #F0E442;
+  --crit-delayed-fg: #000000;
+  --crit-delayed-outline: #F0E442;
+  --crit-delayed-ink: #F0E442;
+  --crit-minor: #56B4E9;
+  --crit-minor-fg: #000000;
+  --crit-minor-ink: #56B4E9;
+  --crit-unknown: #A7B0BA;
+  --crit-unknown-fg: #000000;
+  --crit-unknown-ink: #A7B0BA;
+  --status-resolved: #7BC47F;
+  --status-resolved-fg: #000000;
+  --status-resolved-ink: #7BC47F;
+
+  --robot: #FFFFFF;
+  --rescuer: #CC79A7;
+  --cell-searched: #009E73;
+  --cell-partial: #E69F00;
+
+  --agent-orchestrator: #A5B4FC;
+  --agent-orchestrator-bg: #1E2240;
+  --agent-auditor: #E0B070;
+  --agent-auditor-bg: #2E2414;
+  --agent-comms: #5EEAD4;
+  --agent-comms-bg: #0F2A28;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.5);
+}
+
+/* Explicit page background in both themes */
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-min);
+  line-height: var(--lh-normal);
+  font-variant-numeric: tabular-nums;
+}

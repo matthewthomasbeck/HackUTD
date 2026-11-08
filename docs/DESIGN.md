@@ -10,7 +10,7 @@ One source, one look, one gate.
 
 1. **One design file is the source of truth.**
    A single Figma file (or Canva for the slides only, if the team prefers) holds the tokens, the components, the dashboard frames, the glasses frames, and the slides.
-   Link it here once it exists: `TBD`.
+   Figma file: [HackUTD Rubble Search Design System](https://www.figma.com/design/BGtXIaMoYLUvwgq18SBtYt).
 2. **Tokens before styling.**
    Colors, type, spacing, radii, and status colors are Figma variables first, then exported to one CSS variables file in the team repo (`frontend/design-tokens/tokens.css`).
    Code never uses a raw hex color, font, or spacing value outside that file.
@@ -47,6 +47,7 @@ Some links may need access from their owners.
 
 | Reference | What to take from it | Where it is described |
 | --- | --- | --- |
+| Better Futures Design System (BFI) library | The primary button states and component variant organization | The Components page in the linked Figma file |
 | Stochastic (Cal Hacks 13.0) team Figma file | A versioned UI page (Hi-fi v1, v2, v3), a Components page, one brand color with pale surfaces, one character and tint per agent, and a "Technologies Used" page of evidence cards (real screenshot, 12 px corners, light stroke, soft shadow, title and description) for the pitch | `../Stochastic/docs/design/README.md` |
 | Cal Hacks ideation deck plan (Figma Slides) | A 12-slide deck mapped to the rubric, one screen revealed per slide, a two-minute pitch timed by beats, and the Figma workflow: variables, then components, then screens, then a clickable prototype | `../CalHacks/ideation/design-direction.md` |
 | Cal Hacks design lessons | Winners had one distinctive identity and one central metaphor, opened with a real person and numbers, and used two colors and two typefaces | `../CalHacks/ideation/design-direction.md` ("What the winners teach") |

@@ -212,11 +212,11 @@ Starting values (token names below are proposed here; only `--crit-*` come from 
 | Spacing and radii | TBD scale (for example 4, 8, 12, 16, 24, 32 px); 12 px corners for evidence cards | same | `DESIGN.md` references |
 
 Steps:
-- [ ] D1.1 (15 min) Create the Variables collection with modes light and dark, and enter the color values above.
-- [ ] D1.2 (15 min) Add type, spacing, radius, agent tint, and glasses green variables; check every text and badge pair for 4.5:1 contrast (3:1 for bold 18.66 px or larger); white on `#D55E00` passes only as bold 18.66 px or larger.
-- [ ] D1.3 (15 min) Export to `frontend/design-tokens/tokens.css`: light values on `:root`, dark values on `[data-theme="dark"]`, and an explicit `body` background in both.
+- [x] D1.1 (15 min) Create the Variables collection with modes light and dark, and enter the color values above.
+- [x] D1.2 (15 min) Add type, spacing, radius, agent tint, and glasses green variables; check every text and badge pair for 4.5:1 contrast (3:1 for bold 18.66 px or larger); white on `#D55E00` passes only as bold 18.66 px or larger.
+- [x] D1.3 (15 min) Export to `frontend/design-tokens/tokens.css`: light values on `:root`, dark values on `[data-theme="dark"]`, and an explicit `body` background in both.
   Your agent can read the variables with the Figma MCP `get_variable_defs`, or you paste them; Figma has no built-in CSS export that this list relies on (UNCONFIRMED which export path is fastest).
-- [ ] D1.4 (15 min) Add stub components (survivor card, status chip, agent chip, countdown, map marker, task-board row, button) and the empty frames; link the file in `docs/DESIGN.md`; post the link.
+- [x] D1.4 (15 min) Add stub components (survivor card, status chip, agent chip, countdown, map marker, task-board row, button) and the empty frames; link the file in `docs/DESIGN.md`; post the link.
 
 Done when: the tokens file is in `frontend/design-tokens/` and `docs/DESIGN.md` links the Figma file.
 - Every color pair in the file passes the contrast rule above.
@@ -633,14 +633,18 @@ open "http://localhost:5180/?screen=B&db=local"
 ```
 
 Steps:
-- [ ] C2.1 (15 min) Scaffold with the React version the SpacetimeDB React quickstart pins, the bindings alias and dedupe, import `frontend/design-tokens/tokens.css`, `stdb/connection.ts` with the token key `stdb_token_<db>_<screen>` in try/catch, `register_participant` as `coordinator-<screen>`.
-- [ ] C2.2 (15 min) `LiveSource`, `useBoard`, `BoardState`; `stdb/enums.ts` (the only file that reads `.tag`, checked against a live row) and `stdb/time.ts`.
-- [ ] C2.3 (15 min) `model/` pure functions with unit tests: `headline`, `ranking`, `labels`, `timers`, `accounting`, `agents`, `chains`.
-- [ ] C2.4 (20 min) Top bar (site, DEMO MODE, SCREEN label, REC, headline, presence), ranked survivor list, survivor detail with media and the resolve dialog.
-- [ ] C2.5 (20 min) Agents panel: agent cards with status words, task board columns, action log bursts, chain per survivor with the auditor verdict and the "RULES FALLBACK" and "MODULE" chips; `A` opens it full screen.
-- [ ] C2.6 (15 min) Leaflet map (`esri-light`, attribution, cells with partial never "clear", survivor shapes, robot chevron with terrain glyph, rescuer diamonds, legend); Timers tab with "SCHEDULE TABLE" chips; Assignments tab with release causes.
-- [ ] C2.7 (15 min) Pipeline canvas (seven React Flow cards), Buildings panel with the person report form, transport bar live mode, Start run, End run, Sync test.
+- [x] C2.1 (15 min) Scaffold with the React version the SpacetimeDB React quickstart pins, the bindings alias and dedupe, import `frontend/design-tokens/tokens.css`, `stdb/connection.ts` with the token key `stdb_token_<db>_<screen>` in try/catch, `register_participant` as `coordinator-<screen>`.
+- [x] C2.2 (15 min) `LiveSource`, `useBoard`, `BoardState`; `stdb/enums.ts` (the only file that reads `.tag`, checked against a live row) and `stdb/time.ts`.
+- [x] C2.3 (15 min) `model/` pure functions with unit tests: `headline`, `ranking`, `labels`, `timers`, `accounting`, `agents`, `chains`.
+- [x] C2.4 (20 min) Top bar (site, DEMO MODE, SCREEN label, REC, headline, presence), ranked survivor list, survivor detail with media and the resolve dialog.
+- [x] C2.5 (20 min) Agents panel: agent cards with status words, task board columns, action log bursts, chain per survivor with the auditor verdict and the "RULES FALLBACK" and "MODULE" chips; `A` opens it full screen.
+- [x] C2.6 (15 min) Leaflet map (`esri-light`, attribution, cells with partial never "clear", survivor shapes, robot chevron with terrain glyph, rescuer diamonds, legend); Timers tab with "SCHEDULE TABLE" chips; Assignments tab with release causes.
+- [x] C2.7 (15 min) Pipeline canvas (seven React Flow cards), Buildings panel with the person report form, transport bar live mode, Start run, End run, Sync test.
 - [ ] C2.8 (15 min) Replay (fold `event_log` from the `run_started` snapshot) or hand it off; `sync.spec.ts` and `disconnect.spec.ts`; the screenshot check.
+
+Status (2026-11-07): C2.6 and C2.7 implementation and unit coverage are complete, and C2.8 replay has been implemented.
+The two-screen sync and disconnect Playwright checks still need a clean seeded local database.
+Priority, Stats, Map empty state, and Replay layouts were reviewed at 1920x1080.
 
 Done when: two browser windows update at the same moment during a simulator run, and the screenshot check in `docs/DESIGN.md` passes.
 - `sync.spec.ts`: Screen A clicks "Approve" and Screen B shows `queued` within 1 s.

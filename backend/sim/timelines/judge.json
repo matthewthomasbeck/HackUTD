@@ -1,0 +1,20 @@
+[
+  { "at": "0:00", "cmd": "run start Judging" },
+  { "at": "0:20", "cmd": "scale 300" },
+  { "say": "Approve the search of house 3 on Screen A, point at Screen B" },
+  { "await": "survivor_in", "house": "house 3", "timeout_s": 120, "else": "robot replay house3" },
+  { "await": "assignment_for", "rescuer": "cayden", "status": "proposed", "timeout_s": 30, "say_on_timeout": "Assign Cayden from the survivor detail" },
+  { "await": "assignment_for", "rescuer": "cayden", "status": "active", "timeout_s": 30, "say_on_timeout": "Cayden: tap the ring" },
+  { "cmd": "walk house 3" },
+  { "say": "Cayden: close the Even app now" },
+  { "await": "released", "rescuer": "cayden", "timeout_s": 10, "else": "fail rescuer-drop r2" },
+  { "say": "Coordinator: add the family report for house 4", "await": "person_report", "house": "house 4", "timeout_s": 30, "else": "report house 4" },
+  { "say": "Stop the agents now" },
+  { "after_s": 3, "cmd": "spawn immediate house 8" },
+  { "await": "watchdog_fallback", "timeout_s": 30, "say_on_timeout": "Point at the escalation banner instead" },
+  { "say": "Restart the agents" },
+  { "cmd": "imbalance r1" },
+  { "await": "audit_flag", "kind": "load_imbalance", "timeout_s": 40 },
+  { "await": "key", "say": "Press Enter to end the run" },
+  { "cmd": "run end judged" }
+]

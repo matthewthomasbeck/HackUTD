@@ -1,0 +1,15 @@
+# Scripted paths and demo waypoints (docs/specs/robot.md sections 8 and 15).
+# Coordinates are TBD: copy them from the backend/sim config so the robot and the simulator agree.
+anchor: { lat: 0.0, lon: 0.0 }           # TBD, copy from backend/sim config
+waypoints:
+  home:    { lat: 0.0, lon: 0.0 }        # TBD
+  house_3: { lat: 0.0, lon: 0.0, label: "house 3" }   # TBD
+paths:
+  - name: home_to_house_3
+    start: home
+    end: house_3
+    cells: [3]                            # search_cell ids or labels this path covers
+    steps:
+      - { drive: { vx: 0.15, vy: 0, wz: 0, seconds: 4 } }
+      - { turn_to: { heading_deg: 90 } }
+      - { scan: { seconds: 10, mode: rotate } }

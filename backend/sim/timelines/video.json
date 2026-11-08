@@ -1,0 +1,15 @@
+[
+  { "at": "0:00", "cmd": "run start Recorded video" },
+  { "at": "0:05", "cmd": "scale 300" },
+  { "say": "Keep DEMO MODE and map attribution visible on both screens" },
+  { "await": "survivor_in", "house": "house 3", "timeout_s": 120, "else": "robot replay house3" },
+  { "say": "Show the detection, breathing result, critical score, and agent chain" },
+  { "cmd": "walk house 3" },
+  { "say": "Close the glasses app and show the disconnect release" },
+  { "await": "released", "rescuer": "cayden", "timeout_s": 10, "else": "fail rescuer-drop r2" },
+  { "cmd": "report house 4" },
+  { "cmd": "spawn immediate house 8" },
+  { "say": "Stop the agents and show the module watchdog fallback" },
+  { "await": "watchdog_fallback", "timeout_s": 30, "say_on_timeout": "Show the escalation banner and state that the watchdog was not shown" },
+  { "cmd": "run end recorded video" }
+]

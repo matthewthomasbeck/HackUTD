@@ -1,0 +1,8 @@
+[
+  { "at": "0:00", "cmd": "run start E2E" },
+  { "at": "0:01", "cmd": "scale 10 --rate 0" },
+  { "say": "Check that scale survivors and cells appear in both dashboard contexts" },
+  { "cmd": "report house 4" },
+  { "cmd": "status" },
+  { "cmd": "run end e2e" }
+]

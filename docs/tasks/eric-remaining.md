@@ -61,16 +61,16 @@ orchestrator, breathing pipeline and score ahead of optional enhancements.
 Fetched `origin/main` at `93b49a7`. It already contains
 `backend/spacetimedb/`, `backend/spacetimedb-bindings/`, `backend/sim/`,
 `backend/glasses-service/`, `frontend/dashboard/` and `frontend/glasses/`.
-Cayden's workstream branch also contains these components. The next step is
-bringing these sources into Eric's integration checkout and checking the
-interfaces, not waiting for their first implementation. Source availability
+Cayden's workstream branch also contains these components. These sources have now been merged into Eric's integration checkout to resolve
+the PR conflicts. The next step is checking the adapters and live interfaces,
+not waiting for a first implementation. Source availability
 does not confirm a running database, service roles or a working end-to-end flow.
 
 ## What Eric is waiting on
 
 | Dependency | Existing owner/task | Specific handoff needed | What it unblocks |
 | --- | --- | --- | --- |
-| SpacetimeDB deployment and binding integration; source already on main | Cayden, C1; Eric integrates | Bring in upstream code, confirm database URI/name and local/Maincloud deployment, check reducer arguments/enums/options/timestamps | Perception live smoke; agent/helper build; actual subscriptions and reducers |
+| SpacetimeDB deployment and binding integration; source already on main | Cayden, C1; Eric integrates | Verify the integrated upstream code, confirm database URI/name and local/Maincloud deployment, check reducer arguments/enums/options/timestamps | Perception live smoke; agent/helper build; actual subscriptions and reducers |
 | Service identities and demo configuration | Cayden, C1/C4, with Eric | Demo mode or granted perception/orchestrator/auditor/comms roles; confirmed demo lease/watchdog timings | Registration, permitted writes and meaningful live watchdog tests |
 | Simulator and demo site; source already on main | Cayden, C3; Eric integrates | Run upstream simulator and seed active run, robot, survivors, rescuers, person reports and fixed coordinates | Integrated flow without robot hardware; score ageing and failure demonstrations |
 | Dashboard and Agents panel; source already on main | Cayden, C2; Eric integrates | Confirm subscriber/media compatibility with Eric's outputs and verify task/action/chain display | Visible scores/person images, shared live board, acknowledgement timing and replay |
@@ -132,7 +132,7 @@ that hardware path, but it is enough to keep implementation moving now.
 
 ## Next order
 
-1. Integrate the available upstream module/bindings/simulator/dashboard/glasses sources. Confirm Cayden's deployed server/roles and Camille's bridge upload interface.
+1. Verify Eric's adapters against the upstream module/bindings/simulator/dashboard/glasses sources now merged into this checkout. Confirm Cayden's deployed server/roles and Camille's bridge upload interface.
 2. While waiting, port the public benchmark to primary perception, generate its lock, and finish primary score/ROI results.
 3. With a running module, run `scripts/smoke_stdb.py`, build the subscription helper, register service roles, and verify each wire assumption.
 4. Prove the full simulator-to-dashboard/glasses flow and real database failure handling.
