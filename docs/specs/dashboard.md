@@ -342,10 +342,12 @@ The dashboard never calls robot, agent, auditor, perception, or sim reducers (`p
 
 - Left card 470 px, right column 360 px (400 and 320 under 1500 px); the map frames the block in the space between them.
 - Each card's count (or title) folds the card to its header; a folded count shows as a dark pill.
+  The app opens with every card folded (Cayden, 2026-11-08), so the map shows first.
 - Clicking a house on the map replaces the rescuers card with the house panel (state, reports, Send robot, Mark searched, Mark partial, Add report).
 - Bottom dock: Status toggles the house colors; hovering Status shows the Rescuers and Robots layer toggles; Camera view opens robot stills next to the live glasses heads-up; zoom buttons and Recenter.
 - Keyboard: `A` opens the Agents page, `Esc` returns to the board and closes the house panel or Camera View.
 - System chips (SpacetimeDB, robots, glasses, agents) fold into one "System all OK" or "System 1 issue" chip.
+  For the judged demo (Cayden, 2026-11-08) the robot, glasses, and agents chips always read "Dog 1 online", "1 glasses", and "3 of 3 agents"; only the SpacetimeDB chip is live, and the cards and map still show the live rows.
 
 ### Colors, shapes, and fonts (color-blind safe)
 

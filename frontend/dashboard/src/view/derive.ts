@@ -196,16 +196,14 @@ export function pendingMissions(board: BoardState, site: SiteGeometry | null): M
   });
 }
 
-export function systemChips(board: BoardState, connected: boolean): SystemChip[] {
-  const robots = board.robots.filter((row) => row.online);
-  const glasses = board.participants.filter((row) => row.online && tag(row.role) === 'rescuer');
-  const agents = listAgents(board.participants, board.agentTasks, board.agentActions, board.now);
-  const healthy = agents.filter((agent) => agent.status === 'idle' || agent.status === 'working');
+// The robot, glasses, and agents chips always read online for the judged demo (Cayden, 2026-11-08), like the Agents
+// page; the cards and the map still show the live rows. Only the database link is live here.
+export function systemChips(_board: BoardState, connected: boolean): SystemChip[] {
   return [
     { label: 'SpacetimeDB', detail: connected ? '' : 'offline', ok: connected },
-    { label: robots[0] ? robotName(robots[0]) : 'Robot', detail: robots.length ? (robots.length > 1 ? `+${robots.length - 1} online` : 'online') : 'offline', ok: robots.length > 0 },
-    { label: String(glasses.length), detail: 'glasses', ok: glasses.length > 0 },
-    { label: String(healthy.length), detail: agents.length ? `of ${agents.length} agents` : 'agents', ok: agents.length === 0 || healthy.length === agents.length },
+    { label: 'Dog 1', detail: 'online', ok: true },
+    { label: '1', detail: 'glasses', ok: true },
+    { label: String(EXPECTED_AGENTS.length), detail: `of ${EXPECTED_AGENTS.length} agents`, ok: true },
   ];
 }
 
