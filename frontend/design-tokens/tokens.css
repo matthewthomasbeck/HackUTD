@@ -115,6 +115,8 @@
   --layout-agent-card-min-width: 240px;
   --layout-map-marker-size: 18px;
   --layout-media-height: 200px;
+  --layout-camera-tile-height: clamp(160px, 26vh, 320px);
+  --layout-camera-expanded-height: 65vh;
   --layout-detail-scroll-height: 520px;
   --border-w: 1px;
   --border-w-strong: 2px;

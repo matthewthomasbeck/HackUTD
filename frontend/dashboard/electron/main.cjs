@@ -8,25 +8,43 @@
 //
 // Settings, in order of precedence:
 //   1. Command-line flags: --db=cloud|local --local-uri=ws://HOST:3000 --glasses-page=URL --glasses-ws=URL --screen=A
+//      --robot-preview-url=http://ROBOT:8081 (starts the on-laptop vision worker, electron/preview-worker.cjs)
+//      --vision-python=PATH (the Python that runs it; default raspberrypi/preview/.venv)
 //   2. The saved file <userData>/underdog-settings.json (written by the Server menu)
 //   3. Defaults: the local server ws://127.0.0.1:3000 with the demo services (Maincloud is in the Server menu)
 const { app, BrowserWindow, Menu, dialog, shell, ipcMain } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { DemoServices, repoRoot } = require('./services.cjs');
+const { PreviewWorker } = require('./preview-worker.cjs');
 
-const DEFAULTS = { db: 'local', localUri: 'ws://127.0.0.1:3000', glassesPage: '', glassesWs: '', screen: 'A' };
-const FLAG_NAMES = { db: 'db', localUri: 'local-uri', glassesPage: 'glasses-page', glassesWs: 'glasses-ws', screen: 'screen' };
+// Keep the camera settings, identity, and sessions of a machine that ran the app as "Assess" before the rename, unless
+// it has already run as UnderDog (then the UnderDog folder is the newer one).
+const legacyData = path.join(app.getPath('appData'), 'Assess');
+if (!fs.existsSync(app.getPath('userData')) && fs.existsSync(legacyData)) app.setPath('userData', legacyData);
+app.setName('UnderDog');
+
+const DEFAULTS = { db: 'local', localUri: 'ws://127.0.0.1:3000', glassesPage: '', glassesWs: '', screen: 'A',
+  robotPreviewUrl: process.env.UNDERDOG_ROBOT_PREVIEW_URL || process.env.ASSESS_ROBOT_PREVIEW_URL || '',
+  visionPython: process.env.UNDERDOG_VISION_PYTHON || process.env.ASSESS_VISION_PYTHON || '' };
+const FLAG_NAMES = { db: 'db', localUri: 'local-uri', glassesPage: 'glasses-page', glassesWs: 'glasses-ws', screen: 'screen',
+  robotPreviewUrl: 'robot-preview-url', visionPython: 'vision-python' };
+const previewWorker = new PreviewWorker();
 const settingsFile = () => path.join(app.getPath('userData'), 'underdog-settings.json');
+// The settings file before the rename; read only when the new one does not exist yet.
+const legacySettingsFile = () => path.join(app.getPath('userData'), 'assess-settings.json');
 
 function readSaved() {
-  try { return JSON.parse(fs.readFileSync(settingsFile(), 'utf8')); } catch { return {}; }
+  for (const file of [settingsFile(), legacySettingsFile()]) {
+    try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* try the next one */ }
+  }
+  return {};
 }
 
 function save(settings) {
-  const { db, localUri, glassesPage, glassesWs } = settings;
+  const { db, localUri, glassesPage, glassesWs, robotPreviewUrl, visionPython } = settings;
   fs.mkdirSync(path.dirname(settingsFile()), { recursive: true });
-  fs.writeFileSync(settingsFile(), JSON.stringify({ db, localUri, glassesPage, glassesWs }, null, 2));
+  fs.writeFileSync(settingsFile(), JSON.stringify({ db, localUri, glassesPage, glassesWs, robotPreviewUrl, visionPython }, null, 2));
 }
 
 function readFlags(argv) {
@@ -93,6 +111,10 @@ function query() {
   if (settings.db === 'local') { params.set('db', 'local'); params.set('uri', settings.localUri); }
   if (settings.glassesPage) params.set('glassesPage', settings.glassesPage);
   if (settings.glassesWs) params.set('glassesWs', settings.glassesWs);
+  if (settings.robotPreviewUrl) {
+    params.set('robotPreview', settings.robotPreviewUrl);
+    params.set('visionPreview', 'http://127.0.0.1:8082');
+  }
   return params.toString();
 }
 
@@ -220,6 +242,17 @@ app.whenReady().then(() => {
   if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(path.join(__dirname, 'icon.png'));
   settings = { ...DEFAULTS, ...readSaved(), ...readFlags(process.argv) };
   services = new DemoServices(repoRoot(__dirname, app.isPackaged), path.join(app.getPath('logs'), 'demo-services.log'));
+  if (settings.robotPreviewUrl) {
+    try {
+      const url = new URL(settings.robotPreviewUrl);
+      if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Expected an HTTP preview URL without credentials');
+      settings.robotPreviewUrl = url.origin;
+      save(settings);
+      const runtime = app.isPackaged ? path.join(process.resourcesPath, 'preview-runtime') : path.resolve(__dirname, '../../..');
+      const python = settings.visionPython || path.join(runtime, 'raspberrypi/preview/.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
+      previewWorker.start(python, path.join(runtime, 'raspberrypi/preview/server.py'), settings.robotPreviewUrl, path.join(app.getPath('userData'), 'preview-data'));
+    } catch (error) { console.error(`Preview setup: ${error.message}`); }
+  }
   buildMenu();
   // The board loads only after the services are ready: starting them wipes the local database, which would drop the
   // dashboard's registration if it had already connected.
@@ -236,3 +269,4 @@ app.whenReady().then(() => {
 app.on('will-quit', () => services?.stop());
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('before-quit', () => previewWorker.stop());

@@ -31,6 +31,9 @@ class MockControls {
 
   void set_estop_sense(bool asserted);
   bool estop_sense() const;
+  // Fake warm body in the mock thermal frame: column 0..31, or -1 for none.
+  void set_thermal_blob(int column);
+  int thermal_blob() const;
 
  private:
   mutable std::mutex mutex_;
@@ -38,6 +41,7 @@ class MockControls {
   std::set<std::string> stale_;
   bool pico_link_lost_ = false;
   bool estop_sense_ = false;
+  int thermal_blob_ = -1;
 };
 
 class MockDevice : public IDevice {

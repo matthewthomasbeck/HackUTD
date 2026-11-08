@@ -170,6 +170,29 @@ Each leg has 3 servos on Maestro A (abduction, hip, knee). Each servo maps an an
 
 `legcal` per joint: which channel it is on, jog to the zero pose, jog to a known reference angle (90 degrees is easiest; it measures `us_per_rad` and `direction`), then jog to each end and stop short of hitting (`min_us` / `max_us`, kept 20 us inside). Every jog is ramped at 400 us/s, so a typo cannot slam a leg.
 When all 12 are pasted in, set `legs.impl: two_link`, `legs.stance_height_m`, and `servos.max_rate_us_per_s`. The IK then rejects (never clamps) any goal the leg cannot reach or that would pass a limit, and the movement thread moves each servo no faster than that rate. While a leg is lifted, the safety gate holds translation at zero.
+
+## Autonomous thermal seek (`robotctl start seek_thermal`)
+
+The robot finds a warm, person-sized shape with the thermal camera and drives up to it on its own:
+scan (turn in steps, pausing to look) -> turn toward the target -> approach, steering to keep it centered -> stop at `inspect.standoff_m` (1.0 m) -> the mission is done and the robot returns to READY. It gives up after `seek.scan_max_s` with nothing found.
+
+- Detection follows docs/specs/robot.md section 7: 4 C above the frame's median, person-sized, seen in 3 of the last 5 frames (`thermal.*`).
+- With several warm shapes it goes to the closest, measured by the LD19 at each one's bearing (or the biggest blob without the LD19), and stays locked on it.
+- Distance to the target: LD19 at its bearing, else the TF-Luna once it is centered, else blob size (`seek.close_frac`).
+- While approaching, anything nearer than `seek.blocked_m` ahead that is not the target stops forward motion.
+- The safety gate still applies: speed limits, and every fault stops it.
+
+Laptop test with mocks:
+
+```
+./build/robot --config config/robot.laptop.yaml &
+./build/robotctl --socket /tmp/robot/control.sock start seek_thermal
+./build/robotctl --socket /tmp/robot/control.sock mock thermal_blob 28   # fake warm body on the right
+./build/robotctl --socket /tmp/robot/control.sock mock thermal_blob 16   # now straight ahead
+./build/robotctl --socket /tmp/robot/control.sock stop
+```
+
+Set on the robot before trusting it (all in robot.yaml): `thermal.flip_x` (a warm hand on the right must give a positive bearing), `seek.ld19_front_deg` and `seek.ld19_clockwise` (where the LD19's 0 degrees points), and the section 7.5 range test for `thermal.delta_c`, `min_c`, `max_c`, `min_blob_px`.
 CMake finds libcamera, OpenCV, and the Edge TPU runtime (libedgetpu plus TensorFlow Lite) if installed and prints `robot backends: ...`; without them the real devices report FAILED and the mocks still work.
 
 ## How one tick works

@@ -3,6 +3,8 @@
 //   robotctl [--socket PATH] status
 //   robotctl start [KIND]          (KIND defaults to hold)
 //   robotctl stop | estop | reset
+//   robotctl start seek_thermal     find a warm shape and drive up to it
+//   robotctl mock thermal_blob off|COLUMN   (laptop mocks: a fake warm body at column 0..31)
 //   robotctl mock pico_link lost|ok
 //   robotctl mock estop_sense on|off
 //   robotctl mock stale DEVICE on|off
