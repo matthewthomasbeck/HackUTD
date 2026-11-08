@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { DemoSiteConfig } from './config.ts';
-import { reportDetectionAndWait, writeClinical, type FindingClinical } from './finding.ts';
+import { hiddenClinical, reportDetectionAndWait, writeClinical, type FindingClinical } from './finding.ts';
 import type { LatLon } from './geo.ts';
 import type { SimPool } from './pool.ts';
 
@@ -18,14 +18,21 @@ const DEFAULT_RESULT: FindingClinical = {
   score_reasons: ['breathing seen 14 per min', '40% of body visible', 'rehearsal result (simulated)'],
 };
 
+// The scripted house 3 person, when demo-site.json hides one there, so a replay reports the same find as the search.
+function scriptedHouse3(config: DemoSiteConfig): { note: string; clinical: FindingClinical } | undefined {
+  const index = config.hidden_survivors.findIndex((entry) => entry.house === 'house 3');
+  return index < 0 ? undefined : { note: config.hidden_survivors[index]!.note, clinical: hiddenClinical(config, index) };
+}
+
 export async function replayHouse3(config: DemoSiteConfig, pool: SimPool, robotId: string, missionId: bigint, point: LatLon, env: NodeJS.ProcessEnv = process.env): Promise<bigint> {
+  const scripted = scriptedHouse3(config);
   const thermalImageUrl = await uploadMedia(config.media.rehearsal_thermal, 'thermal', robotId, env);
   const cameraImageUrl = await uploadMedia(config.media.rehearsal_camera, 'camera', robotId, env);
   const survivorId = await reportDetectionAndWait(pool, {
     robotId,
     missionId,
     point,
-    note: '8 m in from the front door',
+    note: scripted?.note ?? '8 m in from the front door',
     ...(thermalImageUrl ? { thermalImageUrl } : {}),
     ...(cameraImageUrl ? { cameraImageUrl } : {}),
   });
@@ -85,8 +92,9 @@ async function uploadMedia(path: string | undefined, kind: string, robotId: stri
 async function readRehearsalResult(config: DemoSiteConfig): Promise<FindingClinical> {
   const raw = await readAsset(config.media.rehearsal_result);
   if (!raw) {
-    console.warn(`Replay: ${config.media.rehearsal_result} is missing, so the built-in rehearsal defaults are used.`);
-    return DEFAULT_RESULT;
+    const scripted = scriptedHouse3(config);
+    console.warn(`Replay: ${config.media.rehearsal_result} is missing, so the ${scripted ? 'scripted house 3 survivor from demo-site.json' : 'built-in rehearsal defaults'} is used.`);
+    return scripted?.clinical ?? DEFAULT_RESULT;
   }
   const parsed = JSON.parse(raw.toString('utf8')) as Record<string, unknown>;
   const number = (key: string, fallback: number | undefined) => typeof parsed[key] === 'number' ? parsed[key] as number : fallback;
