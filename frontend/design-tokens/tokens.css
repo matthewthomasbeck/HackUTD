@@ -24,23 +24,16 @@
   --crit-immediate: #D55E00;
   --crit-immediate-fg: #FFFFFF; /* bold 18.66 px or larger only (3.9:1) */
   --crit-immediate-ink: #A84800;
-  --crit-delayed: #F59E0B;
+  --crit-delayed: #F0E442;
   --crit-delayed-fg: #111827;
-  --crit-delayed-outline: #854D0E;
-  --crit-delayed-ink: #854D0E;
+  --crit-delayed-outline: #5C5300;
+  --crit-delayed-ink: #5C5300;
   --crit-minor: #0072B2;
   --crit-minor-fg: #FFFFFF;
   --crit-minor-ink: #0072B2;
   --crit-unknown: #6B7280;
   --crit-unknown-fg: #FFFFFF;
   --crit-unknown-ink: #4B5563;
-  --triage-immediate-bg: color-mix(in srgb, var(--crit-immediate) 9%, var(--panel));
-  --triage-delayed-bg: color-mix(in srgb, var(--crit-delayed) 24%, var(--panel));
-  --triage-minor-bg: color-mix(in srgb, var(--crit-minor) 7%, var(--panel));
-  --triage-unknown-bg: color-mix(in srgb, var(--crit-unknown) 7%, var(--panel));
-  --fs-ui-caption: 11px;
-  --fs-ui-detail: 13px;
-  --fs-ui-body: 14px;
   /* PROPOSED only: DESIGN.md leaves the resolved green TBD; confirm in Figma. */
   --status-resolved: #2E7D32;
   --status-resolved-fg: #FFFFFF;
@@ -191,10 +184,10 @@
   --crit-immediate: #E66100;
   --crit-immediate-fg: #000000;
   --crit-immediate-ink: #FF8A3D;
-  --crit-delayed: #F59E0B;
+  --crit-delayed: #F0E442;
   --crit-delayed-fg: #000000;
-  --crit-delayed-outline: #F59E0B;
-  --crit-delayed-ink: #F59E0B;
+  --crit-delayed-outline: #F0E442;
+  --crit-delayed-ink: #F0E442;
   --crit-minor: #56B4E9;
   --crit-minor-fg: #000000;
   --crit-minor-ink: #56B4E9;
