@@ -392,7 +392,7 @@ Real GPS is used only when `site.demo_mode` is false.
 ## History
 
 Versions 1 to 7.5 were merged into this version 8 on 2026-11-07.
-- The backend moved to Supabase and back to SpacetimeDB; Supabase, Photon phone calls, text check-ins, and contact data are gone.
+- Photon phone calls, text check-ins, and contact data are gone; the backend is SpacetimeDB.
 - The robot's microphone and speaker (call-outs, audio detections, robot audio) are removed.
 - The drone survey and cell damage levels are removed.
 - Beacon missions are removed.

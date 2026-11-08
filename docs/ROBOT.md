@@ -57,7 +57,7 @@ These roles may change.
   "The Worst Day, at Scale": when a disaster hits thousands of people at once, use AI to identify the most urgent needs, coordinate assistance, and make sure no one is overlooked.
   Details and the proposed use case: [State Farm notes](notes/2026-11-07-state-farm-track.md).
 - Third target track: SpacetimeDB main track (back in on 2026-11-07); SpacetimeDB must power the app's primary functionality ([notes](notes/2026-11-07-spacetime-track.md)).
-- Dropped 2026-11-07: Photon phone calls ([notes](notes/2026-11-07-photon-track.md)) and the short-lived Supabase backend plan.
+- Dropped 2026-11-07: Photon phone calls ([notes](notes/2026-11-07-photon-track.md)).
   Confirm with the organizers that one project can enter 3 sponsor tracks.
 - Dropped on 2026-11-07: EOG "Beat the Shutdown" ([notes](notes/2026-11-07-eog-track.md)), CBRE, T-Mobile, and NMC².
   Their notes stay in `docs/notes/` as history.

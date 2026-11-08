@@ -8,7 +8,7 @@ Every table, column, enum value, reducer, and role name here comes from the cont
 
 Tracks: NVIDIA ("Use Nemotron Beyond a Chatbot"), State Farm ("The Worst Day, at Scale"), and SpacetimeDB (it powers the whole backend).
 Backend: SpacetimeDB only (TypeScript SDK, generated bindings in `backend/spacetimedb-bindings/`).
-There is no Supabase, no Photon, no phone calls, and no contact data in the sim or the demo.
+There is no Photon, no phone calls, and no contact data in the sim or the demo.
 Agents: the orchestrator (which also plans the search and creates robot missions), the auditor (verifier), and the comms agent (glasses), coordinating through the `agent_task` board.
 
 This spec has four parts:

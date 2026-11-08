@@ -9,7 +9,7 @@ The team moved to a robot project, recorded in [ROBOT.md](ROBOT.md), which is no
 The possible theme is a firefighter-assistance robot, and the use case and MVP are not chosen.
 The Nov 7 whiteboard confirmed the computers (Raspberry Pi 4B and a Pi Pico), C++, inverse kinematics instead of RL, and no URDF.
 The grid outage idea (idea 9) is no longer the plan.
-Later on 2026-11-07 the tracks became NVIDIA, State Farm, and SpacetimeDB, then briefly NVIDIA, State Farm, and Photon on Supabase, and finally NVIDIA, State Farm, and SpacetimeDB again (Photon dropped as too much work with too many edge cases), after the team looked at CBRE, EOG, T-Mobile, and NMC² (each has a dated file in `notes/`).
+Later on 2026-11-07 the tracks became NVIDIA, State Farm, and SpacetimeDB, then briefly NVIDIA, State Farm, and Photon, and finally NVIDIA, State Farm, and SpacetimeDB again (Photon dropped as too much work with too many edge cases), after the team looked at CBRE, EOG, T-Mobile, and NMC² (each has a dated file in `notes/`).
 State Farm's challenge (catastrophe response, "no one overlooked") is close to the grid outage welfare-check idea (idea 9), which became the starting point ([State Farm notes](notes/2026-11-07-state-farm-track.md)).
 The locked project is a rubble search robot dog, described in [PROJECT.md](PROJECT.md).
 The rest of this file is the ideation history, kept as it was.

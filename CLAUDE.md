@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-As of 2026-11-07 the target tracks are NVIDIA, State Farm, and SpacetimeDB, and the backend is SpacetimeDB (Photon calls and a short-lived Supabase plan were dropped).
+As of 2026-11-07 the target tracks are NVIDIA, State Farm, and SpacetimeDB, and the backend is SpacetimeDB (Photon calls were dropped).
 The project is LOCKED (Cayden, 2026-11-07): a robot dog searches rubble after a disaster, finds survivors with the thermal camera, checks for breathing with Eulerian video magnification, gives each survivor a critical score, and guides an operator wearing glasses to the most critical people.
 Read `docs/PROJECT.md` first for the project, then `docs/ROBOT.md` for the robot.
 `docs/MVP.md` is final (2026-11-07) and sets the scope (must, should, could have) and the build priority by sponsor track; build in that order.
@@ -87,7 +87,7 @@ All frontend, glasses, and slide work follows design control in `docs/DESIGN.md`
 - Second target track: State Farm (chosen 2026-11-07).
   "The Worst Day, at Scale": when a disaster hits thousands of people at once, use AI to identify the most urgent needs, coordinate assistance, and make sure no one is overlooked.
   See `docs/notes/2026-11-07-state-farm-track.md`, and `docs/AGENT_WORKFLOW.md` for how the backend enforces "no one overlooked".
-- Third target track: SpacetimeDB main track (back in on 2026-11-07, after a short switch to Photon and Supabase).
+- Third target track: SpacetimeDB main track (back in on 2026-11-07, after a short switch to Photon).
   SpacetimeDB must power the app's primary functionality, not just chat or player movement, and the source must be public on GitHub.
   Use SpacetimeDB for what it is good at, and show it in the demo:
   - Server logic lives in reducers, with no separate web server or API layer.
@@ -97,8 +97,7 @@ All frontend, glasses, and slide work follows design control in `docs/DESIGN.md`
   - Every client view is a live subscription, so changes appear for every user at once (multiplayer by default).
   - Agents and workers are ordinary clients that coordinate through tables (the `agent_task` board), so state survives a worker crash.
   See `docs/notes/2026-11-07-spacetime-winners.md` for how past winners did this.
-- Dropped on 2026-11-07: Photon and phone calls (too much work, too many edge cases), and the Supabase backend plan.
-  The Supabase project `hackutd-rubble-search` is unused.
+- Dropped on 2026-11-07: Photon and phone calls (too much work, too many edge cases).
 - Confirm with the organizers that one project can enter 3 sponsor tracks.
 - Dropped on 2026-11-07: EOG, CBRE, T-Mobile, and NMC² (notes stay in `docs/notes/`).
 - The Nemotron agent never drives actuators directly.

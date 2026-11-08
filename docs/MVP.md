@@ -2,7 +2,7 @@
 
 HackUTD 2026. Status: FINAL (2026-11-07); scope changes need a team decision.
 Tracks: NVIDIA ("Use Nemotron Beyond a Chatbot"), State Farm ("The Worst Day, at Scale"), and SpacetimeDB (it powers the whole backend).
-Photon and phone calls were dropped on 2026-11-07 (too much work and too many edge cases); the short-lived Supabase plan is dropped too.
+Photon and phone calls were dropped on 2026-11-07 (too much work and too many edge cases).
 Full plan: `docs/PROJECT.md`.
 Build specs for each part: `docs/specs/` (shared names and formats in `docs/specs/CONTRACTS.md`).
 

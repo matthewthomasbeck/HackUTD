@@ -5,7 +5,7 @@ This file is the source of truth for what the team is building.
 `docs/ROBOT.md` is the source of truth for the robot's hardware and its control software.
 
 Tracks: NVIDIA ("Use Nemotron Beyond a Chatbot"), State Farm ("The Worst Day, at Scale", catastrophe response), and SpacetimeDB (main track; it powers the whole backend).
-Photon phone calls and a short-lived Supabase plan were dropped on 2026-11-07.
+Photon phone calls were dropped on 2026-11-07.
 Track details are in `docs/notes/`.
 
 ## The idea (Cayden's words, lightly edited)
