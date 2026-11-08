@@ -815,6 +815,8 @@ Mission id 0 (local test) messages are logged by the bridge and not sent to Spac
   3. On an error, a timeout (1 s), or no C++ client, it sends nothing; it never retries or spools hints, because an old hint is useless.
   The bridge does not change the hint and never calls `report_terrain` with it.
 
+- `{"type":"teleop","vx":<m/s>,"vy":<m/s>,"wz":<deg/s>,"seq":<n>}` (CONTRACTS.md 8.3), one remote driving command from the dashboard. The robot drives on it only during a `teleop` mission, and stops when no command has come for `teleop.deadman_ms` (300 ms). The bridge sends one for each `teleop` row change a reducer makes, never spools them, and never sends rows a (re)subscription replays.
+
 The C++ parser ignores unknown `type` values with a log line, so new bridge messages cannot break the robot.
 
 ### 9.5 Mission leasing
@@ -1453,5 +1455,29 @@ Cut order if time runs out: leg IK and legged motion (stretch), the camera terra
 
 ## 18. Proposed contract changes
 
-Proposed contract changes: none open.
+### 18.1 Remote driving from the dashboard (Camille, 2026-11-08; approved by Cayden and built 2026-11-08)
+
+Status: merged into CONTRACTS.md version 8.3, and built end to end: the module (`take_over`, `teleop_drive`, the `teleop` table), the bridge forwarding, the sim dog, and Camera View's Take over (see `dashboard.md`).
+Differences from the proposal below: the "operator" is the coordinator or commander role; one person drives at a time (the identity that took over); `take_over` pauses the robot's running mission back into its queue instead of the dashboard creating a mission, so it resumes after the hand back; closing Camera View hands the robot back.
+The table is kept as the record of the proposal.
+
+Why: the MVP lets the robot drive "by script or remote control", and with the legs not walking, remote control is the reliable way to get it into the mock rubble for the demo.
+Today the website can only send missions, not driving commands.
+
+The robot side is done (`mission/behaviors/teleop.*`, `robotctl start teleop`, `robotctl teleop` for keyboard driving on the Pi).
+The changes the team needs to agree on:
+
+| Part | Change | Owner |
+| --- | --- | --- |
+| Mission kind | Add `teleop` to `mission.kind` (`search_cells` / `inspect` / `return_home` / `hold` / `teleop`). It needs no targets and never ends by itself; `cancel` ends it | Cayden (module) |
+| Table | `teleop`: one row per robot: `robot_id` (pk), `vx_mps`, `vy_mps`, `wz_dps`, `seq` (u64), `sent_by` (identity), `sent_at` (Timestamp) | Cayden |
+| Reducer | `teleop_drive(robot_id, vx_mps, vy_mps, wz_dps, seq)`: only the operator or commander role; only while that robot has an active `teleop` mission; rejects values over the robot's limits (0.2 m/s, 45 deg/s); upserts the row | Cayden |
+| Dashboard | A drive panel for the robot: on-screen joystick or WASD keys, sending `teleop_drive` about 10 times a second while held and a zero command on release; a big Stop button that cancels the mission | Cayden (follows `docs/DESIGN.md`) |
+| Bridge | On a `teleop` row update for its robot, send `{"type":"teleop","vx","vy","wz","seq"}` over the local socket. Never spool these: a stale driving command is dangerous, so drop them while the robot is disconnected | Eric |
+| Event log | Optional: log mission start and end only, not every command (10 a second would flood the replay) | Cayden |
+
+Safety, unchanged by this: the robot's safety gate still clamps speed and acceleration; the robot stops on its own 300 ms after the last command (closed tab, dropped Wi-Fi, crashed bridge); faults go to SAFE_STOP; and a latched e-stop is still reset only on the Pi, never from the website.
+Agents never get `teleop_drive`: driving stays with a person.
+
+Expected delay: dashboard to database to bridge to robot, about 0.1 to 0.3 s, fine at 0.2 m/s.
 The advisory `terrain_hint` message (section 7b.5) was merged into CONTRACTS.md version 8.1.

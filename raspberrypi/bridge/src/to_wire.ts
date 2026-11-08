@@ -3,7 +3,7 @@
 // contract string, Timestamps to ISO 8601 UTC, and camelCase fields to the contract snake_case.
 
 import type { Timestamp } from 'spacetimedb';
-import type { Mission, Site } from '../../../backend/spacetimedb-bindings/types.js';
+import type { Mission, Site, Teleop } from '../../../backend/spacetimedb-bindings/types.js';
 import { toContractEnum, type EnumName } from './enums.ts';
 
 export function u64ToNumber(value: bigint): number {
@@ -63,6 +63,18 @@ export function missionMessage(row: Mission): { type: 'mission'; mission: WireMi
 
 export function cancelMessage(missionId: bigint): { type: 'cancel'; mission_id: number } {
   return { type: 'cancel', mission_id: u64ToNumber(missionId) };
+}
+
+export interface TeleopMessage { type: 'teleop'; vx: number; vy: number; wz: number; seq: number }
+
+/**
+ * The driving command to send for a teleop row change (robot.md 18.1), or undefined.
+ * Only a change a reducer just made counts (`live`): a row that arrives with a (re)subscription is an old command,
+ * and the robot must never drive on one. The robot stops by itself when commands stop coming.
+ */
+export function teleopForward(row: Teleop, live: boolean, robotId: string): TeleopMessage | undefined {
+  if (!live || row.robotId !== robotId) return undefined;
+  return { type: 'teleop', vx: row.vxMps, vy: row.vyMps, wz: row.wzDps, seq: u64ToNumber(row.seq) };
 }
 
 export interface SiteMessage {

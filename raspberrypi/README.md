@@ -171,6 +171,22 @@ Each leg has 3 servos on Maestro A (abduction, hip, knee). Each servo maps an an
 `legcal` per joint: which channel it is on, jog to the zero pose, jog to a known reference angle (90 degrees is easiest; it measures `us_per_rad` and `direction`), then jog to each end and stop short of hitting (`min_us` / `max_us`, kept 20 us inside). Every jog is ramped at 400 us/s, so a typo cannot slam a leg.
 When all 12 are pasted in, set `legs.impl: two_link`, `legs.stance_height_m`, and `servos.max_rate_us_per_s`. The IK then rejects (never clamps) any goal the leg cannot reach or that would pass a limit, and the movement thread moves each servo no faster than that rate. While a leg is lifted, the safety gate holds translation at zero.
 
+## Remote driving (`robotctl start teleop`)
+
+A person drives the robot from UnderDog's Camera View (Take over; `docs/specs/dashboard.md`, "Camera View and Take over"), through SpacetimeDB (`take_over`, `teleop_drive`) and the bridge's `teleop` message (CONTRACTS.md 8.3). On the Pi it also works without the website:
+
+```
+./build/robotctl start teleop
+./build/robotctl teleop                 # w/s forward/back, a/d strafe, q/e turn, space stop, x quit
+./build/robotctl drive 0.1 0 0 2        # or one command for 2 s (m/s, m/s, deg/s)
+./build/robotctl stop
+```
+
+The robot stops by itself 300 ms after the last command (`teleop.deadman_ms`), and the safety gate's limits still apply.
+
+To see the thermal feed while driving, run the preview in robot mode (`raspberrypi/preview/README.md`, "Later integration with the C++ robot"), never `--standalone`: the robot program owns the Pico, and two Pico readers each get garbage.
+Tested on a laptop: `./build/robot --config config/robot.laptop.yaml`, the bridge on the same database, and `python3 raspberrypi/preview/server.py --socket /tmp/robot/control.sock --no-camera --port 8081`, then the dashboard with `?robotPreview=http://127.0.0.1:8081`.
+
 ## Autonomous thermal seek (`robotctl start seek_thermal`)
 
 The robot finds a warm, person-sized shape with the thermal camera and drives up to it on its own:

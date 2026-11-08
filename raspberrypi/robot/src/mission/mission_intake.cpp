@@ -32,7 +32,9 @@ MissionAction classify_mission(const MissionMsg& m, const MissionContext& ctx, c
     if (e.type == EventType::start && e.mission_id == m.id) return MissionAction::ignore_duplicate;
   }
   if (finished.contains(m.id)) return MissionAction::ignore_finished;
-  return m.kind == "hold" && ctx.auto_start ? MissionAction::start : MissionAction::store;
+  // hold and teleop need no mission runner, so they can start straight away (teleop only drives
+  // while someone sends commands, and stops on the dead-man otherwise).
+  return (m.kind == "hold" || m.kind == "teleop") && ctx.auto_start ? MissionAction::start : MissionAction::store;
 }
 
 std::size_t drop_pending_start(std::vector<Event>& events, std::uint64_t mission_id) {

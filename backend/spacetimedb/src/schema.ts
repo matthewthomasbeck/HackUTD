@@ -39,6 +39,7 @@ export const MissionKind = t.enum('MissionKind', {
   inspect: t.unit(),
   return_home: t.unit(),
   hold: t.unit(),
+  teleop: t.unit(),
 });
 export const MissionStatus = t.enum('MissionStatus', {
   proposed: t.unit(),
@@ -527,6 +528,21 @@ export const task_attempts = table(
   }
 );
 
+// Remote driving: the newest command from the operator driving each robot (one row per robot).
+// Only take_over and teleop_drive write it; the bridge forwards each update and never spools it.
+export const teleop = table(
+  { name: 'teleop', public: true },
+  {
+    robot_id: t.string().primaryKey(),
+    vx_mps: t.f64(),
+    vy_mps: t.f64(),
+    wz_dps: t.f64(),
+    seq: t.u64(),
+    sent_by: t.identity(),
+    sent_at: t.timestamp(),
+  }
+);
+
 export const survivor_chain = table(
   { name: 'survivor_chain' },
   {
@@ -566,6 +582,7 @@ const spacetimedb = schema(
     presence,
     task_attempts,
     survivor_chain,
+    teleop,
   },
   // Keep contract spellings on the wire (tested on 2.14.1).
   { CASE_CONVERSION_POLICY: CaseConversionPolicy.None }

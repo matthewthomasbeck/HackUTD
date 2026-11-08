@@ -47,6 +47,9 @@ Items marked UNCONFIRMED are not verified by a spec or a test; check them once a
 - Dashboard (C2): `npm test` passes 30 tests; the Playwright specs are not written.
 - Agents and perception (Eric): merged locally from `team/eric` into `integration/eric-agents` with 15 integration fixes; the chain (orchestrator proposes, auditor reviews once, comms agent briefs, an idle robot gets a search mission) ran live against the module with `LLM_MODE=mock`, not yet with a real Nemotron key.
 - Robot: the program foundation (state machine, safety gate, threads, mocks) is in `raspberrypi/robot/` (task R1); the bridge to SpacetimeDB and the Pico firmware are not pushed yet, so the sim robot stands in.
+- Remote driving (2026-11-08, contracts 8.3, Camille's proposal in `robot.md` 18.1): Camera View's Take over drives a robot through `take_over`, `teleop_drive`, the `teleop` table, and the bridge's `teleop` message.
+  Verified end to end on a local server: the sim dog drives on the map, and on a laptop the dashboard drove the C++ program (mocks) through the bridge, with the safety gate ramping speed, the 300 ms dead-man stopping it, and Esc handing it back to READY.
+  Not yet tried on the real Pi with the legs or wheels; Maincloud does not have this module version yet.
 - Judged demo (decision 2026-11-08): hard-coded.
   Only SpacetimeDB runs live; the simulator scripts the robot (`sim-dog`), the find, the breathing result and critical score, and any rescuer actions.
   The agents, perception, the real robot, and the real G2 hardware are not live in the judged demo; they are tested separately (agents 109 tests, 8 scenarios, and the Brev validation in `docs/notes/2026-11-08-brev-validation.md`; perception 753 tests).

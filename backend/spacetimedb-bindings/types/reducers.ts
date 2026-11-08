@@ -49,6 +49,8 @@ import SetCriticalScoreReducer from "../set_critical_score_reducer";
 import SetSiteTimingsReducer from "../set_site_timings_reducer";
 import StartEnRouteReducer from "../start_en_route_reducer";
 import StartRunReducer from "../start_run_reducer";
+import TakeOverReducer from "../take_over_reducer";
+import TeleopDriveReducer from "../teleop_drive_reducer";
 
 export type AcceptAssignmentParams = __Infer<typeof AcceptAssignmentReducer>;
 export type AgentHeartbeatParams = __Infer<typeof AgentHeartbeatReducer>;
@@ -93,4 +95,6 @@ export type SetCriticalScoreParams = __Infer<typeof SetCriticalScoreReducer>;
 export type SetSiteTimingsParams = __Infer<typeof SetSiteTimingsReducer>;
 export type StartEnRouteParams = __Infer<typeof StartEnRouteReducer>;
 export type StartRunParams = __Infer<typeof StartRunReducer>;
+export type TakeOverParams = __Infer<typeof TakeOverReducer>;
+export type TeleopDriveParams = __Infer<typeof TeleopDriveReducer>;
 

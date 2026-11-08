@@ -258,6 +258,21 @@ ParseStatus parse_inbound(const std::string& line, InboundMessage* out, std::str
     out->type = InboundType::TerrainHint;
     return ParseStatus::Ok;
   }
+  if (type == "teleop") {
+    TeleopMsg& t = out->teleop;
+    t = TeleopMsg{};
+    const auto vx = read_opt_number(j, "vx"), vy = read_opt_number(j, "vy"), wz = read_opt_number(j, "wz");
+    if (!vx || !vy || !wz || !std::isfinite(*vx) || !std::isfinite(*vy) || !std::isfinite(*wz)) {
+      *why = "teleop needs numbers vx, vy and wz";
+      return ParseStatus::Invalid;
+    }
+    t.vx_mps = *vx;
+    t.vy_mps = *vy;
+    t.wz_dps = *wz;
+    read_id(j, "seq", &t.seq);
+    out->type = InboundType::Teleop;
+    return ParseStatus::Ok;
+  }
   *why = type.empty() ? "message without a type" : "unknown type '" + type + "'";
   return ParseStatus::UnknownType;
 }

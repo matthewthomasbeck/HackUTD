@@ -34,7 +34,7 @@ function fakeSdk(claim: () => Promise<void> = async () => {}) {
         callbacks,
         disconnected: false,
         disconnect: () => { conn.disconnected = true; callbacks.onDisconnect?.({}, undefined, undefined); },
-        db: { mission: table, robot: { ...table, robotId: { find: () => null } }, site: table, detection: table },
+        db: { mission: table, robot: { ...table, robotId: { find: () => null } }, site: table, detection: table, teleop: table },
         reducers: { registerParticipant: async () => {}, claimNextMission: claim },
         subscriptionBuilder: () => {
           const sub: Record<string, unknown> = {};
@@ -59,7 +59,7 @@ test('a failed first connect arms one reconnect, and dropping the old connection
   mock.timers.enable({ apis: ['setTimeout'] });
   try {
     const { conns, builder } = fakeSdk();
-    const link = new StdbLink(CONFIG, { onReady() {}, onLost() {}, onMissionInsert() {}, onMissionUpdate() {}, onMissionDelete() {}, onSiteChange() {}, onRobotRow() {} }, () => {}, builder);
+    const link = new StdbLink(CONFIG, { onReady() {}, onLost() {}, onMissionInsert() {}, onMissionUpdate() {}, onMissionDelete() {}, onSiteChange() {}, onRobotRow() {}, onTeleop() {} }, () => {}, builder);
     link.start();
     conns[0]!.callbacks.onConnectError!({}, new Error('refused'), undefined, undefined);
     mock.timers.tick(1000);
@@ -82,7 +82,7 @@ test('a late onConnect from a replaced connection is dropped and does not make t
   try {
     const { conns, builder } = fakeSdk();
     let ready = 0;
-    const link = new StdbLink(CONFIG, { onReady() { ready += 1; }, onLost() {}, onMissionInsert() {}, onMissionUpdate() {}, onMissionDelete() {}, onSiteChange() {}, onRobotRow() {} }, () => {}, builder);
+    const link = new StdbLink(CONFIG, { onReady() { ready += 1; }, onLost() {}, onMissionInsert() {}, onMissionUpdate() {}, onMissionDelete() {}, onSiteChange() {}, onRobotRow() {}, onTeleop() {} }, () => {}, builder);
     link.start();
     conns[0]!.callbacks.onConnectError!({}, new Error('refused'), undefined, undefined);
     mock.timers.tick(1000);
@@ -104,7 +104,7 @@ test('a claim that is never acknowledged times out instead of staying pending', 
   mock.timers.enable({ apis: ['setTimeout'] });
   try {
     const { conns, builder } = fakeSdk(() => new Promise<void>(() => {}));
-    const link = new StdbLink(CONFIG, { onReady() {}, onLost() {}, onMissionInsert() {}, onMissionUpdate() {}, onMissionDelete() {}, onSiteChange() {}, onRobotRow() {} }, () => {}, builder);
+    const link = new StdbLink(CONFIG, { onReady() {}, onLost() {}, onMissionInsert() {}, onMissionUpdate() {}, onMissionDelete() {}, onSiteChange() {}, onRobotRow() {}, onTeleop() {} }, () => {}, builder);
     link.start();
     conns[0]!.callbacks.onConnect!(conns[0], { toHexString: () => '0xabc' }, 'token');
     await flush();
