@@ -26,6 +26,17 @@ describe('glasses session projection', () => {
     expect(distanceM(session.currentPosition(), { lat: 32.9857, lon: -96.7502 })).toBeCloseTo(250, 0);
   });
 
+  it('fills the acknowledgement view with the proposed survivor, not the layout placeholders', () => {
+    const session = new FakeSession({ demoStartBearingDeg: 225, demoStartDistanceM: 250 });
+    session.enableLiveMode();
+    session.applyDbSnapshot(snapshot());
+    const data = (session as unknown as { data(layout: string): Record<string, string> }).data('ack');
+
+    expect(data.head).toMatch(/^NEW TASK - IMMEDIATE\nhouse 3, 250 m NE$/);
+    expect(data.detail).toBe('breathing detected\nfront door');
+    expect(data.status).toMatch(/^TAP TO ACCEPT - \d+s left$/);
+  });
+
   it('starts the demo walker idempotently, while walk toggles it', () => {
     const session = new FakeSession({ demoStartBearingDeg: 225, demoStartDistanceM: 250 });
     session.applyDbSnapshot(snapshot());

@@ -48,6 +48,8 @@ cd frontend/glasses
 npm run dev                      # Vite on 0.0.0.0:5173: plugin, fallback.html, phone.html
 npm run sim                      # Even Hub simulator with --automation-port 9898
 npm run qr                       # QR code for the Even app developer section
+npm run pack                     # underdog.ehpk to upload at hub.evenrealities.com
+npm run record-demo              # record Play demo for the offline demo (see docs/specs/glasses.md 2.5)
 npm test && npm run build
 ```
 
