@@ -3,7 +3,8 @@
 // ILegIK: turns a LegRequest into servo pulse targets (docs/specs/robot.md section 12.5, task R8).
 // Inverse kinematics, not reinforcement learning, and no URDF (docs/ROBOT.md).
 //
-// leg_ik_2link: each leg is abduction + hip + knee (3 DSServo 45kg, docs/ROBOT.md "Legs").
+// leg_ik_2link: each leg is hip (femur) + knee, plus an optional abduction servo (docs/ROBOT.md
+// "Legs": the abduction servos were removed on 2026-11-08, so each leg now has 2 servos).
 // In the leg's own plane, x is forward and z is down from the hip axis, in metres. The hip and
 // knee solve a planar 2-link problem (law of cosines); abduction holds 0 for now.
 //
@@ -56,6 +57,7 @@ struct JointCal {
   double max_us = 1500;
 
   bool calibrated() const { return channel >= 0 && us_per_rad > 0 && min_us < max_us; }
+  bool fitted() const { return channel >= 0; }  // -1 = no servo on this joint
   double pulse_for(double angle_rad) const { return zero_us + direction * us_per_rad * angle_rad; }
   double angle_for(double pulse_us) const { return (pulse_us - zero_us) / (direction * us_per_rad); }
 };

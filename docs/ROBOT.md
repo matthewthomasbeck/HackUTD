@@ -66,7 +66,7 @@ These roles may change.
 
 | Device | Bus | Lives on | Notes |
 | --- | --- | --- | --- |
-| Pololu Maestro A | UART | Pi | Drives 45kg servos. The legs use 12 (Cayden, 2026-11-07); the Maestro model and channel count are TBD |
+| Pololu Maestro A | UART | Pi | Drives 45kg servos. The legs use 8 since the abduction servos came out (2026-11-08; was 12); the Maestro model and channel count are TBD |
 | Pololu Maestro B | UART | Pi | Drives 25kg servos (quantity TBD). They are not used in the legs (Cayden, 2026-11-07); what they drive is TBD |
 | Dual DC motor driver A (left DCMC) | GPIO PWM | Pi | Dual H-bridge module, no UART. FL and BL wheels. Two PWM inputs per motor (IN1/IN2) from `pigpiod`. Bench-tested wiring and code: Vending_Machine_Robot-Hardware and C_Hardware_Testing (Camille, 2026-11-08). Board marking TBD |
 | Dual DC motor driver B (right DCMC) | GPIO PWM | Pi | Same module. BR and FR wheels |
@@ -99,12 +99,12 @@ Confirmed 2026-11-07 (Cayden): the robot has 4 mecanum wheels on legs, and the s
 ### Legs (confirmed 2026-11-07, Cayden)
 
 The frame is Matthew's Athena quadruped (`3d_parts/Robot_Parts_Athena` in the team repo), with new leg parts in `3d_parts/Rubble_Dog`.
-Each leg has 3 DSServo 45kg servos, 12 in total:
+Updated 2026-11-08 (Camille): the abduction servos were taken out. Each leg now has 2 DSServo 45kg servos, 8 in total:
 
-- Abduction: in the body, turns the hip about the body's long axis (unchanged from Athena).
-- Hip: in the hip part, turns the femur.
+- Hip: mounted straight into the body, turns the femur forward and back.
 - Knee: at the knee, above the tibia, turns the tibia directly.
   Athena drove the knee from a second servo at the hip through a tie rod; that is gone.
+- No abduction: the leg no longer swings out sideways. In `robot.yaml` the `<LEG>_abduction` joints stay at `channel: -1`, and the leg IK skips them.
 
 Link lengths (PROPOSED, from the CAD, same as Athena): hip axis to knee axis 110 mm, knee axis to the foot bolt holes 140 mm.
 The servo channel map and joint limits are TBD.
@@ -396,7 +396,7 @@ protocol/
 
 - The robot has no microphone or speaker (removed 2026-11-07); do not add audio hardware without a team decision.
 - Leg servo channel map and joint limits (Matthew). Joints per leg and link lengths are in "Legs" above.
-- Maestro model for the 12 leg servos (12 channels needed), and what the 25kg servos drive.
+- Maestro model for the 8 leg servos (8 channels needed), and what the 25kg servos drive.
 - Where the 4 FSRs are mounted and what force they measure.
 - A white light on the robot for the regular camera in dim rubble (hardware TBD), or demo in room light.
 - GPS model, and confirm the USB plan with Matthew.

@@ -115,6 +115,18 @@ TEST(LegIK, LiftBendsOnlyThatLeg) {
   EXPECT_GT(lifted[2 * 3 + Knee].pulse_us, base[2 * 3 + Knee].pulse_us) << "the lifted leg's knee folds more";
 }
 
+TEST(LegIK, TwoServoLegsWithoutAbductionGiveEightTargets) {
+  // The abduction servos were removed (2026-11-08): channel -1 there means "not fitted".
+  LegIkConfig c = calibrated_legs();
+  for (auto& leg : c.joints) leg[Abduction] = JointCal{};
+  std::vector<ServoTarget> out;
+  ASSERT_TRUE(make_leg_ik_2link(c)->solve(stance(), out));
+  ASSERT_EQ(out.size(), 8u);
+  // A missing hip or knee is still an error, not an optional joint.
+  c.joints[1][Hip].channel = -1;
+  EXPECT_FALSE(make_leg_ik_2link(c)->solve(stance(), out));
+}
+
 TEST(LegIK, UncalibratedJointMeansNothingMoves) {
   LegIkConfig c = calibrated_legs();
   c.joints[3][Knee].us_per_rad = 0;
