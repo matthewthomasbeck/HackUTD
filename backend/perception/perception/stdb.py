@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import threading
 import time
 from datetime import datetime, timezone
@@ -29,6 +30,7 @@ import httpx
 log = logging.getLogger(__name__)
 
 DEFAULT_BACKOFF = (0.5, 1.0, 2.0, 4.0, 8.0)
+REREGISTER = re.compile(r"not registered|role not granted", re.I)
 TIMESTAMP_FIELD = "__timestamp_micros_since_unix_epoch__"
 IDENTITY_FIELD = "__identity__"
 DURATION_FIELD = "__time_duration_micros__"
@@ -261,6 +263,9 @@ class StdbClient:
         self._client = httpx.Client(timeout=timeout_s, transport=transport)
         self._lock = threading.Lock()
         self.ok_once = False  # set after the first successful reducer call (GET /health)
+        # Set when a write is rejected because this identity is not registered (or its role is not
+        # granted yet); app._startup_stdb waits on it and calls register_participant again.
+        self.needs_register = threading.Event()
         self.last_error: str | None = None
 
     @classmethod
@@ -349,7 +354,12 @@ class StdbClient:
         Raises StdbRejected (4xx, 530) or StdbUnavailable (after the retries)."""
         if not self.token:
             self.ensure_identity()
-        self._send("POST", f"/v1/database/{self.database}/call/{reducer}", json_body=args)
+        try:
+            self._send("POST", f"/v1/database/{self.database}/call/{reducer}", json_body=args)
+        except StdbRejected as exc:
+            if reducer != "register_participant" and REREGISTER.search(exc.text or str(exc)):
+                self.needs_register.set()
+            raise
         self.ok_once = True
         self.last_error = None
 

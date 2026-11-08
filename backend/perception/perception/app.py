@@ -43,22 +43,41 @@ def _optional_router(module_name: str):
     return mod, getattr(mod, "router", None)
 
 
-def _startup_stdb(stdb: StdbClient, cfg: dict, stop: threading.Event) -> None:
-    """Identity, then register_participant as perception. A rejection is logged once and the media
-    server keeps serving; an unreachable server is retried every 30 s."""
+REGISTER_BACKOFF_S = (2, 4, 8, 15, 30)  # then 30 s forever
+
+
+def _register_once(stdb: StdbClient, cfg: dict) -> None:
+    stdb.ensure_identity()
+    stdb.register_participant(cfg["stdb"].get("participant_name", "perception"), "perception")
+    stdb.needs_register.clear()
+    log.info("registered with SpacetimeDB as perception (identity %s)", stdb.identity)
+
+
+def _startup_stdb(stdb: StdbClient, cfg: dict, stop: threading.Event,
+                  backoff_s: tuple[float, ...] = REGISTER_BACKOFF_S) -> None:
+    """Identity, then register_participant as perception, retried with backoff until it works.
+    Outside demo mode the module rejects the role until a coordinator calls
+    grant_role(<identity>, perception); the media server keeps serving meanwhile.
+    After that the thread waits on stdb.needs_register, which StdbClient.call sets when a write is
+    rejected with "not registered" or "role not granted", and registers again."""
+    attempt = 0
     while not stop.is_set():
         try:
-            stdb.ensure_identity()
-            stdb.register_participant(cfg["stdb"].get("participant_name", "perception"), "perception")
-            log.info("registered with SpacetimeDB as perception (identity %s)", stdb.identity)
-            return
+            _register_once(stdb, cfg)
+            attempt = 0
+            while not stop.is_set() and not stdb.needs_register.wait(1.0):
+                pass
+            continue
         except StdbRejected as exc:
-            log.error("register_participant rejected (identity %s): %s. Ask a coordinator to grant_role "
-                      "this identity the perception role.", stdb.identity, exc.text or exc)
-            return
+            delay = backoff_s[min(attempt, len(backoff_s) - 1)]
+            log.error("register_participant rejected (identity %s): %s. Ask a coordinator to call "
+                      "grant_role for this identity with role perception; retrying in %s s",
+                      stdb.identity, exc.text or exc, delay)
         except Exception as exc:  # noqa: BLE001 - unreachable: try again later
-            log.error("SpacetimeDB unreachable at startup (%s); retrying in 30 s", exc)
-            stop.wait(30)
+            delay = backoff_s[min(attempt, len(backoff_s) - 1)]
+            log.error("SpacetimeDB unreachable at startup (%s); retrying in %s s", exc, delay)
+        attempt += 1
+        stop.wait(delay)
 
 
 def create_app(cfg: dict | None = None, *, stdb: StdbClient | None = None,
