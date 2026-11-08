@@ -12,6 +12,10 @@ const target = { lat: 32.9968745, lon: -96.7704708 }; // 7716 Worthing St, the d
 describe('demo site geometry', () => {
   it('finds 7716 Worthing St from its GPS point and lists the 68 homes in reading order', () => {
     expect(houseAt(site.houses, target)?.address).toBe('7716 Worthing St');
+    // The judged demo's person lies in the front yard, 13 m north of center (backend/sim/demo-site.json), outside the outline.
+    const frontYard = { lat: target.lat + 13 / 110_574, lon: target.lon + 1 / (111_320 * Math.cos((target.lat * Math.PI) / 180)) };
+    expect(containsPoint(houseAt(site.houses, frontYard)!.ring, frontYard)).toBe(false);
+    expect(houseAt(site.houses, frontYard)?.address).toBe('7716 Worthing St');
     const homes = blockHomes(site.houses);
     expect(homes).toHaveLength(68);
     expect(homes[0]!.row).toBe('worthing_north');

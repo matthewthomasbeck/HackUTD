@@ -184,6 +184,7 @@ export default function App({ config }: { config: DashboardConfig }) {
       propose: (survivorId, rescuer) => connection.reducers.proposeAssignment({ survivorId, rescuerIdentity: rescuer.identity, reason: 'coordinator assignment' }),
       glasses: (command: GlassesDemoCommand) => glassesPost(`/demo/${DEMO_RESCUER}/${command}`, command),
       accept: (assignmentId) => glassesPost(`/rescuer/${DEMO_RESCUER}/action`, 'accept', { action: 'accept', assignment_id: assignmentId.toString() }),
+      release: (assignmentId) => glassesPost(`/rescuer/${DEMO_RESCUER}/action`, 'release', { action: 'release', assignment_id: assignmentId.toString() }),
       waitFor,
       onStep: setDemoStep,
     }).catch((error: unknown) => {

@@ -48,7 +48,7 @@ References, for approach only (no copied code or assets): Standard Response (Cal
 - Night-purple top bar (HackUTD Zero Day colors), light map and cards underneath, so the projector does not wash out the data.
 - Every mark has a word: level pills, a map key card, and name tags on every rescuer, robot, and survivor.
 - The mascot is a small cartoon tornado, one per agent, each with its agent's tint and one prop; the app logo is the dog with the visor (`public/brand/underdog-logo.png`).
-- No simulator wording on screen: rescuers read R1 and R2, robots read Dog 1 and Dog 2 (`crewName` and `robotName` in `src/view/derive.ts`).
+- No simulator wording on screen: rescuers read R1, robots read Dog 1 and Dog 2 (`crewName` and `robotName` in `src/view/derive.ts`).
 
 ### Light theme, with a dark option
 
@@ -123,7 +123,9 @@ It runs the scripted house 3 rescue through the real path, so the board, the gla
 
 The button shows the current step, then "Play again", which repeats steps 2 and 5 for an assignment that is still active.
 The steps are in `src/view/demo.ts` (unit-tested with a fake board in `tests/unit/demo.test.ts`).
-`npm run demo` (`scripts/demo.mjs`) starts everything the button needs on the local server: SpacetimeDB (and publishes the module if the database is missing), `sim setup`, a sim console running `hidden` and `scene`, the glasses service, the glasses pages on port 5173, and the app.
+`npm run demo` (`scripts/demo.mjs`) starts everything the button needs on the local server: SpacetimeDB (and publishes the module if the database is missing), a fresh board (`npm run reset` in `backend/sim`, which wipes the local database and runs setup; `--keep` keeps the data instead), a sim console running `hidden` and `scene`, the glasses service, the glasses pages on port 5173, and the packaged UnderDog app, so the Dock shows its name and logo.
+The board starts fresh because between runs a sim rescuer may rescue the house 3 person, which would leave Play demo nothing to find.
+The app is rebuilt (`npm run app:pack`) first when the dashboard code is newer than the last build; `--dev` opens the hot-reload development app instead, which the Dock names Electron.
 It uses the local sim identities in `backend/sim/.tokens/local` (`STDB_TOKEN_DIR`), so Maincloud tokens in `.tokens/` are never sent to the local server.
 A port already in use counts as running, except that the glasses mock or a `FAKE_DB=1` service on port 8787 stops the script with a message.
 

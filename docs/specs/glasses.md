@@ -445,7 +445,7 @@ Resolving (`resolve_survivor` with `rescued`, `handed_off`, `false_alarm`, or `d
 | 4 | text | head | 296 | 0 | 280 | 56 | 4 | `NO ASSIGNMENT`<br>`stand by` |
 | 5 | text | count | 296 | 58 | 280 | 84 | 5 | `2 CRITICAL`<br>`3 unassigned`<br>`within 0.3 mi` |
 | 6 | text | brief | 296 | 144 | 280 | 84 | 6 | latest briefing, 3 lines |
-| 8 | text | status | 296 | 232 | 280 | 28 | 7 | `scroll: browse  hold: ask` |
+| 8 | text | status | 296 | 232 | 280 | 28 | 7 | `hold:ask  scroll:next` (21 characters, one line) |
 | 7 | text | attrib | 296 | 260 | 280 | 28 | 8 | `(c) Esri, OSM` |
 
 When the user scrolls to browse a survivor, the service switches to the map or arrow view for that survivor, and id 8 reads `VIEW ONLY 2/4 - not assigned`.

@@ -30,6 +30,7 @@ export interface DemoDeps {
   propose(survivorId: bigint, rescuer: Participant): Promise<unknown>;
   glasses(command: GlassesDemoCommand): Promise<void>;
   accept(assignmentId: bigint): Promise<void>;
+  release(assignmentId: bigint): Promise<void>;
   waitFor<T>(check: () => T | undefined, timeoutMs: number, failure: string): Promise<T>;
   onStep(step: DemoStep): void;
 }
@@ -82,7 +83,16 @@ export async function runDemo(deps: DemoDeps): Promise<void> {
   const survivorId = survivor.id;
 
   deps.onStep('assigning');
-  if (!demoAssignment(deps.board(), survivorId, rescuer)) await deps.propose(survivorId, rescuer);
+  // The database's backstop may already have proposed Cayden for another critical person (he is the nearest free
+  // rescuer); a rescuer holds one proposal at a time, so release anything else he holds first, and again if the
+  // backstop proposes in between.
+  const hex = rescuer.identity.toHexString();
+  const elsewhere = () => deps.board().assignments.filter((row) => row.rescuerIdentity.toHexString() === hex && row.survivorId !== survivorId && ['proposed', 'active'].includes(tag(row.status)));
+  for (let attempt = 1; !demoAssignment(deps.board(), survivorId, rescuer); attempt += 1) {
+    for (const row of elsewhere()) await deps.release(row.id);
+    await deps.waitFor(() => (elsewhere().length === 0 ? true : undefined), 10_000, 'Cayden’s other assignment was not released.');
+    try { await deps.propose(survivorId, rescuer); break; } catch (error) { if (attempt >= 3) throw error; }
+  }
   const assignment = await deps.waitFor(() => demoAssignment(deps.board(), survivorId, rescuer), 10_000, 'The assignment to Cayden did not appear.');
   if (tag(assignment.status) === 'proposed') {
     deps.onStep('accepting');

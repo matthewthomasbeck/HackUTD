@@ -24,7 +24,7 @@ In the app, the Server menu switches between Maincloud (judging) and a local Spa
 Play demo, in one command (local SpacetimeDB server):
 
 ```bash
-cd frontend/dashboard && npm run demo     # SpacetimeDB, sim, glasses service, glasses pages, and the app
+cd frontend/dashboard && npm run demo     # fresh local board, sim, glasses service, glasses pages, and UnderDog.app (--keep, --dev)
 cd frontend/glasses && npm run sim        # optional, second terminal: the Even simulator shows what the G2 shows
 ```
 

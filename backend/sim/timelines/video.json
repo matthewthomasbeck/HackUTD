@@ -9,7 +9,7 @@
   { "say": "Show the detection, breathing result, critical score, and agent chain" },
   { "cmd": "walk house 3" },
   { "say": "Close the glasses app and show the disconnect release" },
-  { "await": "released", "rescuer": "cayden", "timeout_s": 10, "else": "fail rescuer-drop r2" },
+  { "await": "released", "rescuer": "cayden", "timeout_s": 10, "else": "fail rescuer-drop r1" },
   { "cmd": "report house 4" },
   { "cmd": "spawn immediate house 8" },
   { "say": "Stop the agents and show the module watchdog fallback" },
