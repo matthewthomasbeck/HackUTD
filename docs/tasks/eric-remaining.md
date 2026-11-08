@@ -1,6 +1,7 @@
 # Eric: unfinished work and dependencies
 
-Updated 2026-11-08 on branch `eric-cv-benchmark`. The earlier quick-wins handoff
+Updated 2026-11-08; the `eric-cv-benchmark` work (A1, A3 to A8) merged to `main` in PR #11.
+The earlier quick-wins handoff
 was recorded on `eric-quick-wins` (from `main` at `38e8e31`).
 This is the practical handoff for [Eric's full checklist](eric.md), not a change
 to MVP scope or assignments. The owner names below follow the existing task files.
@@ -71,6 +72,19 @@ Each task lists why it matters, the steps, and when it is done. Estimates assume
 
 #### A1. E1/E3: run the public benchmark through the primary pipeline (about 2 h)
 
+**Completed on `eric-cv-benchmark`, merged in PR #11, 2026-11-08.**
+`backend/perception/scripts/benchmark_public.py` runs the 15 synthetic, 4 VRWi and 16
+MPSC-RR windows through `perception.breathing.analyze` in two modes: "reference" (the same
+inputs as the reference run, YOLO off) and "service" (no operator ROI, YOLO pose on).
+Results with scores are in `backend/perception/testdata/public/primary-results.json`; the
+"primary" table is in `docs/research/breathing-repos.md`. Synthetic: average error
+0.01/min, 15/15 expected outcomes in reference mode. VRWi: 2/4 within 3/min in reference
+mode, 3/4 in service mode (all at confidence 0.4 or below). MPSC-RR (no labels): 4 of 16
+detected in each mode, the rest abstained on "lighting or exposure changed" or "camera or
+scene moved". `tests/test_benchmark_public.py` covers the synthetic path. No threshold was
+tuned. The prepared clips live in git-ignored `codex-reference/` folders; the doc has the
+commands to rebuild them.
+
 Why: the 140 public-data results in `backend/perception/codex-reference/` measure the
 reference code, not the code the service runs. Any accuracy claim about the primary
 pipeline needs its own numbers.
@@ -101,6 +115,12 @@ regression test passes.
 Why: if the primary pipeline rejects clean public windows as low quality, the dashboard
 shows "not seen" for a breathing person.
 
+Starting point from A1: 12 of 16 MPSC-RR windows and one VRWi window per mode abstain on
+the flicker gate ("lighting or exposure changed") or the motion gate ("camera or scene
+moved"). VRWi 030s is the clearest case: the reference code read 14.2/min (truth 14.39),
+the primary rejects it in reference mode but reads 13.7 in service mode. Only VRWi has
+labels, so the development and held-out split is small; say so in the result.
+
 Steps: from A1, list windows rejected by a quality gate (`clip_dark_mean_min`,
 `clip_noise_max`, ROI or motion gates in `config.toml`). Split the labelled windows into a
 development half and a held-out half before looking at results. Change thresholds only on
@@ -111,6 +131,19 @@ Done when: the synthetic and nuisance tests still pass, held-out numbers are rep
 they came out, and every threshold change names the clips it was tuned on.
 
 #### A3. E4 step 5 and E4/E5 batch: score every case and review the chest boxes (about 1 h)
+
+**Completed on public data on `eric-cv-benchmark`, merged in PR #11, 2026-11-08.**
+YOLO pose (`yolo26n-pose`) loads in the primary `.venv`. Every public and synthetic row
+has a score with reasons (`--score` in the benchmark, the same `try_score` as
+`analyze_clip.py`), and every dark, noisy or abstained case scored with confidence at most
+0.3 and "needs human triage". Every service-mode `roi.jpg` was opened: VRWi 4/4 on chest;
+MPSC-RR front 8/8 on chest after a fix; MPSC-RR lying 8/8 off chest (filmed from above,
+head out of frame, no usable pose), with the box factors left unchanged and the operator
+ROI as the fallback. The fix: with both shoulders visible and the hips hidden, the torso
+axis followed the person box's long axis, so a torso filling a wide frame got a sideways
+chest box; it is now perpendicular to the shoulder line, away from the face
+(`perception/roi.py`, two tests in `tests/test_roi.py`, spec line in `perception.md`).
+Not covered: no public clip shows a covered person, and no robot-camera clip exists yet.
 
 Why: the score is what orders survivors. `scripts/analyze_clip.py --score` exists but has
 not been run across the clips, and the green chest box in `roi.jpg` has only been reviewed
@@ -225,10 +258,11 @@ model-size limits stated.
 
 #### A8. Refresh the counts in the docs (15 min, any time)
 
-**Refreshed locally on `eric-cv-benchmark`, 2026-11-08:** `docs/MVP.md` and
-`docs/TASKS.md` now record 136 primary agent tests plus typecheck, 770 primary
-perception tests, and 88 robot tests. These reflect the current branch checks;
-refresh again after merging further changes.
+**Refreshed 2026-11-08:** `docs/MVP.md` and `docs/TASKS.md` record 136 primary agent
+tests plus typecheck, 770 primary perception tests, and 106 robot tests, rerun on
+`eric-cv-benchmark` after merging `main` (which added Camille's leg and calibration tests)
+and before PR #11 merged. The R1 step 9 evidence below was recorded at 88 robot tests,
+before that merge.
 
 Original gap: the overview docs quoted older test counts (109 agent, 753
 perception). Update them from a fresh run when the branch merges.
@@ -272,7 +306,9 @@ fallback flags on failure. Only matters if the agents are shown outside the hard
 | Inspect capture and E1 recordings (steps 1 to 7) | Camille R5, Matthew M4/M6/M7 | Stopped camera, about 20 s clips, locked exposure, gain and white balance; agreed light and mock rubble scene | Real-camera breathing and ROI checks |
 | E9: terrain model | Camille R7, Cayden dashboard | Timestamped forward frames, independently labelled hazard images, a single writer for terrain fields | Advisory terrain hints, only after held-out evaluation |
 | E0 step 7: post the Brev results to the team chat | Eric | Nothing; a person posts it | Team knows what was measured |
-| R1 step 9: scripted mock check log in the PR | Eric | Local check passed with 88 robot tests; [log ready](../notes/2026-11-08-r1-scripted-mock-check.md), PR paste remains | Closes R1 |
+| R1 step 9: scripted mock check log in the PR | Eric | Local check passed with 88 robot tests; [log ready](../notes/2026-11-08-r1-scripted-mock-check.md) and merged in PR #11, but not pasted into a PR body or comment yet | Closes R1 |
+| R3: Node.js bridge (`raspberrypi/bridge/`) | Camille (owner); Eric offered to take it on 2026-11-08 | Camille's agreement, and whether she has unpushed bridge work | The real robot reaching SpacetimeDB; E2 8 |
+| First Pi camera clip over SSH (`rpicam-vid`, exposure, gain and white balance locked, 20 s) | Eric, with the Pi powered on | The Pi's SSH host name; a separate branch | First check that the robot camera's clips pass the pipeline |
 
 E10 (vision describer and sitrep) is could-have and is cut first. Before any person image
 goes to a hosted model, the team must decide it is allowed.
@@ -318,9 +354,9 @@ happens during robot integration.
 
 ## Next order
 
-1. A1, A2, A3: primary benchmark, tuning and score/ROI review (laptop only).
-2. A4, A5: live scenario and failure runs against a local module with the mock model.
-3. A6, A7: rescuer answers (mock) and transcription checks.
+1. A2: diagnose the flicker and motion gate rejections from A1 (laptop only; A1, A3 to A8 are done).
+2. First Pi camera clip over SSH, then the E1 recordings with Camille and Matthew.
+3. R3 Node.js bridge, if Camille agrees to hand it over.
 4. With Cayden: Maincloud roles, then the full flow on dashboard and glasses.
 5. B1 and B2 when a model server is up; stop Lightning afterwards.
 6. Robot capture path with Camille and Matthew; rehearse.
