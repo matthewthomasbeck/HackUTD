@@ -1,0 +1,29 @@
+{
+  "package_id": "com.hackutd.rubblesearch",
+  "edition": "202601",
+  "name": "Rubble Search",
+  "version": "0.1.0",
+  "min_app_version": "2.2.10",
+  "min_sdk_version": "0.0.16",
+  "entrypoint": "index.html",
+  "permissions": [
+    {
+      "name": "network",
+      "desc": "Connects to the team's glasses service on the local network to get the rescue view.",
+      "whitelist": ["http://172.20.10.2:8787", "ws://172.20.10.2:8787"]
+    },
+    {
+      "name": "location",
+      "desc": "Sends the rescuer's position so the view can show distance and direction to survivors."
+    },
+    {
+      "name": "g2-microphone",
+      "desc": "Records a short spoken question only while the rescuer asks one, so the coordinator team can answer it."
+    },
+    {
+      "name": "phone-microphone",
+      "desc": "Records a short spoken question on the phone when the glasses microphone is unavailable."
+    }
+  ],
+  "supported_languages": ["en"]
+}

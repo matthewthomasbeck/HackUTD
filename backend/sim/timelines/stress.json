@@ -1,0 +1,7 @@
+[
+  { "at": "0:00", "cmd": "run start Stress" },
+  { "at": "0:01", "cmd": "scale 900 --rate 0" },
+  { "say": "The documented stress target is 900 survivors, 120 simulated rescuers, 10 minutes, and a headline sample every 5 seconds." },
+  { "after_s": 600, "cmd": "status" },
+  { "cmd": "run end stress" }
+]
