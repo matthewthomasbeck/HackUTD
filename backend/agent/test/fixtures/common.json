@@ -1,0 +1,41 @@
+[
+  {
+    "agent": "auditor",
+    "contains": ["TASK: review", "nearer available rescuer: none", "higher-tier unassigned survivors: none"],
+    "turn": 0,
+    "reply": {
+      "tool_calls": [
+        {
+          "name": "submit_review",
+          "arguments": {
+            "reason": "IMMEDIATE, no higher tier unassigned; proposed rescuer is the nearest free one, load 0",
+            "verdict": "agree",
+            "suggested_action": ""
+          }
+        }
+      ]
+    }
+  },
+  {
+    "agent": "auditor",
+    "contains": ["TASK: review"],
+    "turn": 0,
+    "reply": {
+      "tool_calls": [
+        {
+          "name": "submit_review",
+          "arguments": {
+            "reason": "rule checks show a better option; following the RULE CHECKS line",
+            "verdict": "agree",
+            "suggested_action": ""
+          }
+        }
+      ]
+    }
+  },
+  { "agent": "auditor", "turn": 1, "reply": { "content": "Review submitted." } },
+  { "agent": "comms_agent", "contains": ["TASK: brief_rescuer"], "turn": 0, "policy": "brief_from_packet" },
+  { "agent": "comms_agent", "contains": ["NAVIGATION"], "turn": 0, "policy": "brief_from_packet" },
+  { "agent": "comms_agent", "turn": 1, "reply": { "content": "Briefing sent." } },
+  { "agent": "orchestrator", "turn": "any", "reply": { "content": "Everything handled." } }
+]
