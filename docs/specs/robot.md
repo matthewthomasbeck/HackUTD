@@ -92,7 +92,9 @@ raspberrypi/
         servo_maestro.cpp     # real: Pololu Maestro compact protocol over UART
         servo_mock.cpp
         dc_driver.hpp         # IDcDriver (one per dual driver, 2 channels)
-        dc_driver_tbd.cpp     # real: GPIO PWM H-bridge via pigpiod (docs/ROBOT.md), stub that returns FAILED until filled
+        dc_driver_gpio.cpp    # real: GPIO PWM H-bridge via pigpiod (docs/ROBOT.md "Pi 4B GPIO")
+        gpio.hpp, gpio_pigpio.cpp  # IGpio over pigpiod; FAILED with the reason when pigpio is missing
+        pico_text_protocol.*  # parser for the firmware's text lines (pico/README.md)
         dc_driver_mock.cpp
         pico_link.hpp         # IPicoLink: start(), send(), latest-value slots for every Pico sensor
         pico_link_serial.cpp  # real: /dev/pico, reader thread, framing, CRC, heartbeat
@@ -955,6 +957,11 @@ Required by `CONTRACTS.md` "Recording and replay": the robot keeps raw sensor lo
 
 ### 12.1 Pico link (`protocol/pico_link.h`, PROPOSED)
 
+Status 2026-11-08 (Camille): the flashed firmware (`pico/`, 0.9) speaks text lines, not these frames, and `pico_link_serial.cpp` reads them through `hal/pico_text_protocol.*` (formats in `pico/README.md`).
+Until the firmware sends HEARTBEAT, any line from the Pico counts as its heartbeat; it streams at 50 Hz or more, so `pico.link_timeout_ms` still catches a lost Pico.
+The handshake is `PING` / `PONG <version>` (must equal `pico.firmware_version`), then `STATUS` for the per-sensor states, then `STREAM 1`.
+Proposed contract change: keep the text lines, or move both sides to the frames below; only the parser and the firmware change either way.
+
 Frame (from `docs/ROBOT.md`): `[0xAA 0x55][type u8][dev u8][len u16 LE][payload][crc16 LE]`.
 
 - CRC: CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF, no reflection, no final xor) over `type`, `dev`, `len`, and `payload` (PROPOSED; both sides use the same function from the header).
@@ -1043,7 +1050,8 @@ Implementations, picked by `motion.impl`:
 
 DC driver: two dual H-bridge modules driven by GPIO PWM through `pigpiod`, two PWM inputs (IN1/IN2) per motor (bench-tested 2026-11-08; pins and wheel map in `docs/ROBOT.md`, "Pi 4B GPIO").
 Wheel encoders are not in the inventory (TBD).
-`dc_driver_tbd.cpp` returns FAILED until it is replaced by a pigpio driver (C_Hardware_Testing `DcmcDriver` is a working starting point).
+`dc_driver_gpio.cpp` drives them through `IGpio` (pigpiod); it reports FAILED with the reason when pigpio is not built in or `pigpiod` is not running, and sets every motor pin to 0 at init and on destruction.
+`motion.mecanum.wheel_order` and `invert` hold the wiring from the bench (`[1, 3, 4, 2]`, left side inverted); the floor check below confirms them.
 `dc_driver_mock.cpp` records the last command per channel for tests.
 
 Maestro: compact protocol Set Target is `0x84, channel, target & 0x7F, (target >> 7) & 0x7F`, with the target in quarter-microseconds ([Maestro serial commands](https://www.pololu.com/docs/0J40/5.e)).
@@ -1202,7 +1210,6 @@ devices:
 maestro_a: { mock: false, path: /dev/servo45, baud: 0 }    # baud TBD
 maestro_b: { mock: false, path: /dev/servo25, baud: 0 }    # baud TBD
 # GPIO PWM H-bridges via pigpiod (docs/ROBOT.md, "Pi 4B GPIO"). channel 0 = A, 1 = B; pins are [IN1, IN2].
-# PROPOSED keys: config.cpp still reads path and baud until the pigpio driver lands.
 dc_driver_a: { mock: false, pwm_hz: 1000, ch0_pins: [17, 27], ch1_pins: [22, 23] }   # left: FL, BL
 dc_driver_b: { mock: false, pwm_hz: 1000, ch0_pins: [5, 6], ch1_pins: [20, 21] }     # right: BR, FR
 pico: { mock: false, path: /dev/pico, heartbeat_hz: 20, link_timeout_ms: 250, max_crc_errors_per_s: 5 }

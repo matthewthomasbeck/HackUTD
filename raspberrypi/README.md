@@ -81,7 +81,14 @@ libcamera delivers frames on its own thread (the mock camera uses a small `camer
 Threads share data only through `LatestSlot<T>` (`src/core/latest_slot.hpp`): one value, one lock, newest wins.
 Workers derive from `Worker` (`src/core/worker.hpp`) and stamp a heartbeat each pass; a stuck movement thread raises `worker_stalled` and stops the systemd watchdog ping.
 
-Stubs to fill (each says `TODO(R2)`, `TODO(R8)`, or `TODO(vision)`): `hal/servo_maestro.cpp`, `hal/dc_driver_tbd.cpp`, `hal/pico_link_serial.cpp`, `hal/camera_libcamera.cpp`, `vision/detector_coral.cpp`, `motion/mecanum.hpp`, and the leg checks in `state/safety_gate.cpp`.
+Stubs to fill (each says `TODO(R2)`, `TODO(R8)`, or `TODO(vision)`): `hal/servo_maestro.cpp`, `hal/camera_libcamera.cpp`, `vision/detector_coral.cpp`, and the leg checks in `state/safety_gate.cpp`.
+
+Real now (2026-11-08):
+
+- `hal/pico_link_serial.cpp` reads the Pico firmware's text stream (`hal/pico_text_protocol.*`) and checks its version (`pico.firmware_version`). Each Pico sensor's device status comes from the Pico's `STATUS` reply.
+- `hal/dc_driver_gpio.cpp` drives the two H-bridges on GPIO PWM through `pigpiod` (pins in `dc_driver_a` / `dc_driver_b`). Install with `sudo apt install pigpio && sudo systemctl enable --now pigpiod`, then rebuild; CMake prints `pigpio=ON`.
+- `motion/mecanum.hpp` mixes with eq. 20. The wheels stay at 0 until `motion.mecanum.wheel_radius_m`, `half_track_lx_m`, `half_base_ly_m` and `max_wheel_rad_s` are measured.
+- Until the udev rules exist (R9), point `pico.path` at the `/dev/serial/by-id/usb-Raspberry_Pi_Pico_*` path.
 CMake finds libcamera, OpenCV, and the Edge TPU runtime (libedgetpu plus TensorFlow Lite) if installed and prints `robot backends: ...`; without them the real devices report FAILED and the mocks still work.
 
 ## How one tick works

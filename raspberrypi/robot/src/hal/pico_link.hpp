@@ -62,6 +62,7 @@ struct PicoLinkConfig {
   std::string path = "/dev/pico";
   int heartbeat_hz = 20;       // pico.heartbeat_hz, TBD
   int link_timeout_ms = 250;   // pico.link_timeout_ms, TBD
+  std::string firmware_version = "0.9";  // pico.firmware_version: PONG must match, else FAILED
 };
 
 class IPicoLink : public IDevice {
@@ -73,10 +74,19 @@ class IPicoLink : public IDevice {
   virtual const PicoReadings& readings() const = 0;
   // Age of one sensor's newest reading by device name (imu, thermal, ads1115, lidar_single, ld19).
   std::optional<double> sensor_age_ms(const std::string& sensor, SteadyTime now) const;
+  // What the Pico reported for one of its sensors when the link came up (OK, or why not).
+  // The device manager inits each Pico sensor as its own device from this.
+  virtual InitResult sensor_status(const std::string& sensor) const {
+    (void)sensor;
+    return {DeviceStatus::FAILED, "Pico did not report sensor status"};
+  }
 };
 
-// Real link over /dev/pico. Stub until tasks R2 and R4.
+// Real link over /dev/pico, speaking the firmware's text lines (hal/pico_text_protocol.hpp).
 std::shared_ptr<IPicoLink> make_pico_link_serial(const PicoLinkConfig& config);
+
+// One Pico sensor as a device for the init list: init() returns what the Pico reported for it.
+std::shared_ptr<IDevice> make_pico_sensor_device(const std::string& sensor, std::shared_ptr<IPicoLink> link);
 
 class MockControls;
 // Fresh heartbeat and synthetic readings every poll, unless a `robotctl mock` knob says otherwise

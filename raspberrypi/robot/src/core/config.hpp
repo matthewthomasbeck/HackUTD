@@ -7,6 +7,7 @@
 // Only the keys the program uses so far are copied into the struct. The YAML file keeps every
 // key from section 15 so later tasks (R2 to R9) can read theirs without changing the file.
 
+#include <array>
 #include <map>
 #include <set>
 #include <string>
@@ -38,6 +39,23 @@ struct LimitsConfig {
   double reject_factor = 0;  // a command above factor x limit is a bug: reject, do not clamp
 };
 
+// dc_driver_a / dc_driver_b: dual H-bridge on GPIO PWM (docs/ROBOT.md "Pi 4B GPIO").
+struct DcDriverSettings {
+  int pwm_hz = 0;
+  std::array<std::array<int, 2>, 2> pins{};  // [channel][IN1, IN2], BCM GPIO numbers
+  double min_duty = 0;                        // smallest duty that turns a wheel, TBD
+};
+
+// motion.mecanum.* (docs/specs/robot.md section 12.4); 0 means TBD.
+struct MecanumSettings {
+  double wheel_radius_m = 0;
+  double half_track_lx_m = 0;
+  double half_base_ly_m = 0;
+  double max_wheel_rad_s = 0;
+  std::array<int, 4> wheel_order{1, 2, 3, 4};
+  std::array<bool, 4> invert{false, false, false, false};
+};
+
 struct Config {
   std::string robot_id;
   std::string robot_name;
@@ -50,6 +68,7 @@ struct Config {
   std::map<std::string, bool> mock;  // device name -> uses the mock implementation
   int pico_heartbeat_hz = 0;
   int pico_link_timeout_ms = 0;
+  std::string pico_firmware_version;  // PONG must match, else the Pico is FAILED
   std::map<std::string, int> stale_ms;  // device name -> data older than this is stale
   LimitsConfig limits;
   std::string estop_sense;  // "none" until a sense line is wired
@@ -59,9 +78,11 @@ struct Config {
   int breathing_clip_s = 0;
   std::string control_socket;
 
-  // Serial ports for the devices that have one (maestro_a/b, dc_driver_a/b, pico); baud 0 is TBD.
+  // Serial ports for the devices that have one (maestro_a/b, pico); baud 0 is TBD.
   std::map<std::string, std::string> device_path;
   std::map<std::string, int> device_baud;
+  std::map<std::string, DcDriverSettings> dc_driver;  // dc_driver_a, dc_driver_b
+  MecanumSettings mecanum;
   int camera_width = 0;
   int camera_height = 0;
   double camera_fps = 0;
