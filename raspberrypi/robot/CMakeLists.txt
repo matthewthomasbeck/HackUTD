@@ -117,6 +117,7 @@ add_library(robot_core STATIC
   src/vision/detector_mock.cpp
   src/mission/behaviors/hold.cpp
   src/mission/behaviors/thermal_seek.cpp
+  src/mission/behaviors/teleop.cpp
   src/perception/thermal_detector.cpp
   src/mission/mission_intake.cpp
   src/bridge/control_server.cpp
@@ -184,6 +185,7 @@ add_executable(robot_tests
   tests/test_calibration.cpp
   tests/test_legs.cpp
   tests/test_thermal_seek.cpp
+  tests/test_teleop.cpp
   tests/test_bridge_client.cpp
   tests/test_localizer.cpp
   tests/test_mission_intake.cpp
