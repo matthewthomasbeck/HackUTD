@@ -25,6 +25,8 @@ namespace robot {
 
 // ISO 8601 UTC with milliseconds and a Z, for example "2026-11-08T14:03:12.345Z".
 std::string iso8601_utc(std::chrono::system_clock::time_point t);
+// The reverse: "YYYY-MM-DDTHH:MM:SS[.fff...](Z|+00:00)". Empty for anything else.
+std::optional<std::chrono::system_clock::time_point> parse_iso8601_utc(const std::string& s);
 
 struct PositionFields {
   double lat = 0;
@@ -89,6 +91,8 @@ class MessageBuilder {
 
 // True for messages that must not be lost (they go to the important queue and the outbox).
 bool is_important(const std::string& type);
+// The same for a whole message: also a terrain message whose action is stop (robot.md 7b.6).
+bool is_important_message(const nlohmann::json& message);
 
 // ---- Bridge to robot ----
 
@@ -120,7 +124,14 @@ struct TerrainHintMsg {
   std::string observed_at;
 };
 
-enum class InboundType { Mission, Cancel, Site, TerrainHint };
+enum class InboundType { Mission, Cancel, Site, TerrainHint, Teleop };
+
+// {"type":"teleop","vx":0.1,"vy":0,"wz":0,"seq":42}: one remote driving command from the website
+// (PROPOSED contract change, docs/specs/robot.md 9.4). Units as MotionCommand.
+struct TeleopMsg {
+  double vx_mps = 0, vy_mps = 0, wz_dps = 0;
+  std::uint64_t seq = 0;
+};
 
 struct InboundMessage {
   InboundType type = InboundType::Cancel;
@@ -128,6 +139,7 @@ struct InboundMessage {
   std::uint64_t cancel_mission_id = 0;  // Cancel
   SiteMsg site;                    // Site
   TerrainHintMsg terrain_hint;     // TerrainHint
+  TeleopMsg teleop;                // Teleop
 };
 
 enum class ParseStatus { Ok, UnknownType, Invalid };

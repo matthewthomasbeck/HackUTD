@@ -2,6 +2,7 @@
 // docs/tasks/camille.md R8). It talks to the devices directly, so stop the robot program first.
 //
 //   robot_diag [--config PATH] pico [SECONDS]            stream rates and the newest values
+//   robot_diag [--config PATH] terrain [SECONDS]         run the terrain rules on the live sensors (no motion)
 //   robot_diag [--config PATH] motor a0|a1|b0|b1 DUTY [SECONDS]
 //   robot_diag [--config PATH] wheel fl|fr|bl|br DUTY [SECONDS]   + rolls the robot forward
 //   robot_diag [--config PATH] drive VX_MPS VY_MPS WZ_DPS [SECONDS] through the mecanum mixer
@@ -34,10 +35,12 @@
 #include "hal/dc_driver.hpp"
 #include "hal/device_mock.hpp"
 #include "hal/pico_link.hpp"
+#include "hal/pico_snapshot.hpp"
 #include "hal/servo_bus.hpp"
 #include "motion/leg_ik.hpp"
 #include "motion/calibration.hpp"
 #include "motion/mecanum.hpp"
+#include "terrain/terrain.hpp"
 
 using namespace robot;
 using namespace std::chrono_literals;
@@ -228,6 +231,51 @@ int cmd_pico(const std::string& config, double seconds) {
     std::printf("  TF-Luna: %u mm, strength %u\n", s->value.dist_mm, s->value.strength);
   if (const auto s = rig.pico->readings().ld19.read())
     std::printf("  LD19: %zu points in the last revolution\n", s->value.points.size());
+  return 0;
+}
+
+// The terrain rules (robot.md 7b.3) on the live Pico sensors, for tuning on the mock rubble.
+// Prints every class change at once and the inputs once a second. Nothing moves.
+int cmd_terrain(const std::string& config, double seconds) {
+  Rig rig;
+  if (!open_rig(config, rig, false, true) || !rig.pico_up) return 1;
+  TerrainConfig tc = rig.cfg.terrain;
+  auto rules = make_terrain_rules(tc);
+  TerrainHysteresis hysteresis(tc.hold_ticks);
+  auto fmt = [](const std::optional<double>& v, const char* f) {
+    if (!v) return std::string("-");
+    char buf[32];
+    std::snprintf(buf, sizeof(buf), f, *v);
+    return std::string(buf);
+  };
+  const auto start = std::chrono::steady_clock::now();
+  const auto period = std::chrono::milliseconds(static_cast<int>(1000.0 / rig.cfg.loop.rate_hz));
+  std::optional<TerrainAssessment> shown;
+  SteadyTime next_print = start;
+  while (!g_stop && ms_between(start, std::chrono::steady_clock::now()) < std::min(seconds, 600.0) * 1000.0) {
+    const SteadyTime now = std::chrono::steady_clock::now();
+    rig.pico->poll(now);
+    WorldSnapshot w;
+    w.now = now;
+    copy_pico_sensors(rig.pico->readings(), rig.cfg.stale_ms, now, w);
+    const TerrainAssessment raw = rules->assess(w);
+    const TerrainAssessment& held = hysteresis.update(raw);
+    const double t = ms_between(start, now) / 1000.0;
+    if (!shown || shown->cls != held.cls || shown->action != held.action) {
+      std::printf("%6.2f s  %-7s %-8s conf %.2f  %s%s\n", t, to_string(held.cls), to_string(held.action), held.confidence,
+                  held.reason.c_str(), held.action == TerrainAction::kSteer ? (" -> " + fmt(held.steer_bearing_deg, "%+.0f deg")).c_str() : "");
+      shown = held;
+    }
+    if (now >= next_print) {
+      const TerrainInputs in = rules->last_inputs();
+      std::printf("          ld19 ahead %s m (var %s), single %s m, pitch %s roll %s deg, gyro rms %s dps, missing %d, raw %s\n",
+                  fmt(in.ld19_front_min_m, "%.2f").c_str(), fmt(in.ld19_front_var, "%.3f").c_str(),
+                  fmt(in.single_m, "%.2f").c_str(), fmt(in.pitch_deg, "%.1f").c_str(), fmt(in.roll_deg, "%.1f").c_str(),
+                  fmt(in.gyro_rms_dps, "%.1f").c_str(), in.missing, to_string(raw.cls));
+      next_print = now + std::chrono::seconds(1);
+    }
+    std::this_thread::sleep_for(period);
+  }
   return 0;
 }
 
@@ -575,7 +623,8 @@ int cmd_legcal(const std::string& config, const std::string& only) {
 
       // 1. Channel.
       if (s.channel < 0) {
-        const std::string c = ask("  Which Maestro A channel is " + name + " plugged into (0..23, or 'skip')?");
+        const std::string c = ask("  Which Maestro A channel is " + name + " plugged into (0..23)? Press Enter to skip" +
+                                  std::string(j == Abduction ? " (no abduction servo fitted)" : "") + ":");
         if (c == "skip" || c.empty()) continue;
         s.channel = std::atoi(c.c_str());
       } else {
@@ -632,6 +681,7 @@ int cmd_legcal(const std::string& config, const std::string& only) {
 void usage() {
   std::fprintf(stderr,
                "usage: robot_diag [--config PATH] pico [SECONDS]\n"
+               "       robot_diag [--config PATH] terrain [SECONDS]\n"
                "       robot_diag [--config PATH] motor a0|a1|b0|b1 DUTY [SECONDS]\n"
                "       robot_diag [--config PATH] wheel fl|fr|bl|br DUTY [SECONDS]\n"
                "       robot_diag [--config PATH] drive VX_MPS VY_MPS WZ_DPS [SECONDS]\n"
@@ -660,6 +710,7 @@ int main(int argc, char** argv) {
   auto num = [&](std::size_t i, double fallback) { return args.size() > i ? std::atof(args[i].c_str()) : fallback; };
   const std::string& cmd = args[0];
   if (cmd == "pico") return cmd_pico(config, num(1, 3));
+  if (cmd == "terrain") return cmd_terrain(config, num(1, 30));
   if (cmd == "motor" && args.size() >= 3) return cmd_motor(config, args[1], duty_arg(args[2].c_str()), num(3, 1.5));
   if (cmd == "wheel" && args.size() >= 3) return cmd_wheel(config, args[1], duty_arg(args[2].c_str()), num(3, 1.5));
   if (cmd == "drive" && args.size() >= 4) return cmd_drive(config, num(1, 0), num(2, 0), num(3, 0), num(4, 2));

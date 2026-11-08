@@ -16,6 +16,9 @@ export interface BridgeConfig {
   spoolMaxBytes: number;
   mediaRetries: number;
   claimIntervalMs: number;
+  terrainHint: boolean;          // TERRAIN_HINT=on, only together with the robot's terrain.camera_hint.enabled
+  terrainFrame: string;          // MEDIA_DIR/terrain_hint.jpg, written by the robot
+  terrainHintMaxAgeMs: number;   // the robot's terrain.camera_hint.max_age_ms
 }
 
 const ROBOT_ID_PATTERN = /^[A-Za-z0-9_-]{1,40}$/;
@@ -26,6 +29,14 @@ function positiveNumber(env: NodeJS.ProcessEnv, key: string, fallback: number): 
   const value = Number(raw);
   if (!Number.isFinite(value) || value <= 0) throw new Error(`${key} must be a positive number, got ${raw}`);
   return value;
+}
+
+function onOff(env: NodeJS.ProcessEnv, key: string, fallback: boolean): boolean {
+  const raw = env[key];
+  if (raw === undefined || raw === '') return fallback;
+  if (raw === 'on') return true;
+  if (raw === 'off') return false;
+  throw new Error(`${key} must be on or off, got ${raw}`);
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): BridgeConfig {
@@ -47,6 +58,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BridgeConfig {
     spoolMaxBytes: Math.round(positiveNumber(env, 'SPOOL_MAX_MB', 50) * 1024 * 1024),
     mediaRetries: Math.max(1, Math.round(positiveNumber(env, 'MEDIA_RETRIES', 5))),
     claimIntervalMs: positiveNumber(env, 'CLAIM_INTERVAL_MS', 2000),
+    terrainHint: onOff(env, 'TERRAIN_HINT', false),
+    terrainFrame: `${(env.MEDIA_DIR || '/var/lib/robot/media').replace(/\/+$/, '')}/terrain_hint.jpg`,
+    terrainHintMaxAgeMs: positiveNumber(env, 'TERRAIN_HINT_MAX_AGE_MS', 1500),
   };
 }
 

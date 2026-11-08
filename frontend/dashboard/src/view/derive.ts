@@ -15,7 +15,7 @@ import type { HelpRow } from '../components/HelpCard';
 import type { MapRescuer, MapRobot, MapRoute, MapSurvivor } from '../components/SiteMap';
 import type { MissionRow, PersonRow } from '../components/SideCards';
 import type { SystemChip } from '../components/AppBar';
-import type { RobotFrame } from '../components/CameraView';
+import type { RobotControl, RobotFrame } from '../components/CameraView';
 import { mascotFor } from '../components/Mascot';
 
 type Survivor = BoardState['survivors'][number];
@@ -218,6 +218,39 @@ export function robotFrames(board: BoardState, site: SiteGeometry | null): Robot
       ...(latest?.thermalImageUrl ? { thermalUrl: latest.thermalImageUrl } : {}),
       ...(latest ? { takenAt: clock(timestampToMs(latest.createdAt)), place: site ? placeName(site.houses, latest, site.context) : latest.locationNote } : {}),
     };
+  });
+}
+
+// What each robot is doing and who holds its controls, for Camera View's robot bar and Take over (robot.md 18.1).
+// me: this screen's participant name, which take_over stores as the teleop mission's created_by.
+const OPEN_MISSION = new Set(['queued', 'leased', 'active']);
+export function robotControls(board: BoardState, site: SiteGeometry | null, me: string): RobotControl[] {
+  return board.robots.slice().sort((a, b) => Number(b.online) - Number(a.online) || a.robotId.localeCompare(b.robotId)).map((robot) => {
+    const state = tag(robot.state).toUpperCase();
+    const teleop = board.missions.find((row) => row.robotId === robot.robotId && tag(row.kind) === 'teleop' && OPEN_MISSION.has(tag(row.status)));
+    const current = robot.currentMissionId !== undefined ? board.missions.find((row) => row.id === robot.currentMissionId) : undefined;
+    const places = (current?.targetCellIds ?? []).map((id) => {
+      const cell = board.cells.find((row) => row.id === id);
+      const house = cell && site ? houseAt(site.houses, cell) : undefined;
+      return house?.address || cell?.label || `cell ${id}`;
+    });
+    const kind = current ? tag(current.kind) : '';
+    const doing = !robot.online ? 'Offline'
+      : state === 'SAFE_STOP' || state === 'FAULT' ? `Stopped for safety (${state}); reset on the robot`
+        : teleop && tag(teleop.status) !== 'queued' ? `Remote control by ${crewName(teleop.createdBy)}`
+          : teleop ? `Handing control to ${crewName(teleop.createdBy)}`
+            : kind === 'search_cells' ? `Searching ${places.join(', ') || 'its cells'}`
+              : kind === 'inspect' ? 'Checking a find up close'
+                : kind === 'return_home' ? 'Going back to the start'
+                  : kind === 'hold' ? 'Holding, waiting for the next mission'
+                    : state === 'READY' ? 'Idle, ready for a mission'
+                      : state === 'ACTIVE' ? 'Finishing its last command' : `Starting up (${state})`;
+    const control: RobotControl['control'] = !teleop ? { kind: 'free' } : {
+      kind: teleop.createdBy === me ? 'mine' : 'other', missionId: teleop.id, by: crewName(teleop.createdBy),
+      phase: tag(teleop.status) === 'queued' ? 'waiting' : 'driving',
+    };
+    return { robotId: robot.robotId, name: robotName(robot), online: robot.online, state, doing, control,
+      ...(robot.batteryPct !== undefined ? { batteryPct: Math.round(robot.batteryPct) } : {}) };
   });
 }
 

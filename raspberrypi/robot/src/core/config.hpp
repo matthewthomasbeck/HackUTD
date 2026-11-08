@@ -18,6 +18,7 @@
 
 #include "mission/seek_config.hpp"
 #include "perception/thermal_detector.hpp"
+#include "terrain/terrain.hpp"
 
 namespace robot {
 
@@ -126,10 +127,11 @@ struct Config {
   LimitsConfig limits;
   std::string estop_sense;  // "none" until a sense line is wired
   std::string safe_stop_servo_action;
-  double terrain_slow_scale = 0;
+  TerrainConfig terrain;  // terrain.* (docs/specs/robot.md section 7b)
   bool missions_auto_start = false;
   int breathing_clip_s = 0;
   std::string control_socket;
+  std::string media_dir;  // camera frames for the terrain hint (robot.md 7b.5)
   BridgeSettings bridge;
   SiteSettings site;
   LocationSettings location;
@@ -142,6 +144,7 @@ struct Config {
   LegsSettings legs;
   ThermalConfig thermal;  // thermal.* (docs/specs/robot.md section 7)
   SeekConfig seek;        // seek.*, inspect.standoff_m, scan.rotate_wz_dps
+  double teleop_deadman_ms = 300;  // teleop.deadman_ms: no command this long, the robot stops
   int camera_width = 0;
   int camera_height = 0;
   double camera_fps = 0;

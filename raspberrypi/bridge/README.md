@@ -12,10 +12,10 @@ Node 22 or newer.
 | --- | --- |
 | `src/index.ts` | wiring, timers, shutdown |
 | `src/config.ts` | `.env` keys and the per-server token file name |
-| `src/stdb.ts` | connect, own backoff (1, 2, 4 ... 30 s) on top of `withAutomaticReconnect`, token file (0600), six subscriptions, `register_participant`, reducer calls and `claim_next_mission` with a 15 s timeout |
+| `src/stdb.ts` | connect, own backoff (1, 2, 4 ... 30 s) on top of `withAutomaticReconnect`, token file (0600), seven subscriptions (including this robot's `teleop` row), `register_participant`, reducer calls and `claim_next_mission` with a 15 s timeout |
 | `src/local_socket.ts` | Unix socket server, one client at a time, NDJSON |
 | `src/mapping.ts` | pure: local message to reducer name and arguments |
-| `src/to_wire.ts` | pure: mission and site rows to the JSON lines sent to the robot |
+| `src/to_wire.ts` | pure: mission, site, and teleop rows to the JSON lines sent to the robot |
 | `src/enums.ts` | contract enum spellings and binding tags |
 | `src/router.ts` | send now or spool, keeping order |
 | `src/spool.ts` | spool file and replay |
@@ -71,10 +71,19 @@ npx tsc --noEmit    # or npm run typecheck
 - When a new C++ client connects, the bridge resends the site and the current `leased` or `active` mission, so a restarted robot program gets its mission back.
 - After a bridge restart mid-mission the `active` row arrives as an insert and is not sent at once; the first heartbeat that says `READY` makes the bridge forward it. The C++ program ignores a `mission` whose id it is already running, so resends are safe.
 - Cancel is level-triggered: a mission that was forwarded (or is current) gets `{"type":"cancel","mission_id":id}` when its row stops being this robot's `leased` or `active` row for any reason except `done` or `failed` (cancelled, lease expired and requeued, proposed, reassigned to another robot, deleted). A cancel that cannot be sent (no C++ client) waits and goes out, before any mission, on the next successful send or client connect. After the cancel the robot says `READY` and the normal claim path leases a mission again; a requeued mission that is re-leased is forwarded again.
+- Remote driving (CONTRACTS.md 8.3): each `teleop` row change a reducer makes (`Transaction` from the dashboard's `teleop_drive`) goes straight to the robot as `{"type":"teleop","vx","vy","wz","seq"}`. It is never spooled, and is dropped while no robot program is connected; rows a (re)subscription replays (`SubscribeApplied`) are never sent, so the robot never drives on an old command. The robot stops 300 ms after the last one.
 - Reconnects: each connect starts a new generation, and callbacks from a replaced connection are ignored, so a failed first connect arms exactly one reconnect timer. Spool disk errors (for example `ENOSPC`) are logged and do not crash the bridge.
+
+## Camera terrain hint (optional, off)
+
+With `TERRAIN_HINT=on` (only together with the robot's `terrain.camera_hint.enabled: true`), the bridge posts the newest `MEDIA_DIR/terrain_hint.jpg` to `POST {MEDIA_URL}/terrain` (robot.md 9.4) with `robot_id`, `rule_class` from the robot's latest `terrain` message, and `observed_at` from the file time (the robot sets it to the capture time).
+A 200 answer for that same `observed_at` goes to the robot as one `terrain_hint` line, unchanged.
+One request at a time, at most one per 1.1 s (the service allows one per second), a 1 s timeout, and frames or answers older than `TERRAIN_HINT_MAX_AGE_MS` (1500) are dropped; errors are logged once and never retried or spooled.
+The bridge never calls `report_terrain` with a hint.
+Code and tests: `src/terrain_hint.ts`, `test/terrain_hint.test.ts`.
 
 ## Not built yet
 
 - `STDB_MODE=http` (robot.md 9.10) logs a line and uses the SDK.
-- `upload-logs` (robot.md section 11) and the optional `terrain_hint` forwarding from `POST /terrain` (robot.md 9.4).
+- `upload-logs` (robot.md section 11).
 - `npm start` runs through `tsx`, not a `dist/` build, because the bindings import `spacetimedb` from outside this folder; `robot-bridge.service` (robot.md 14.2) should run `npx tsx src/index.ts` or `npm start`.

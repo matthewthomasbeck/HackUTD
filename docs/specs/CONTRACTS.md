@@ -1,6 +1,7 @@
 # Shared contracts
 
-Status: FINAL, version 8.2 (2026-11-08). Changes need a team decision.
+Status: FINAL, version 8.3 (2026-11-08). Changes need a team decision.
+Version 8.3 adds remote driving, Camille's proposal in `robot.md` section 18.1, approved by Cayden on 2026-11-08: the `teleop` mission kind, the `teleop` table, `take_over` and `teleop_drive`, and the bridge's `teleop` message.
 Version 8.2 adds one item approved by Cayden on 2026-11-08: the unproposed-immediate backstop in the sweep.
 Version 8.1 adds four team-approved items: the person-check image, clearing a possible-duplicate flag, the terrain hint to the robot, and (agent-internal) the mock model switch.
 
@@ -123,10 +124,16 @@ The robot acts on terrain locally and never waits for the module.
 One row per robot and device.
 
 ### `mission`
-`id`, `chain_id` (u64, 0 for none), `robot_id` (`""` means any robot), `kind` (`search_cells` | `inspect` | `return_home` | `hold`), `target_cell_ids` (list of u64, for `search_cells`), `target_lat`, `target_lon` (optional, for `inspect` and `return_home`), `status` (`proposed` | `queued` | `leased` | `active` | `done` | `failed` | `cancelled`), `lease_expires_at` (Timestamp, optional), `created_by` (string, participant name), `reason` (string, why it was created), `created_at`, `updated_at`.
+`id`, `chain_id` (u64, 0 for none), `robot_id` (`""` means any robot), `kind` (`search_cells` | `inspect` | `return_home` | `hold` | `teleop`), `target_cell_ids` (list of u64, for `search_cells`), `target_lat`, `target_lon` (optional, for `inspect` and `return_home`), `status` (`proposed` | `queued` | `leased` | `active` | `done` | `failed` | `cancelled`), `lease_expires_at` (Timestamp, optional), `created_by` (string, participant name), `reason` (string, why it was created), `created_at`, `updated_at`.
 A mission the orchestrator creates starts as `proposed` if `site.require_mission_approval` is true, otherwise `queued`; coordinator missions start `queued`.
 While a mission is `leased` or `active`, each `robot_heartbeat` and `mission_progress` renews its lease.
 A mission whose lease expires goes back to `queued`, with `robot_id = ""` if its robot is offline.
+A `teleop` mission is the exception: it is never requeued; lease expiry cancels it.
+
+### `teleop`
+Remote driving (section "Remote driving"): one row per robot, the newest command from the person driving it.
+`robot_id` (string, primary key), `vx_mps` (f64, + forward), `vy_mps` (f64, + left), `wz_dps` (f64, + counterclockwise), `seq` (u64), `sent_by` (identity of the person who took the robot over), `sent_at` (Timestamp).
+Only `take_over` and `teleop_drive` write it, and it is deleted when the `teleop` mission ends.
 
 ### `detection`
 Raw finding from the robot.
@@ -281,7 +288,9 @@ Clients call reducers through the generated bindings; tables change only through
 | `report_terrain(robot_id, lat, lon, terrain_class, confidence, source, action, image_url, observed_at)` | robot, perception (`source = "camera_model"` only) | latest terrain on the robot row; event `terrain` on a class change; sent on a change or about once a second |
 | `create_mission(robot_id, kind, target_cell_ids, target_lat, target_lon, reason, chain_id)` | orchestrator, coordinator | propose or queue a mission |
 | `cancel_own_mission(mission_id)` | orchestrator | cancel a mission it created while it is `proposed` or `queued` |
-| `approve_mission(mission_id)`, `cancel_mission(mission_id)` | coordinator | human control |
+| `approve_mission(mission_id)`, `cancel_mission(mission_id)` | coordinator | human control; cancelling a `teleop` mission hands the robot back |
+| `take_over(robot_id, reason)` | coordinator (human only) | the robot's `leased` or `active` mission goes back to `queued` for that robot (event `mission_requeued`), and a `teleop` mission is queued for it (event `mission_created`); fails if the robot is offline or already under remote control |
+| `teleop_drive(robot_id, vx_mps, vy_mps, wz_dps, seq)` | coordinator (human only), the identity that took the robot over | one driving command while the robot's `teleop` mission is `leased` or `active`; at most 0.2 m/s and 45 deg/s; no event (about 10 a second) |
 | `report_breathing(survivor_id, breathing, rate_bpm, confidence, visibility_pct, display_url)` | perception | breathing result (`rate_bpm`, `visibility_pct`, `display_url` optional) |
 | `set_critical_score(survivor_id, level, score, confidence, reasons)` | perception | score; the perception service owns re-scoring (a 60 s timer that writes only on meaningful change) |
 | `propose_assignment(survivor_id, rescuer_identity, reason)` | orchestrator, coordinator | send a rescuer; creates the auditor's `review` task for orchestrator proposals |
@@ -349,6 +358,7 @@ If a view fails, the glasses service subscribes to the base tables with string f
 - Robot to bridge: `{"type":"heartbeat",...}`, `{"type":"position",...}`, `{"type":"device",...}`, `{"type":"detection",...}`, `{"type":"cell",...}`, `{"type":"mission_progress",...}`, `{"type":"terrain",...}`.
   Field names match the reducer arguments above.
 - Bridge to robot: `{"type":"mission","mission":{...mission row fields...}}`, `{"type":"cancel","mission_id":...}`, `{"type":"site","demo_mode":true|false,...}` (sent on connect and on change), `{"type":"terrain_hint","terrain_class":...,"confidence":...,"observed_at":...}` (the latest camera terrain report from the perception service; advisory only: it may raise or lower the robot's terrain confidence, and it never overrides a safety stop or loosens the robot's own rules).
+- Bridge to robot, remote driving: `{"type":"teleop","vx":<m/s>,"vy":<m/s>,"wz":<deg/s>,"seq":<n>}` for each `teleop` row change a reducer makes. It is never spooled, and rows a (re)subscription replays are never sent. The robot drives on it only during a `teleop` mission and stops 300 ms after the last one.
 - Media: the C++ program saves images and clips to local files and includes the file path (`thermal_image_path`, `camera_image_path`, `clip_path`, terrain `image_path`); the bridge uploads them to the media server and passes the returned URL to the reducer.
 - Breathing clips are MP4 (H.264).
 - Messages may carry `observed_at`; the bridge passes it through, including for spooled messages.

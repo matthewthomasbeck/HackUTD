@@ -129,15 +129,13 @@ Config parse(const YAML::Node& root) {
   require(c.safe_stop_servo_action == "hold" || c.safe_stop_servo_action == "release",
           "safe_stop.servo_action must be hold or release");
 
-  c.terrain_slow_scale = get_number(root, "terrain.slow_scale");
-  require(c.terrain_slow_scale > 0 && c.terrain_slow_scale <= 1, "terrain.slow_scale must be in (0, 1]");
-
   c.missions_auto_start = get_bool(root, "missions.auto_start");
 
   c.breathing_clip_s = get_int(root, "breathing.clip_s");
   require(c.breathing_clip_s >= 15, "breathing.clip_s must be >= 15 (the breathing check needs at least 15 s)");
 
   c.control_socket = get_string(root, "control.socket");
+  c.media_dir = get_string(root, "media_dir");
   require(!c.control_socket.empty(), "control.socket must not be empty");
   require(c.control_socket.size() < sizeof(sockaddr_un{}.sun_path), "control.socket path is too long for a Unix socket");
 
@@ -230,6 +228,9 @@ Config parse(const YAML::Node& root) {
   require(th.fov_h_deg > 0 && th.delta_c > 0 && th.min_c < th.max_c, "thermal.fov_h_deg, delta_c, min_c < max_c");
   require(th.persist_frames >= 1 && th.persist_frames <= th.persist_window, "thermal.persist_frames must be 1..persist_window");
 
+  c.teleop_deadman_ms = get_number(root, "teleop.deadman_ms");
+  require(c.teleop_deadman_ms >= 100 && c.teleop_deadman_ms <= 2000, "teleop.deadman_ms must be 100..2000");
+
   SeekConfig& sk = c.seek;
   sk.scan_wz_dps = get_number(root, "scan.rotate_wz_dps");
   sk.standoff_m = get_number(root, "inspect.standoff_m");
@@ -251,6 +252,67 @@ Config parse(const YAML::Node& root) {
   sk.lock_deg = get_number(root, "seek.lock_deg");
   require(sk.standoff_m > 0 && sk.approach_mps > 0 && sk.scan_step_s > 0 && sk.center_deg > 0,
           "inspect.standoff_m, seek.approach_mps, seek.scan_step_s and seek.center_deg must be > 0");
+
+  // terrain.* (docs/specs/robot.md section 7b). It shares the LD19 mounting with seek.* and the
+  // yaw axis with heading.*, so the same sensor is never described twice.
+  TerrainConfig& tr = c.terrain;
+  tr.impl = get_string(root, "terrain.impl");
+  require(tr.impl == "rules" || tr.impl == "mock", "terrain.impl must be rules or mock");
+  tr.front_sector_deg = get_number(root, "terrain.front_sector_deg");
+  tr.lidar_single_mode = get_string(root, "terrain.lidar_single_mode");
+  require(tr.lidar_single_mode == "forward" || tr.lidar_single_mode == "down",
+          "terrain.lidar_single_mode must be forward or down");
+  tr.ground_range_m = get_number(root, "terrain.ground_range_m");
+  require(tr.lidar_single_mode != "down" || tr.ground_range_m > 0,
+          "terrain.ground_range_m must be > 0 when terrain.lidar_single_mode is down (TBD from Matthew)");
+  tr.tilt_lpf_alpha = get_number(root, "terrain.tilt_lpf_alpha");
+  require(tr.tilt_lpf_alpha > 0 && tr.tilt_lpf_alpha <= 1, "terrain.tilt_lpf_alpha must be in (0, 1]");
+  tr.use_force = get_bool(root, "terrain.use_force");
+  // The FSRs' meaning is TBD and there is no force rule format yet, so they cannot be turned on.
+  require(!tr.use_force, "terrain.use_force must stay false until Matthew says what each force sensor measures");
+  tr.missing_input_penalty = get_number(root, "terrain.missing_input_penalty");
+  tr.blocked_m = get_number(root, "terrain.blocked_m");
+  tr.clear_m = get_number(root, "terrain.clear_m");
+  tr.steer_span_deg = get_number(root, "terrain.steer_span_deg");
+  tr.gap_drop_m = get_number(root, "terrain.gap_drop_m");
+  tr.max_pitch_deg = get_number(root, "terrain.max_pitch_deg");
+  tr.max_roll_deg = get_number(root, "terrain.max_roll_deg");
+  tr.step_rise_m = get_number(root, "terrain.step_rise_m");
+  tr.max_step_m = get_number(root, "terrain.max_step_m");
+  tr.bump_window_s = get_number(root, "terrain.bump_window_s");
+  tr.bump_gyro_dps = get_number(root, "terrain.bump_gyro_dps");
+  tr.debris_range_var = get_number(root, "terrain.debris_range_var");
+  for (std::size_t i = 0; i < kTerrainClasses.size(); ++i) {
+    const std::string key = std::string("terrain.base_confidence.") + to_string(kTerrainClasses[i]);
+    tr.base_confidence[i] = get_number(root, key);
+    require(tr.base_confidence[i] >= 0 && tr.base_confidence[i] <= 1, key + " must be in [0, 1]");
+  }
+  tr.agree_bonus = get_number(root, "terrain.agree_bonus");
+  tr.hold_ticks = get_int(root, "terrain.hold_ticks");
+  tr.slow_scale = get_number(root, "terrain.slow_scale");
+  require(tr.slow_scale > 0 && tr.slow_scale <= 1, "terrain.slow_scale must be in (0, 1]");
+  tr.report_max_hz = get_number(root, "terrain.report_max_hz");
+  tr.report_keepalive_s = get_number(root, "terrain.report_keepalive_s");
+  for (const auto& name : get_strings(root, "terrain.mock_sequence")) {
+    const auto cls = parse_terrain_class(name);
+    require(cls.has_value(), "terrain.mock_sequence: unknown class " + name);
+    tr.mock_sequence.push_back(*cls);
+  }
+  tr.mock_step_s = get_number(root, "terrain.mock_step_s");
+  tr.camera_hint.enabled = get_bool(root, "terrain.camera_hint.enabled");
+  tr.camera_hint.frame_every_s = get_number(root, "terrain.camera_hint.frame_every_s");
+  tr.camera_hint.max_age_ms = get_number(root, "terrain.camera_hint.max_age_ms");
+  tr.camera_hint.weight = get_number(root, "terrain.camera_hint.weight");
+  require(tr.front_sector_deg > 0 && tr.front_sector_deg <= 360 && tr.steer_span_deg >= 15 && tr.steer_span_deg <= 360,
+          "terrain.front_sector_deg must be in (0, 360] and terrain.steer_span_deg in [15, 360]");
+  require(tr.blocked_m > 0 && tr.clear_m > tr.blocked_m, "terrain.clear_m must be greater than terrain.blocked_m > 0");
+  require(tr.hold_ticks >= 1 && tr.bump_window_s > 0 && tr.report_max_hz > 0 && tr.report_keepalive_s >= 0,
+          "terrain.hold_ticks >= 1, terrain.bump_window_s > 0, terrain.report_max_hz > 0, keepalive >= 0");
+  require(tr.camera_hint.frame_every_s > 0 && tr.camera_hint.max_age_ms > 0 && tr.camera_hint.weight >= 0 &&
+              tr.camera_hint.weight <= 1,
+          "terrain.camera_hint: frame_every_s and max_age_ms > 0, weight in [0, 1]");
+  tr.ld19 = Ld19Mount{sk.ld19_front_deg, sk.ld19_clockwise};
+  tr.gyro_yaw_axis = c.location.heading_gyro_axis;
 
   LegsSettings& legs = c.legs;
   legs.impl = get_string(root, "legs.impl");

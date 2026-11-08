@@ -24,6 +24,7 @@ Eric's agents (`backend/agent/`) and perception service (`backend/perception/`) 
 The robot program foundation (state machine, safety gate, threads, mocks) is in `raspberrypi/robot/` and the first Pico sensor firmware is in `pico/`, and the bridge to SpacetimeDB (R3: `raspberrypi/bridge/` plus the C++ bridge client and localizer) is on branch `eric-r3-bridge`, tested on a laptop with mocks only, so the sim robot still stands in for the robot on the board.
 The Maincloud database is `assess-0hw81` (owned by Cayden's `spacetime login`); the local fallback server uses the same name, and clients set `STDB_URI` and `STDB_DATABASE`.
 The judged demo is HARD-CODED (Cayden, 2026-11-08): only SpacetimeDB runs live, and the simulator scripts the robot (`sim-dog`), the find, the breathing result and critical score, and any rescuer actions; the agents, perception, the real robot, and the real G2 are not live in it, so never claim they are.
+Camera View's Take over drives a robot by remote control (contracts 8.3, `docs/specs/dashboard.md` "Camera View and Take over"); in the judged demo it drives the sim dog, never the real robot.
 Run it from `backend/sim/` with `npm run sim -- setup`, then `npm run sim -- timeline demo` (story ends at the house 3 find); the run of show is `docs/specs/demo.md`, "Judged demo (hard-coded, 2026-11-08)".
 Open work and per-task status are in `docs/tasks/cayden.md` and `docs/TASKS.md`.
 Run the module typecheck and build with `cd backend/spacetimedb && npx tsc --noEmit -p . && spacetime build`.
@@ -40,6 +41,7 @@ Run the perception checks with `cd backend/perception && python -m pytest`.
 How to run each part is in `backend/README.md` and `frontend/README.md`; integration commands remain in the specs in `docs/specs/`.
 The robot main program is in `raspberrypi/robot/` (C++17, CMake): the state machine, safety gate, threads (main, movement, vision), control socket, and mocks (task R1).
 Build and test it with `cmake -B build && cmake --build build -j && ctest --test-dir build --output-on-failure` inside `raspberrypi/robot/`, and run it on a laptop with `./build/robot --config config/robot.laptop.yaml`; `raspberrypi/README.md` has the dependencies and the `robotctl` commands.
+Terrain recognition (task R7, `src/terrain/`) runs every tick and the safety gate applies it; `robotctl mock terrain <class>` drives it on a laptop, and its status (built on mocks only, camera advice off) is in `docs/notes/2026-11-08-terrain-integration.md`.
 
 Primary perception and agents are in `backend/perception/` and `backend/agent/`.
 Run `.venv/bin/python -m pytest -q` from `backend/perception/`.

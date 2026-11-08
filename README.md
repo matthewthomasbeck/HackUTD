@@ -9,7 +9,7 @@
 
 *Scout first. Reduce human risk.* The drone scouts from above, then the robot dog goes in.
 
-Built at HackUTD by Cayden Hutcheson, Matthew Beck, Eric Lee, and Camille.
+Built at HackUTD by Camille Rivera, Cayden Hutcheson, Matthew Beck, and Eric Lee.
 
 Tracks: **NVIDIA** ("Use Nemotron Beyond a Chatbot"), **State Farm** ("The Worst Day, at Scale"), and **SpacetimeDB**.
 
@@ -81,7 +81,7 @@ There is no separate web server or API. One SpacetimeDB module ([backend/spaceti
 
 ### The drone
 
-The drone is the first layer of the search. It scans the disaster area from above, quickly covering ground no rescuer could walk in time, and marks the zones the robot dog should search first.
+The drone, a **DJI Mini 4 Pro**, is the first layer of the search. It scans the disaster area from above, quickly covering ground no rescuer could walk in time, and marks the zones the robot dog should search first.
 Its scans go into SpacetimeDB like every other finding, so the Nemotron orchestrator can send the dog where the drone saw the most need.
 
 ### The robot dog
@@ -120,4 +120,11 @@ Python, FastAPI, OpenCV, and YOLO pose (Ultralytics) find the chest region, meas
 | [3d_parts/](3d_parts/) | Robot body parts |
 | [docs/](docs/) | Project plan, specs, and research |
 
-Start with [docs/PROJECT.md](docs/PROJECT.md) for the full design and [docs/ROBOT.md](docs/ROBOT.md) for the robot.
+## Docs
+
+- Presentation: https://canva.link/dv874lbguzouirt
+- [docs/devpost-draft.md](docs/devpost-draft.md): the Devpost entry.
+- [docs/PROJECT.md](docs/PROJECT.md): the full design.
+- [docs/AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md): how the three agents work.
+- [docs/specs/](docs/specs/): implementation specs and the shared contracts.
+- [docs/ROBOT.md](docs/ROBOT.md): the robot dog's hardware, pin map, and protocol.

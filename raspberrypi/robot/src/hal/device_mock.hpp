@@ -34,6 +34,9 @@ class MockControls {
   // Fake warm body in the mock thermal frame: column 0..31, or -1 for none.
   void set_thermal_blob(int column);
   int thermal_blob() const;
+  // Terrain class the mock assessor reports (terrain.impl: mock): flat..unknown, or empty for its script.
+  void set_terrain(const std::string& terrain_class);
+  std::string terrain() const;
 
  private:
   mutable std::mutex mutex_;
@@ -42,6 +45,7 @@ class MockControls {
   bool pico_link_lost_ = false;
   bool estop_sense_ = false;
   int thermal_blob_ = -1;
+  std::string terrain_;
 };
 
 class MockDevice : public IDevice {

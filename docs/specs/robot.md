@@ -612,6 +612,7 @@ struct TerrainAssessment {
   std::string source;           // "lidar_imu_rules", or "lidar_imu_rules+camera_model" when a hint was applied
   std::string reason;           // short text, for example "ld19: 0.08 m rise at 0.4 m ahead"
   bool safety_stop;             // true when a rule asked for stop for safety; nothing can clear it this tick
+  bool allow_rotation;          // with safety_stop: turning in place is allowed (only blocked with a clear side)
 };
 
 class ITerrainAssessor {
@@ -622,6 +623,13 @@ class ITerrainAssessor {
 ```
 
 Implementations, picked by `terrain.impl`: `rules` (default on the robot) and `mock` (returns a scripted class sequence from config, or `robotctl mock terrain <class>`).
+
+As built (2026-11-08, `raspberrypi/robot/src/terrain/`): each tick runs the assessor, then `TerrainHysteresis`, then `apply_hint`, and the result goes in `snapshot.terrain`.
+Every `stop` and every `steer` sets `safety_stop` (translation zero); only `steer`, which comes only from the blocked rule with a clear side, sets `allow_rotation`.
+The LD19 forward sector uses the same mounting keys as the seek behavior (`seek.ld19_front_deg`, `seek.ld19_clockwise`), and the IMU bump measure leaves out the yaw axis named by `heading.gyro_axis`, so the robot's own turning is not read as debris.
+Clear side bins are 15 degrees wide across `terrain.steer_span_deg` centered ahead; a bin with no LD19 return is not counted as clear.
+`terrain.use_force: true` and `terrain.lidar_single_mode: down` with `ground_range_m: 0` are refused at BOOT, because the force sensor meaning and the ground range are TBD.
+The LD19 low-obstacle part of rule 4 is not written, because the LD19 mounting height is TBD.
 
 ### 7b.2 Inputs
 
@@ -671,6 +679,8 @@ Hysteresis: a new class must hold for `terrain.hold_ticks` (start at 5) before i
 A slot for a camera model, off by default (`terrain.camera_hint.enabled: false`):
 
 - With the hint enabled, the robot saves a downscaled camera frame every `terrain.camera_hint.frame_every_s` (TBD) while moving, to `<media_dir>/terrain_hint.jpg` (written to a temporary file, then renamed, so the bridge never reads half a frame).
+  The writer is its own thread (`TerrainFrameWriter`), the frame is box-downscaled to at most 320 pixels wide, and the file's modification time is set to the camera's capture time, so the `observed_at` the bridge sends is the capture time.
+  The bridge side is off unless `TERRAIN_HINT=on` (with `MEDIA_DIR` set to the robot's `media_dir`).
 - The bridge posts each new frame to the perception service (`POST /terrain`, in CONTRACTS.md "Media server"), which returns a class and confidence (section 9.4).
 - The bridge forwards the latest result as `{"type":"terrain_hint","terrain_class":...,"confidence":...,"observed_at":...}` (CONTRACTS.md version 8.1, bridge to robot), where `observed_at` is the time the frame was saved; the C++ bridge client puts it in a latest-value slot, and a newer hint replaces an older one.
 - The hint is advisory only.
@@ -684,6 +694,8 @@ A slot for a camera model, off by default (`terrain.camera_hint.enabled: false`)
 ### 7b.6 Reporting
 
 - Message `{"type":"terrain","robot_id","lat","lon","terrain_class","confidence","source","action","image_path"}` maps to `report_terrain(robot_id, lat, lon, terrain_class, confidence, source, action, image_url, observed_at)`.
+- The robot always sends `source` = `lidar_imu_rules`, because the module accepts only `lidar_imu_rules` and `camera_model` (section 18); the `+camera_model` form in 7b.1 stays in the robot's log and `robotctl status`.
+- `image_path` is not sent yet (no frame is saved on a change to `step`, `gap`, or `blocked`).
 - The module keeps only the robot's latest terrain fields (`robot.terrain_class`, `terrain_confidence`, `terrain_source`, `terrain_action`) and writes an `event_log` row of kind `terrain` only when the class changes (CONTRACTS.md version 8); it stores no terrain position or image.
 - `image_path` is optional: on a change to `step`, `gap`, or `blocked`, the robot saves the latest camera frame as JPEG in the sensor log `media/` folder; the bridge uploads it (media kind `terrain`) and passes `image_url`, which the module validates but does not store.
 - Rate limit in `terrain_reporter`: send on a class or action change (after hysteresis), at most `terrain.report_max_hz` (1 Hz, per the reducer note in `CONTRACTS.md`), plus a keep-alive every `terrain.report_keepalive_s` (TBD, start at 5) while moving.
@@ -814,6 +826,8 @@ Mission id 0 (local test) messages are logged by the bridge and not sent to Spac
   2. On a `200` response `{"terrain_class","confidence","observed_at"}`, the bridge sends one `terrain_hint` line to the robot with those three fields.
   3. On an error, a timeout (1 s), or no C++ client, it sends nothing; it never retries or spools hints, because an old hint is useless.
   The bridge does not change the hint and never calls `report_terrain` with it.
+
+- `{"type":"teleop","vx":<m/s>,"vy":<m/s>,"wz":<deg/s>,"seq":<n>}` (CONTRACTS.md 8.3), one remote driving command from the dashboard. The robot drives on it only during a `teleop` mission, and stops when no command has come for `teleop.deadman_ms` (300 ms). The bridge sends one for each `teleop` row change a reducer makes, never spools them, and never sends rows a (re)subscription replays.
 
 The C++ parser ignores unknown `type` values with a log line, so new bridge messages cannot break the robot.
 
@@ -1269,6 +1283,7 @@ terrain:
   missing_input_penalty: 0.2
   blocked_m: 0.25
   clear_m: 0.6
+  steer_span_deg: 180               # side bins searched for a way around a block, centered ahead, TBD
   gap_drop_m: 0.05
   max_pitch_deg: 20
   max_roll_deg: 20
@@ -1283,6 +1298,8 @@ terrain:
   slow_scale: 0.5
   report_max_hz: 1
   report_keepalive_s: 5
+  mock_sequence: []                 # impl mock only: a scripted class list, e.g. [flat, debris, blocked]
+  mock_step_s: 2                    # impl mock only: seconds per mock_sequence entry
   camera_hint: { enabled: false, frame_every_s: 1.0, max_age_ms: 1500, weight: 0.3 }
 scan: { seconds_per_cell: 10, mode: rotate, rotate_wz_dps: 20, dedupe_deg: 15, dedupe_m: 1.0, min_view_m: 0.5, min_fresh_frac: 0.9, min_clear_frac: 0.7 }
 inspect: { standoff_m: 1.0, approach_timeout_s: 10, settle_s: 2, still_gyro_dps: 2.0 }
@@ -1370,7 +1387,7 @@ paths:
 - `test_thermal_detector.cpp`: synthetic frames with no blob, one blob, a too-small blob, a too-hot blob, a masked blob, two blobs; persistence; confidence monotonic in contrast; bearing math.
 - `test_localizer.cpp`: GPS mode, fix loss to indoor with offset, demo mode from waypoints, unknown mode, lat/lon offset math.
 - `test_mission_runner.cpp`: each mission kind with mocks and a fake clock: `search_cells` marks cells in order, inspects a mock blob, sends one detection with a clip path, marks `searched`; a blocked view (mock LD19 sectors under `min_view_m`) or a scan from outside the cell marks `partially_searched`; cancel after the scan started marks `partially_searched`; thermal stale during the whole scan fails the mission and does not mark the cell; `inspect` with no blob ends `done` with the note; a mission with an unknown kind is rejected; `return_home` fails with no path; `hold` runs until cancel; invalid missions are rejected.
-- `test_terrain.cpp`: one synthetic snapshot per rule (blocked with and without a clear side sector, gap, tilt stop, step slow and step stop, debris, flat, unknown with all inputs missing); hysteresis delays a class change but not a stop; rate limiter sends on change and at most 1 Hz; a stale camera hint is ignored; a fresh hint changes confidence and can only make the action more cautious; a hint can never clear `safety_stop`; the safety gate zeroes translation on a terrain stop even when the behavior asks to drive.
+- `test_terrain.cpp` (the hint tests are in the same file, not a separate `test_terrain_hint.cpp`): one synthetic snapshot per rule (blocked with and without a clear side sector, gap, tilt stop, step slow and step stop, debris, flat, unknown with all inputs missing); hysteresis delays a class change but not a stop; rate limiter sends on change and at most 1 Hz; a stale camera hint is ignored; a fresh hint changes confidence and can only make the action more cautious; a hint can never clear `safety_stop`; the safety gate zeroes translation on a terrain stop even when the behavior asks to drive.
 - `test_terrain_hint.cpp`: a `terrain_hint` line through the bridge client fills the hint slot; one whose `observed_at` is older than `terrain.camera_hint.max_age_ms` is ignored; a fresh agreeing hint raises confidence and a disagreeing one lowers it; a hint never clears `safety_stop`, never makes the action less cautious, and never changes the rule class.
 - `test_bridge_client.cpp`: with a socketpair, non-blocking writes, drop-oldest on the telemetry queue, outbox replay after reconnect, unknown message types ignored.
 - `test_motion.cpp`: mecanum mixing matches eq. 20 for pure vx, vy, wz; scaling keeps direction when a wheel saturates; `wheel_order` and `invert` applied; `leg_ik_mock` records stance and lift requests; `leg_ik_2link` returns false for unreachable targets; the gate zeroes translation while a leg is lifted.
@@ -1453,5 +1470,36 @@ Cut order if time runs out: leg IK and legged motion (stretch), the camera terra
 
 ## 18. Proposed contract changes
 
-Proposed contract changes: none open.
+### 18.1 Remote driving from the dashboard (Camille, 2026-11-08; approved by Cayden and built 2026-11-08)
+
+Status: merged into CONTRACTS.md version 8.3, and built end to end: the module (`take_over`, `teleop_drive`, the `teleop` table), the bridge forwarding, the sim dog, and Camera View's Take over (see `dashboard.md`).
+Differences from the proposal below: the "operator" is the coordinator or commander role; one person drives at a time (the identity that took over); `take_over` pauses the robot's running mission back into its queue instead of the dashboard creating a mission, so it resumes after the hand back; closing Camera View hands the robot back.
+The table is kept as the record of the proposal.
+
+Why: the MVP lets the robot drive "by script or remote control", and with the legs not walking, remote control is the reliable way to get it into the mock rubble for the demo.
+Today the website can only send missions, not driving commands.
+
+The robot side is done (`mission/behaviors/teleop.*`, `robotctl start teleop`, `robotctl teleop` for keyboard driving on the Pi).
+The changes the team needs to agree on:
+
+| Part | Change | Owner |
+| --- | --- | --- |
+| Mission kind | Add `teleop` to `mission.kind` (`search_cells` / `inspect` / `return_home` / `hold` / `teleop`). It needs no targets and never ends by itself; `cancel` ends it | Cayden (module) |
+| Table | `teleop`: one row per robot: `robot_id` (pk), `vx_mps`, `vy_mps`, `wz_dps`, `seq` (u64), `sent_by` (identity), `sent_at` (Timestamp) | Cayden |
+| Reducer | `teleop_drive(robot_id, vx_mps, vy_mps, wz_dps, seq)`: only the operator or commander role; only while that robot has an active `teleop` mission; rejects values over the robot's limits (0.2 m/s, 45 deg/s); upserts the row | Cayden |
+| Dashboard | A drive panel for the robot: on-screen joystick or WASD keys, sending `teleop_drive` about 10 times a second while held and a zero command on release; a big Stop button that cancels the mission | Cayden (follows `docs/DESIGN.md`) |
+| Bridge | On a `teleop` row update for its robot, send `{"type":"teleop","vx","vy","wz","seq"}` over the local socket. Never spool these: a stale driving command is dangerous, so drop them while the robot is disconnected | Eric |
+| Event log | Optional: log mission start and end only, not every command (10 a second would flood the replay) | Cayden |
+
+Safety, unchanged by this: the robot's safety gate still clamps speed and acceleration; the robot stops on its own 300 ms after the last command (closed tab, dropped Wi-Fi, crashed bridge); faults go to SAFE_STOP; and a latched e-stop is still reset only on the Pi, never from the website.
+Agents never get `teleop_drive`: driving stays with a person.
+
+Expected delay: dashboard to database to bridge to robot, about 0.1 to 0.3 s, fine at 0.2 m/s.
+
+### 18.2 `report_terrain` `source` (PROPOSED 2026-11-08, Cayden, from the R7 build)
+
+Section 7b.1 says the robot reports `lidar_imu_rules+camera_model` when a camera hint was applied, but CONTRACTS.md and the module accept only `lidar_imu_rules` and `camera_model`, so the module would reject that report.
+Proposal: either add `lidar_imu_rules+camera_model` to the module's accepted sources (and CONTRACTS.md), or drop it from 7b.1.
+Until a human decides, the robot sends `lidar_imu_rules` on the wire.
+
 The advisory `terrain_hint` message (section 7b.5) was merged into CONTRACTS.md version 8.1.

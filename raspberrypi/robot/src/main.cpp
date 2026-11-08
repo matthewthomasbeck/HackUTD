@@ -26,6 +26,7 @@
 #include <atomic>
 #include <cctype>
 #include <chrono>
+#include <cmath>
 #include <csignal>
 #include <cstdint>
 #include <cstdio>
@@ -50,13 +51,19 @@
 #include "hal/device_manager.hpp"
 #include "hal/device_mock.hpp"
 #include "mission/behaviors/behavior.hpp"
+#include "mission/behaviors/teleop.hpp"
 #include "mission/behaviors/thermal_seek.hpp"
 #include "mission/mission_intake.hpp"
 #include "hal/camera.hpp"
 #include "hal/dc_driver.hpp"
 #include "hal/pico_link.hpp"
+#include "hal/pico_snapshot.hpp"
 #include "hal/servo_bus.hpp"
 #include "localization/localizer.hpp"
+#include "terrain/terrain.hpp"
+#include "terrain/terrain_frame_writer.hpp"
+#include "terrain/terrain_pipeline.hpp"
+#include "terrain/terrain_reporter.hpp"
 #include "motion/leg_ik.hpp"
 #include "motion/movement_thread.hpp"
 #include "vision/detector.hpp"
@@ -192,21 +199,8 @@ WorldSnapshot observe(const Config& cfg, const DeviceManager& devices, const Har
   w.motion_stopped = !moving || moving->stopped;
   if (const auto d = vision.detections().read()) w.detections = d->value;
 
-  // Pico sensors for the mission behaviors, only when fresh.
-  const PicoReadings& r = hw.pico->readings();
-  auto fresh = [&](const std::string& name, SteadyTime written) {
-    const auto it = cfg.stale_ms.find(name);
-    return it == cfg.stale_ms.end() || ms_between(written, now) <= it->second;
-  };
-  if (const auto t = r.thermal.read(); t && fresh("thermal", t->written)) {
-    w.thermal = t->value;
-    w.thermal_at = t->written;
-  }
-  if (const auto s = r.lidar_single.read();
-      s && fresh("lidar_single", s->written) && s->value.strength >= 100 && s->value.strength < 65535 && s->value.dist_mm > 0) {
-    w.range_m = s->value.dist_mm / 1000.0;
-  }
-  if (const auto s = r.ld19.read(); s && fresh("ld19", s->written) && !s->value.points.empty()) w.ld19 = s->value;
+  // Pico sensors for the mission behaviors and the terrain rules, only when fresh.
+  copy_pico_sensors(hw.pico->readings(), cfg.stale_ms, now, w);
   return w;
 }
 
@@ -261,6 +255,11 @@ std::string apply_mock(const json& body, MockControls& controls) {
     else if (!value.empty() && std::isdigit(static_cast<unsigned char>(value[0])) && std::stoi(value) < 32)
       controls.set_thermal_blob(std::stoi(value));
     else return "usage: mock thermal_blob off|<column 0..31>";
+  } else if (what == "terrain") {
+    // The class the mock terrain assessor reports (terrain.impl: mock), or off for its script.
+    if (value == "off") controls.set_terrain("");
+    else if (parse_terrain_class(value)) controls.set_terrain(value);
+    else return "usage: mock terrain off|flat|debris|step|gap|blocked|unknown";
   } else if (what == "estop_sense" && (value == "on" || value == "off")) {
     controls.set_estop_sense(value == "on");
   } else if (what == "stale" && known_device(device) && (value == "on" || value == "off")) {
@@ -271,7 +270,7 @@ std::string apply_mock(const json& body, MockControls& controls) {
                                                            : DeviceStatus::FAILED);
   } else {
     return "usage: mock pico_link lost|ok, mock estop_sense on|off, mock stale <device> on|off, "
-           "mock init <device> OK|DEGRADED|FAILED";
+           "mock init <device> OK|DEGRADED|FAILED, mock terrain off|<class>, mock thermal_blob off|<column>";
   }
   return "";
 }
@@ -324,7 +323,7 @@ int main(int argc, char** argv) {
   gate_config.max_lin_accel = cfg.limits.max_lin_accel;
   gate_config.max_ang_accel = cfg.limits.max_ang_accel;
   gate_config.reject_factor = cfg.limits.reject_factor;
-  gate_config.terrain_slow_scale = cfg.terrain_slow_scale;
+  gate_config.terrain_slow_scale = cfg.terrain.slow_scale;
   gate_config.tick_s = 1.0 / cfg.loop.rate_hz;
 
   ControlServer control;
@@ -366,10 +365,23 @@ int main(int argc, char** argv) {
   // With missions.auto_start off, a hold mission waits here too, until `robotctl start`.
   std::optional<MissionMsg> stored_mission;
   FinishedMissions finished_missions;  // done or failed this boot, so a resend does not restart them
-  std::optional<TerrainHintMsg> terrain_hint;  // advisory, for the terrain assessor (task R7)
 
   auto controls = std::make_shared<MockControls>();
   Hardware hw = build_hardware(cfg, controls);
+
+  // Terrain (robot.md 7b): rules on the robot, the mock on a laptop. It runs every tick, with or
+  // without the camera hint, and the safety gate applies its result whatever the behavior does.
+  TerrainPipeline terrain(cfg.terrain, cfg.terrain.impl == "mock" ? make_terrain_mock(cfg.terrain, controls)
+                                                                  : make_terrain_rules(cfg.terrain));
+  TerrainReporter terrain_reporter(cfg.terrain);
+  std::optional<TerrainAssessment> terrain_logged;  // the last class and action logged, to log changes only
+  std::unique_ptr<TerrainFrameWriter> terrain_frames;
+  if (cfg.terrain.camera_hint.enabled) {
+    terrain_frames = std::make_unique<TerrainFrameWriter>(
+        hw.camera, TerrainFrameConfig{cfg.media_dir + "/terrain_hint.jpg", cfg.terrain.camera_hint.frame_every_s});
+    terrain_frames->start();
+    log::info("terrain: camera hint on, frames to " + cfg.media_dir + "/terrain_hint.jpg");
+  }
   std::set<std::string> pico_devices(kPicoDevices.begin(), kPicoDevices.end());
   DeviceManager devices(hw.init_order, pico_devices, Millis(cfg.init_device_timeout_ms));
 
@@ -393,7 +405,8 @@ int main(int argc, char** argv) {
       for (std::size_t j = 0; j < 3; ++j) {
         const JointSettings& s = cfg.legs.joints[l][j];
         ik.joints[l][j] = JointCal{s.bus, s.channel, s.zero_us, s.us_per_rad, s.direction, s.min_us, s.max_us};
-        all_calibrated = all_calibrated && ik.joints[l][j].calibrated();
+        const bool optional_absent = j == Abduction && !ik.joints[l][j].fitted();  // abduction removed 2026-11-08
+        all_calibrated = all_calibrated && (optional_absent || ik.joints[l][j].calibrated());
       }
     }
     if (!all_calibrated) log::warn("legs: some joints are not calibrated (robot_diag legcal), so the legs will not move");
@@ -407,6 +420,10 @@ int main(int argc, char** argv) {
   SteadyClock clock;
   std::vector<Event> pending{Event{EventType::config_valid}};
   std::unique_ptr<IBehavior> behavior;
+  // Remote driving: robotctl drive/teleop and the bridge's teleop messages all write here; only a
+  // running "teleop" mission reads it (mission/behaviors/teleop.hpp).
+  auto teleop_input = std::make_shared<TeleopInput>();
+  std::uint64_t teleop_seq = 0;
   std::string mission_kind;
   std::uint64_t mission_id = 0;
   std::uint64_t movement_seq = 0;
@@ -442,7 +459,9 @@ int main(int argc, char** argv) {
 
     // 1. Observe. The Pico link first: read the bytes already waiting, never wait for more.
     hw.pico->poll(tick_start);
-    const WorldSnapshot world = observe(cfg, devices, hw, *controls, movement, vision, tick_start);
+    WorldSnapshot observed = observe(cfg, devices, hw, *controls, movement, vision, tick_start);
+    observed.terrain = terrain.tick(observed);
+    const WorldSnapshot& world = observed;
     std::vector<Event> events = std::move(pending);
     pending.clear();
     if (g_stop_requested && !sigterm_sent) {
@@ -459,6 +478,32 @@ int main(int argc, char** argv) {
                             {"important_queued", bridge.important_queued()},
                             {"site_demo_mode", site.demo_mode},
                             {"stored_mission", stored_mission ? json(stored_mission->id) : json(nullptr)}};
+        const TerrainAssessment& t = *world.terrain;
+        const TerrainInputs in = terrain.inputs();
+        auto opt = [](const std::optional<double>& v) { return v ? json(*v) : json(nullptr); };
+        const auto hint = terrain.fresh_hint(tick_start);
+        status["terrain"] = {{"impl", cfg.terrain.impl},
+                             {"class", to_string(t.cls)},
+                             {"action", to_string(t.action)},
+                             {"confidence", t.confidence},
+                             {"safety_stop", t.safety_stop},
+                             {"steer_bearing_deg", t.steer_bearing_deg},
+                             {"source", t.source},
+                             {"reason", t.reason},
+                             {"raw_class", terrain.raw() ? json(to_string(terrain.raw()->cls)) : json(nullptr)},
+                             {"inputs", {{"ld19_front_min_m", opt(in.ld19_front_min_m)},
+                                         {"ld19_front_var", opt(in.ld19_front_var)},
+                                         {"lidar_single_m", opt(in.single_m)},
+                                         {"pitch_deg", opt(in.pitch_deg)},
+                                         {"roll_deg", opt(in.roll_deg)},
+                                         {"gyro_rms_dps", opt(in.gyro_rms_dps)},
+                                         {"missing", in.missing}}},
+                             {"camera_hint", {{"enabled", cfg.terrain.camera_hint.enabled},
+                                              {"fresh", hint ? json{{"class", to_string(hint->cls)},
+                                                                    {"confidence", hint->confidence},
+                                                                    {"observed_at", hint->observed_at}}
+                                                             : json(nullptr)},
+                                              {"frames_written", terrain_frames ? terrain_frames->frames_written() : 0}}}};
         status["location"] = {{"mode", to_string(loc.mode)},
                               {"lat", loc.lat ? json(*loc.lat) : json(nullptr)},
                               {"lon", loc.lon ? json(*loc.lon) : json(nullptr)},
@@ -513,18 +558,30 @@ int main(int argc, char** argv) {
                                      {"width", sample->value.width}, {"height", sample->value.height},
                                      {"centi_deg_c", sample->value.centi_deg_c}});
         }
+      } else if (cmd == "drive") {
+        // One teleop command; robotctl drive/teleop re-send it about 10 times a second.
+        const auto num = [&](const char* k) { return req.body.contains(k) && req.body[k].is_number() ? req.body[k].get<double>() : 0.0; };
+        TeleopCommand t{num("vx"), num("vy"), num("wz"), ++teleop_seq, "robotctl"};
+        if (!std::isfinite(t.vx_mps) || !std::isfinite(t.vy_mps) || !std::isfinite(t.wz_dps)) {
+          control.reply(req.client, {{"ok", false}, {"error", "vx, vy and wz must be numbers"}});
+          continue;
+        }
+        teleop_input->write(t, clock.now());
+        json reply = {{"ok", true}};
+        if (mission_kind != "teleop") reply["note"] = "not driving: start a teleop mission first (robotctl start teleop)";
+        control.reply(req.client, reply);
       } else if (cmd == "start") {
         const std::string kind = req.body.value("kind", "hold");
-        if (kind != "hold" && kind != "seek_thermal") {
+        if (kind != "hold" && kind != "seek_thermal" && kind != "teleop") {
           control.reply(req.client, {{"ok", false}, {"error", "unknown mission kind '" + kind +
-                                                                   "' (only hold until the mission runner, R5)"}});
+                                                                   "' (hold, seek_thermal or teleop)"}});
           continue;
         }
         Event e{EventType::start};
         e.mission_kind = kind;  // mission_id 0: a local test mission, not sent to SpacetimeDB
         // With missions.auto_start off, a stored bridge hold mission starts here instead (in READY
         // only, so a start in another state does not fail it).
-        if (machine.state == State::READY && stored_mission && stored_mission->kind == "hold") {
+        if (machine.state == State::READY && stored_mission && stored_mission->kind == kind) {
           e.mission_id = stored_mission->id;
           stored_mission.reset();
         }
@@ -540,7 +597,7 @@ int main(int argc, char** argv) {
         control.reply(req.client, {{"ok", false}, {"error", "commands: status, start, stop, estop, reset, mock, test_detection"}});
       }
     }
-    // The bridge only ever sends mission, cancel, site, and terrain_hint (robot.md 9.4).
+    // The bridge sends mission, cancel, site, terrain_hint (robot.md 9.4), and teleop (PROPOSED).
     for (const auto& msg : bridge.poll(tick_start)) {
       switch (msg.type) {
         case InboundType::Mission: {
@@ -561,7 +618,7 @@ int main(int argc, char** argv) {
               e.mission_id = m.id;
               e.mission_kind = m.kind;
               events.push_back(e);  // the state machine accepts it in READY or rejects it with a note
-              log::info("bridge: mission " + id + " (hold) from " + m.created_by);
+              log::info("bridge: mission " + id + " (" + m.kind + ") from " + m.created_by);
               break;
             }
             case MissionAction::store:
@@ -597,9 +654,22 @@ int main(int argc, char** argv) {
           site = msg.site;
           localizer.set_site_demo_mode(site.demo_mode);
           break;
-        case InboundType::TerrainHint:
-          terrain_hint = msg.terrain_hint;
-          log::debug("bridge: terrain hint " + msg.terrain_hint.terrain_class);
+        case InboundType::TerrainHint: {
+          const std::string dropped =
+              terrain.offer_hint(msg.terrain_hint, std::chrono::system_clock::now(), tick_start);
+          if (dropped.empty()) {
+            log::debug("bridge: terrain hint " + msg.terrain_hint.terrain_class + " for " + msg.terrain_hint.observed_at);
+          } else if (cfg.terrain.camera_hint.enabled) {
+            log::warn("bridge: terrain hint dropped: " + dropped);
+          } else {
+            log::debug("bridge: terrain hint ignored: " + dropped);
+          }
+          break;
+        }
+        case InboundType::Teleop:
+          // From the website's joystick (CONTRACTS.md 8.3). Only a running teleop mission uses it.
+          teleop_input->write(TeleopCommand{msg.teleop.vx_mps, msg.teleop.vy_mps, msg.teleop.wz_dps, msg.teleop.seq, "web"},
+                              tick_start);
           break;
       }
     }
@@ -637,6 +707,9 @@ int main(int argc, char** argv) {
     if (r.start_mission) {
       if (r.mission.mission_kind == "seek_thermal") {
         behavior = std::make_unique<ThermalSeekBehavior>(cfg.thermal, cfg.seek);
+      } else if (r.mission.mission_kind == "teleop") {
+        teleop_input = std::make_shared<TeleopInput>();  // never drive on a command left from before
+        behavior = std::make_unique<TeleopBehavior>(teleop_input, cfg.teleop_deadman_ms);
       } else {
         behavior = std::make_unique<HoldBehavior>();
       }
@@ -686,6 +759,7 @@ int main(int argc, char** argv) {
     // Bridge messages. send() only queues; the socket is written on the next tick's poll.
     if (bridge.take_reconnected()) {
       devices_sent.clear();  // a new bridge (or a restarted one) gets every device again
+      terrain_reporter.resend();
       next_heartbeat = tick_start;
       next_position = tick_start;
     }
@@ -710,6 +784,28 @@ int main(int argc, char** argv) {
       if (it != devices_sent.end() && it->second.first == d.status && it->second.second == d.detail) continue;
       bridge.send(messages.device(d.name, to_string(d.status), d.detail));
       devices_sent[d.name] = {d.status, d.detail};
+    }
+
+    // Terrain: log changes only, report at most terrain.report_max_hz, and keep frames coming for
+    // the camera model while moving. The source on the wire is the rule source the module accepts
+    // (the hint adjusts, the rules decide); "+camera_model" stays in the log and the status.
+    const TerrainAssessment& now_terrain = *world.terrain;
+    if (!terrain_logged || terrain_logged->cls != now_terrain.cls || terrain_logged->action != now_terrain.action) {
+      log::info(std::string("terrain: ") + to_string(now_terrain.cls) + ", " + to_string(now_terrain.action) +
+                " (" + now_terrain.reason + ", " + now_terrain.source + ")");
+      terrain_logged = now_terrain;
+    }
+    const bool moving = !world.motion_stopped || !gated.motion.command().is_zero();
+    if (terrain_frames) terrain_frames->set_moving(moving);
+    if (const auto report = terrain_reporter.update(now_terrain, moving, tick_start)) {
+      TerrainFields t;
+      t.lat = loc.lat;
+      t.lon = loc.lon;
+      t.terrain_class = to_string(report->cls);
+      t.confidence = report->confidence;
+      t.source = "lidar_imu_rules";
+      t.action = to_string(report->action);
+      bridge.send(messages.terrain(t));
     }
 
     // 6. Log.
@@ -759,6 +855,7 @@ int main(int argc, char** argv) {
 
   notify::stopping();
   // Stop the workers first: the movement thread stops the wheels in on_stop().
+  terrain_frames.reset();  // stops and joins its thread before the camera goes away
   vision.request_stop();
   movement.request_stop();
   vision.join();

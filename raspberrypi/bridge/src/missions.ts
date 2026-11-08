@@ -14,7 +14,7 @@
 // - When a heartbeat says READY while `current` is this robot's open row and it has not been
 //   forwarded to this client (the bridge restarted mid-mission and the row arrived as an insert),
 //   it is forwarded. The C++ side ignores a mission id it is already running, so resends are safe.
-// The bridge never reads agent_task and never sends the robot anything but mission, cancel, site.
+// The bridge never reads agent_task. Besides mission, cancel, and site, it sends teleop and terrain_hint (index.ts).
 
 import type { Mission } from '../../../backend/spacetimedb-bindings/types.js';
 import { cancelMessage, missionMessage } from './to_wire.ts';

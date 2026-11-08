@@ -69,7 +69,7 @@ BridgeClient::~BridgeClient() { close(); }
 void BridgeClient::send(const nlohmann::json& message) {
   std::string line = message.dump() + "\n";
   const std::string type = message.value("type", "");
-  if (!is_important(type)) {
+  if (!is_important_message(message)) {
     if (!connected()) return;  // current state: the main loop sends a fresh one after the connect
     if (telemetry_.size() >= config_.telemetry_capacity) {
       telemetry_.pop_front();
@@ -79,9 +79,9 @@ void BridgeClient::send(const nlohmann::json& message) {
     telemetry_.push_back({next_order_++, std::move(line)});
     return;
   }
-  // Device status is current state, and the main loop resends every device after each connect,
-  // so an old device line is never replayed (like the bridge spool keeps only the newest position).
-  const bool replayable = type != "device";
+  // Device status and terrain are current state, and the main loop resends them after each connect,
+  // so an old line is never replayed (like the bridge spool keeps only the newest position).
+  const bool replayable = type != "device" && type != "terrain";
   if (!connected() && !replayable) return;
   // While the bridge is gone, the other important lines go straight to the outbox file. Once a
   // line is held in memory (an append failed), later ones stay in memory too: the outbox replays

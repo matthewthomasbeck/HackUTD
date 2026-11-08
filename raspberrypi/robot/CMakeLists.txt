@@ -40,6 +40,13 @@ if(NOT nlohmann_json_FOUND)
   FetchContent_MakeAvailable(json)
 endif()
 
+# stb_image_write: one public-domain header, to save the camera frame for the terrain hint as JPEG.
+FetchContent_Declare(stb_image_write
+  URL https://raw.githubusercontent.com/nothings/stb/1ee679ca2ef753a528db5ba6801e1067b40481b8/stb_image_write.h
+  URL_HASH SHA256=cbd5f0ad7a9cf4468affb36354a1d2338034f2c12473cf1a8e32053cb6914a05
+  DOWNLOAD_NO_EXTRACT TRUE)
+FetchContent_MakeAvailable(stb_image_write)
+
 # libsystemd: sd_notify for the systemd watchdog. Missing on macOS, so notify calls become no-ops.
 find_package(PkgConfig QUIET)
 if(PkgConfig_FOUND)
@@ -104,6 +111,7 @@ add_library(robot_core STATIC
   src/hal/pico_link_serial.cpp
   src/hal/pico_text_protocol.cpp
   src/hal/pico_link_mock.cpp
+  src/hal/pico_snapshot.cpp
   src/hal/camera_libcamera.cpp
   src/hal/camera_mock.cpp
   src/state/health.cpp
@@ -117,13 +125,22 @@ add_library(robot_core STATIC
   src/vision/detector_mock.cpp
   src/mission/behaviors/hold.cpp
   src/mission/behaviors/thermal_seek.cpp
+  src/mission/behaviors/teleop.cpp
   src/perception/thermal_detector.cpp
   src/mission/mission_intake.cpp
   src/bridge/control_server.cpp
   src/bridge/messages.cpp
   src/bridge/bridge_client.cpp
   src/localization/localizer.cpp
+  src/terrain/terrain.cpp
+  src/terrain/terrain_rules.cpp
+  src/terrain/terrain_mock.cpp
+  src/terrain/terrain_hint.cpp
+  src/terrain/terrain_pipeline.cpp
+  src/terrain/terrain_reporter.cpp
+  src/terrain/terrain_frame_writer.cpp
 )
+target_include_directories(robot_core SYSTEM PRIVATE ${stb_image_write_SOURCE_DIR})
 target_include_directories(robot_core PUBLIC src)
 target_compile_options(robot_core PRIVATE ${ROBOT_WARNINGS})
 target_link_libraries(robot_core PUBLIC ${ROBOT_YAML_TARGET} nlohmann_json::nlohmann_json Threads::Threads)
@@ -184,9 +201,11 @@ add_executable(robot_tests
   tests/test_calibration.cpp
   tests/test_legs.cpp
   tests/test_thermal_seek.cpp
+  tests/test_teleop.cpp
   tests/test_bridge_client.cpp
   tests/test_localizer.cpp
   tests/test_mission_intake.cpp
+  tests/test_terrain.cpp
 )
 target_compile_options(robot_tests PRIVATE ${ROBOT_WARNINGS})
 target_compile_definitions(robot_tests PRIVATE ROBOT_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/config")
