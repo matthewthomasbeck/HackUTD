@@ -106,6 +106,24 @@ The page itself is unchanged, so the web dashboard (`npm run dev`) and its tests
 On desktop launch, a separate centered, transparent splash window (`electron/splash.html`) plays all 12 frames of the backflip (`electron/assets/backflip.png`, `Loading.gif` with its black background removed, 100 ms per frame), then fades to `Logo.png` placed over the last frame's dog, while the dashboard loads hidden.
 The dashboard appears after the GIF and logo hold finish and the map is ready, with a 10 second readiness fallback.
 
+### Play demo (2026-11-08)
+
+On a demo_mode site, the top bar has a Play demo button next to Record run.
+It runs the scripted house 3 rescue through the real path, so the board, the glasses panel, the G2 or Even simulator, and the replay all see the same rows:
+
+1. It opens Cayden's glasses in a panel above the dock (`GlassesPanel.tsx`): the glasses fallback page with `primary=1`, so it counts as Cayden's glasses and keeps his glasses session and database connection up.
+   During a run, the close button only hides the panel, because closing that connection would release his assignment.
+2. It resets the glasses service's demo walker (`POST /demo/cayden/reset`), which puts Cayden at the start on Worthing St.
+3. If house 3 has no open survivor, it queues a search of house 3 for `sim-dog` (`create_mission`) and waits for the simulator's robot to report the hidden person.
+4. It proposes Cayden (`propose_assignment`), then accepts as Cayden through the glasses service (`POST /rescuer/cayden/action`, the same accept a ring tap sends).
+5. It starts the walker (`POST /demo/cayden/start`) and waits until Cayden is within 8 m of the survivor.
+
+The button shows the current step, then "Play again", which repeats steps 2 and 5 for an assignment that is still active.
+The steps are in `src/view/demo.ts` (unit-tested with a fake board in `tests/unit/demo.test.ts`).
+`npm run demo` (`scripts/demo.mjs`) starts everything the button needs on the local server: SpacetimeDB (and publishes the module if the database is missing), `sim setup`, a sim console running `hidden` and `scene`, the glasses service, the glasses pages on port 5173, and the app.
+It uses the local sim identities in `backend/sim/.tokens/local` (`STDB_TOKEN_DIR`), so Maincloud tokens in `.tokens/` are never sent to the local server.
+A port already in use counts as running, except that the glasses mock or a `FAKE_DB=1` service on port 8787 stops the script with a message.
+
 Commands (from `frontend/dashboard/`):
 
 ```bash
@@ -114,6 +132,7 @@ npm run app -- --db=local --local-uri=ws://127.0.0.1:3000
 npm run app:start                # build, then open the built app in Electron
 npm run app:pack                 # build Assess.app in release/mac-arm64/ (unsigned)
 npm run app:dmg                  # build a .dmg installer in release/
+npm run demo                     # everything Play demo needs, on the local server
 ```
 
 Run-time settings, in order of precedence:

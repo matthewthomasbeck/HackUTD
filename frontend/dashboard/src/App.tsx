@@ -8,6 +8,7 @@ import type { PersonReportKind, PersonReportSource, Resolution as ResolutionValu
 import { AgentsPage } from './components/AgentsPage';
 import { AppBar, type Page } from './components/AppBar';
 import { CameraView } from './components/CameraView';
+import { GlassesPanel } from './components/GlassesPanel';
 import { HelpCard, type Resolution } from './components/HelpCard';
 import { HousePanel, type HouseAction, type PersonReportInput } from './components/HousePanel';
 import { HeadlineCard, HousesCard, MapKey, PeopleCard } from './components/SideCards';
@@ -21,6 +22,7 @@ import type { DashboardConfig } from './stdb/connection';
 import { timestampToMs } from './stdb/time';
 import { loadSite, type House, type SiteGeometry } from './site/geometry';
 import { buildStreetGraph } from './site/route';
+import { DEMO_RESCUER, demoStepLabel, runDemo, type DemoStep, type GlassesDemoCommand } from './view/demo';
 import {
   agentCards, chainOptions, chainSteps, glassesRescuers, headline, helpRows, houseSummary, mapLayers, onlineRescuers, peopleRows,
   pendingMissions, robotFrames, systemChips, taskTimeline,
@@ -30,16 +32,38 @@ const DEMO_HOUSE = { lat: 32.9968745, lon: -96.7704708 }; // 7716 Worthing St, u
 // The floating card columns (see .fcol in assess.css, narrower under 1500 px), so the map frames the block between them.
 // Where Camera View finds the glasses heads-up: the glasses fallback page and the glasses service socket.
 // Set VITE_GLASSES_PAGE_URL and VITE_GLASSES_WS_URL, or ?glassesPage= and ?glassesWs= on the dashboard URL.
-function glassesViewUrl(rescuer: string): string {
+function glassesSocketUrl(): string {
   const params = new URLSearchParams(window.location.search);
-  const host = window.location.hostname || 'localhost';
-  const page = params.get('glassesPage') ?? import.meta.env.VITE_GLASSES_PAGE_URL ?? `http://${host}:5173/fallback.html`;
-  const socket = params.get('glassesWs') ?? import.meta.env.VITE_GLASSES_WS_URL ?? `ws://${host}:8787/view`;
+  return params.get('glassesWs') ?? import.meta.env.VITE_GLASSES_WS_URL ?? `ws://${window.location.hostname || 'localhost'}:8787/view`;
+}
+
+// primary: the page counts as the rescuer's glasses (heartbeats, database connection), as Play demo needs.
+function glassesViewUrl(rescuer: string, primary = false): string {
+  const params = new URLSearchParams(window.location.search);
+  const page = params.get('glassesPage') ?? import.meta.env.VITE_GLASSES_PAGE_URL ?? `http://${window.location.hostname || 'localhost'}:5173/fallback.html`;
   const url = new URL(page);
   url.searchParams.set('rescuer', rescuer);
-  url.searchParams.set('ws', socket);
+  url.searchParams.set('ws', glassesSocketUrl());
   url.searchParams.set('record', '1'); // the display only, without the fallback page's test buttons
+  if (primary) url.searchParams.set('primary', '1');
   return url.toString();
+}
+
+// The glasses service's HTTP base (demo controls), from its socket address: ws://host:8787/view -> http://host:8787.
+function glassesServiceBase(): string {
+  const socket = new URL(glassesSocketUrl());
+  return `${socket.protocol === 'wss:' ? 'https:' : 'http:'}//${socket.host}`;
+}
+
+// A POST to Cayden's session on the glasses service. The session appears a moment after the glasses view connects,
+// so "not found" is retried briefly.
+async function glassesPost(path: string, what: string, body?: object): Promise<void> {
+  for (let attempt = 0; ; attempt += 1) {
+    const response = await fetch(`${glassesServiceBase()}${path}`, { method: 'POST', ...(body ? { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : {}) });
+    if (response.ok) return;
+    if (response.status !== 404 || attempt >= 20) throw new Error(`Glasses ${what} failed: ${(await response.text()) || response.statusText}`);
+    await new Promise((done) => window.setTimeout(done, 500));
+  }
 }
 
 const insetsFor = (width: number) => (width <= 1500 ? { left: 424, right: 344 } : { left: 494, right: 384 });
@@ -67,6 +91,10 @@ export default function App({ config }: { config: DashboardConfig }) {
   const [pixelsPerMeter, setPixelsPerMeter] = useState(2.5);
   const [mapMoved, setMapMoved] = useState(false);
   const [cameras, setCameras] = useState(false);
+  const [glassesOpen, setGlassesOpen] = useState(false);
+  const [demoStep, setDemoStep] = useState<DemoStep | null>(null);
+  const boardRef = useRef(board);
+  boardRef.current = board;
   const mapRef = useRef<SiteMapHandle>(null);
   const [toast, setToast] = useState('');
   const [insets, setInsets] = useState(() => insetsFor(window.innerWidth));
@@ -131,6 +159,38 @@ export default function App({ config }: { config: DashboardConfig }) {
     if (command.type === 'create_mission') void call(() => connection!.reducers.createMission(command.args), 'Search mission queued for approval.').catch(() => {});
     else if (command.type === 'mark_cell') void call(() => connection!.reducers.markCell(command.args), action === 'searched' ? 'Marked searched.' : 'Marked partly searched; it stays open.').catch(() => {});
   };
+  // Polls the live board until check() returns a value, for the Play demo steps.
+  const waitFor = <T,>(check: () => T | undefined, timeoutMs: number, failure: string) => new Promise<T>((done, fail) => {
+    const started = Date.now();
+    const poll = () => {
+      const value = check();
+      if (value !== undefined) done(value);
+      else if (Date.now() - started > timeoutMs) fail(new Error(failure));
+      else window.setTimeout(poll, 250);
+    };
+    poll();
+  });
+  const demoBusy = demoStep !== null && demoStep !== 'arrived';
+  const playDemo = () => {
+    if (!connection || demoBusy) return;
+    setGlassesOpen(true);
+    runDemo({
+      board: () => boardRef.current,
+      createSearch: (cellId, robotId) => {
+        const command = mapCellActionCommand('send', cellId, { robotId });
+        if (command?.type !== 'create_mission') throw new Error('Could not build the search mission.');
+        return connection.reducers.createMission({ ...command.args, reason: 'demo: search house 3' });
+      },
+      propose: (survivorId, rescuer) => connection.reducers.proposeAssignment({ survivorId, rescuerIdentity: rescuer.identity, reason: 'coordinator assignment' }),
+      glasses: (command: GlassesDemoCommand) => glassesPost(`/demo/${DEMO_RESCUER}/${command}`, command),
+      accept: (assignmentId) => glassesPost(`/rescuer/${DEMO_RESCUER}/action`, 'accept', { action: 'accept', assignment_id: assignmentId.toString() }),
+      waitFor,
+      onStep: setDemoStep,
+    }).catch((error: unknown) => {
+      setDemoStep(null);
+      showToast(error instanceof Error ? error.message : String(error));
+    });
+  };
   const runActive = Boolean(board.run && !board.run.endedAt);
   const toggleRun = () => {
     if (runActive && board.run) void call(() => connection!.reducers.endRun({ runId: board.run!.id, notes: '' }), 'Run recording stopped.').catch(() => {});
@@ -143,6 +203,7 @@ export default function App({ config }: { config: DashboardConfig }) {
 
   return <main className={`app ${page === 'agents' ? 'show-agents' : ''}`}>
     <AppBar page={page} onPage={setPage} chips={systemChips(board, connectionState.isActive)}
+      demo={replayMode || !board.site?.demoMode ? null : { label: demoStep === 'arrived' ? 'Play again' : demoStep ? demoStepLabel[demoStep] : 'Play demo', busy: demoBusy, disabled: readOnly || demoBusy, onClick: playDemo }}
       run={replayMode ? null : { active: runActive, disabled: readOnly || !board.site, onClick: toggleRun }} />
     {notice && <p className="notice" role="status">{notice}</p>}
 
@@ -188,6 +249,9 @@ export default function App({ config }: { config: DashboardConfig }) {
       fallback={{ armed: board.timers.agentWatchdogs.length > 0, text: 'If every agent stops, the database still assigns the nearest rescuer within 60 s. The agents can only propose what the reducers allow.' }}
       timeline={taskTimeline(board)} />}
 
+    {/* Kept mounted (hidden) while the demo runs: it is Cayden's glasses connection, and closing it would release his assignment. */}
+    {(glassesOpen || demoBusy) && <GlassesPanel url={glassesViewUrl(DEMO_RESCUER, true)} hidden={!glassesOpen || page !== 'board'} status={demoStep ? demoStepLabel[demoStep] : ''}
+      onClose={() => { setGlassesOpen(false); if (!demoBusy) setDemoStep(null); }} />}
     {cameras && <CameraView robots={robotFrames(board, site)} rescuers={glassesRescuers(board)} glassesUrl={glassesViewUrl} onClose={() => setCameras(false)} />}
     {toast && <div className="toast" role="status">{toast}</div>}
   </main>;

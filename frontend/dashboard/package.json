@@ -11,7 +11,8 @@
     "app": "node scripts/app-dev.mjs",
     "app:start": "npm run build && electron .",
     "app:pack": "npm run build && electron-builder --mac dir",
-    "app:dmg": "npm run build && electron-builder --mac dmg"
+    "app:dmg": "npm run build && electron-builder --mac dmg",
+    "demo": "node scripts/demo.mjs"
   },
   "devDependencies": {
     "@fontsource/chakra-petch": "^5.2.6",
