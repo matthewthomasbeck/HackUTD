@@ -563,7 +563,7 @@ confidence = round(confidence, 2)
 | earlier result kept | `latest clip unclear, earlier result kept` |
 | always, last | `needs human triage` |
 
-Rules for reason strings: at most 48 characters each, at most 8 strings, and a unit test asserts that no reason, and no string anywhere in the service output, contains `dead`, `deceased`, `expectant`, or `no pulse`.
+Rules for reason strings: at most 48 characters each, at most 6 strings (the module rejects more; the last is always "needs human triage"), and a unit test asserts that no reason, and no string anywhere in the service output, contains `dead`, `deceased`, `expectant`, or `no pulse`.
 The `under 10` rule is not part of START; it comes from a critique of START (research section 5), so say so in the pitch.
 
 ### Score config (`[score]`, all tunable)

@@ -47,7 +47,7 @@ BREATHING_VALUES = ("detected", "not_detected", "unknown")
 BANNED_WORDS = ("dead", "deceased", "expectant", "no pulse")
 
 MAX_REASON_LEN = 48
-MAX_REASONS = 8
+MAX_REASONS = 6                     # set_critical_score rejects more (spacetimedb.md section 7)
 LAST_REASON = "needs human triage"
 THERMAL_DEFAULT = 0.5
 
@@ -116,7 +116,7 @@ def compute_level(b: str, rr: float | None, v: float, cfg: dict) -> str:
 
 
 def _finish_reasons(raw: list[str]) -> list[str]:
-    """Apply the reason rules: clean, at most 48 chars, at most 8, last is fixed."""
+    """Apply the reason rules: clean, at most 48 chars, at most MAX_REASONS (6), last is fixed."""
     out: list[str] = []
     for r in raw:
         r = r.strip()
