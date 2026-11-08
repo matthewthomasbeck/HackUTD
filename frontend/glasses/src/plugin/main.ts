@@ -22,7 +22,15 @@ function serviceUrl(): string {
   return `ws://${location.hostname || 'localhost'}:8787/glasses`;
 }
 
+let currentNote = '';
+let displayOffNote = false;
+
 function phoneNote(text: string): void {
+  currentNote = text;
+  if (!displayOffNote) showNote(text);
+}
+
+function showNote(text: string): void {
   const app = document.getElementById('app');
   if (app) app.textContent = text;
 }
@@ -56,6 +64,17 @@ async function boot(): Promise<void> {
         sdk.shutDownPageContainer(mode).catch((err) => console.warn('[main] shutdown failed', err));
       },
       getAckId: () => ackId,
+      isDisplayOff: () => queue.isAsleep(),
+      setDisplayOff: (off) => {
+        displayOffNote = off;
+        if (off) {
+          queue.sleep();
+          showNote('Glasses display is off. Tap the ring to turn it back on.');
+        } else {
+          queue.wake();
+          showNote(currentNote);
+        }
+      },
       onForeground: () => socket?.reconnectNow(),
       onExit: () => {
         stopHeartbeat();

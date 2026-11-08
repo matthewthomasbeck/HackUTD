@@ -30,6 +30,14 @@ export const STARTUP_CONTAINERS: ContainerMsg[] = [
   { kind: 'text', id: STATUS_ID, name: STATUS_NAME, x: 8, y: 130, w: 560, h: 56, z: 2, content: 'RUBBLE SEARCH\nconnecting...', text_color: 3 },
 ];
 
+/** Display off (tap, then long press): only the full-screen capture layer, blank, so the G2 shows nothing but
+ *  still delivers ring and temple events to wake it. */
+export const BLANK_PAGE: PageMsg = {
+  type: 'page',
+  layout: 'blank',
+  containers: [{ kind: 'text', id: 1, name: 'capture', x: 0, y: 0, w: 576, h: 288, z: 1, content: ' ', capture: true, border_width: 0, padding: 0 }],
+};
+
 function toText(c: Extract<ContainerMsg, { kind: 'text' }>): TextContainerProperty {
   const p: Partial<TextContainerProperty> = {
     xPosition: c.x,

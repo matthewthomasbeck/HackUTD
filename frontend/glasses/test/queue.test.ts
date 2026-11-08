@@ -125,4 +125,36 @@ describe('write queue', () => {
     await queue.idle();
     expect(calls.map((c) => c.op)).toEqual(['text', 'image']);
   });
+
+  it('display off blanks the page, holds writes, and wake redraws the latest view', async () => {
+    const { queue, calls } = fake();
+    queue.setLayout([capture, arrow, status]);
+    queue.enqueue({ kind: 'page', msg: page('map') });
+    queue.enqueue({ kind: 'image', id: 2, bytes: new Uint8Array([1]) });
+    await queue.idle();
+    queue.sleep();
+    await queue.idle();
+    expect(queue.isAsleep()).toBe(true);
+    // While off, writes only update the kept view.
+    queue.enqueue({ kind: 'text', id: 8, content: 'old' });
+    queue.enqueue({ kind: 'text', id: 8, content: 'new' });
+    await queue.idle();
+    expect(calls.map((c) => c.op)).toEqual(['page:map', 'image', 'page:blank']);
+    queue.wake();
+    await queue.idle();
+    expect(calls.slice(3).map((c) => c.op)).toEqual(['page:map', 'image', 'text']);
+    expect(calls[5].content).toBe('new');
+  });
+
+  it('a page that arrives while off is the one redrawn on wake', async () => {
+    const { queue, calls } = fake();
+    queue.setLayout([capture, arrow, status]);
+    queue.sleep();
+    queue.enqueue({ kind: 'image', id: 2, bytes: new Uint8Array([1]) });
+    queue.enqueue({ kind: 'page', msg: page('arrived') });
+    await queue.idle();
+    queue.wake();
+    await queue.idle();
+    expect(calls.map((c) => c.op)).toEqual(['page:blank', 'page:arrived']);
+  });
 });
