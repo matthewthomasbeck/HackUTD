@@ -594,7 +594,7 @@ CARTO_KEY=                                           # only for carto-dark
 PERCEPTION_URL=http://localhost:8080                 # media server and speech to text (perception.md)
 ASK_MAX_S=8                                          # longest voice question
 PRIMARY_GRACE_MS=0                                   # delay before closing the DB connection after the plugin socket closes
-DEMO_SPEED_MPS=6
+DEMO_SPEED_MPS=12
 DEMO_START_BEARING_DEG=158
 DEMO_START_DISTANCE_M=92
 ```
@@ -795,7 +795,7 @@ Input handling in the service:
 ### 5.9 Demo mode
 
 - When `site.demo_mode` is true, the rescuer starts `DEMO_START_DISTANCE_M` from the site center at bearing `DEMO_START_BEARING_DEG` (destination-point formula below), so the demo opens on the map view.
-- The walker moves the rescuer toward the current target at `DEMO_SPEED_MPS` (6 m/s default, faster than walking so the demo fits; `npm run demo` uses 4 m/s), updating every 500 ms, and stops 2 m from the target.
+- The walker moves the rescuer toward the current target at `DEMO_SPEED_MPS` (12 m/s default, faster than walking so the demo fits; `npm run demo` uses 8 m/s), updating every 500 ms, and stops 2 m from the target.
   It starts and stops on `W` in the fallback page or `POST /demo/<rescuer>/walk`.
 - Arrow keys on the fallback page move the rescuer 5 m north, south, east, or west; `R` resets to the start.
 - Every demo position goes through the same path as a real one, including `participantUpdatePosition`, so the dashboard shows the rescuer moving.
