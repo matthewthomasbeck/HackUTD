@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BoardState } from '../../src/data/BoardData';
-import { runDemo, type DemoStep, type GlassesDemoCommand } from '../../src/view/demo';
+import { glassesMismatch, runDemo, sameServer, type DemoStep, type GlassesDemoCommand } from '../../src/view/demo';
 
 const identity = (hex: string) => ({ toHexString: () => hex });
 const HOUSE3 = { lat: 32.99691, lon: -96.77046 };
@@ -23,6 +23,7 @@ function world(options: { survivorAlready?: boolean; dogOnline?: boolean; cayden
   let pendingReset = false;
   const steps: DemoStep[] = [];
   const deps = {
+    preflight: async () => {},
     board: () => board as unknown as BoardState,
     createSearch: async (cellId: bigint, robotId: string) => {
       calls.push(`search ${cellId} ${robotId}`);
@@ -40,6 +41,10 @@ function world(options: { survivorAlready?: boolean; dogOnline?: boolean; cayden
     accept: async (assignmentId: bigint) => {
       calls.push(`accept ${assignmentId}`);
       board.assignments[0]!.status = { tag: 'Active' };
+    },
+    release: async (assignmentId: bigint) => {
+      calls.push(`release ${assignmentId}`);
+      for (const row of board.assignments) if (row.id === assignmentId) row.status = { tag: 'Released' };
     },
     waitFor: async <T,>(check: () => T | undefined, _timeoutMs: number, failure: string) => {
       let value = check();
@@ -74,8 +79,31 @@ describe('Play demo', () => {
     expect(steps).toEqual(['connecting', 'assigning', 'walking', 'arrived']);
   });
 
+  it('releases a backstop proposal for someone else before assigning Cayden to house 3', async () => {
+    const { board, deps, calls } = world({ survivorAlready: true });
+    board.assignments.push({ id: 9n, survivorId: 44n, rescuerIdentity: board.participants[0]!.identity, status: { tag: 'Proposed' } });
+    deps.propose = async (survivorId: bigint, rescuer: { name: string }) => {
+      calls.push(`propose ${survivorId} ${rescuer.name}`);
+      board.assignments.unshift({ id: 1n, survivorId, rescuerIdentity: board.participants[0]!.identity, status: { tag: 'Proposed' } });
+    };
+    await runDemo(deps);
+    expect(calls).toEqual(['glasses reset', 'release 9', 'propose 5 Cayden', 'accept 1', 'glasses start']);
+  });
+
   it('says what to start when the sim robot is offline', async () => {
     const { deps } = world({ dogOnline: false });
     await expect(runDemo(deps)).rejects.toThrow('Dog 1 is offline');
+  });
+
+  it('names the mismatch when the app and the glasses service use different databases', () => {
+    expect(sameServer('ws://127.0.0.1:3000', 'http://localhost:3000')).toBe(true);
+    expect(sameServer('https://maincloud.spacetimedb.com', 'wss://maincloud.spacetimedb.com')).toBe(true);
+    expect(sameServer('https://maincloud.spacetimedb.com', 'http://127.0.0.1:3000')).toBe(false);
+    const app = { uri: 'https://maincloud.spacetimedb.com', database: 'assess-0hw81' };
+    expect(glassesMismatch(app, { db: 'connected', server: 'http://127.0.0.1:3000', database: 'assess-0hw81' }))
+      .toBe('UnderDog is on Maincloud, but the glasses service is on the local server (http://127.0.0.1:3000). Pick the same one in the Server menu, or start everything with `npm run demo`.');
+    expect(glassesMismatch({ uri: 'ws://127.0.0.1:3000', database: 'assess-0hw81' }, { db: 'connected', server: 'http://127.0.0.1:3000', database: 'assess-0hw81' })).toBeUndefined();
+    expect(glassesMismatch(app, { db: 'fake' })).toMatch(/fake data/);
+    expect(glassesMismatch(app, { db: 'offline' })).toBeUndefined();
   });
 });

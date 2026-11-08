@@ -3,7 +3,7 @@
 Browser apps read `VITE_STDB_URI` and `VITE_STDB_DATABASE` (`assess-0hw81`) from a git-ignored `.env`; copy each `.env.example` first.
 All styling comes from `frontend/design-tokens/tokens.css` and follows design control in `docs/DESIGN.md`.
 
-## `dashboard/` - Underdog, the coordinator dashboard (desktop app)
+## `dashboard/` - UnderDog, the coordinator dashboard (desktop app)
 
 Spec: `docs/specs/dashboard.md` (sections "Desktop app" and "Layout").
 It runs as a desktop app (Electron) and, from the same build, in a browser.
@@ -13,7 +13,7 @@ It runs as a desktop app (Electron) and, from the same build, in a browser.
 cd frontend/dashboard
 npm run app                      # desktop app with hot reload
 npm run app -- --db=local --local-uri=ws://127.0.0.1:3000
-npm run app:pack                 # Underdog.app in release/mac-arm64/ (unsigned: right-click > Open the first time)
+npm run app:pack                 # UnderDog.app in release/mac-arm64/ (unsigned: right-click > Open the first time)
 npm run app:dmg                  # .dmg installer in release/
 npm run dev                      # the same dashboard in a browser on 0.0.0.0:5180 (/?screen=A, /?screen=B)
 npm test && npm run build
@@ -24,14 +24,17 @@ In the app, the Server menu switches between Maincloud (judging) and a local Spa
 Play demo, in one command (local SpacetimeDB server):
 
 ```bash
-cd frontend/dashboard && npm run demo     # SpacetimeDB, sim, glasses service, glasses pages, and the app
+cd frontend/dashboard && npm run demo     # fresh local board, sim, glasses service, glasses pages, and UnderDog.app (--keep, --dev)
 cd frontend/glasses && npm run sim        # optional, second terminal: the Even simulator shows what the G2 shows
 ```
 
 Then press Play demo (top right, next to Record run).
 Dog 1 searches house 3 and finds the hidden person, Cayden is assigned and accepts on his glasses, and he walks the streets to the door.
-The app shows his glasses in a panel above the map, and the Even simulator shows the same screens, because both read the same glasses service.
+The app shows his glasses in a small window you can drag anywhere and resize from its corner, and the Even simulator shows the same screens, because both read the same glasses service.
 Press it again (Play again) to walk him from the start of the street again.
+Opening UnderDog from the Dock or Spotlight does the same: on the local server (the default) it starts these services itself behind the launch animation and stops them when you quit, so no terminal is needed.
+The first launch after a module change takes about a minute while the module compiles; the log is `~/Library/Logs/UnderDog/demo-services.log`.
+If the app and the glasses service end up on different databases, or the glasses service is not running, Play demo says so.
 Details: `docs/specs/dashboard.md`, "Play demo".
 
 ## `glasses/` - Even Hub plugin, fallback page, phone page

@@ -1,4 +1,4 @@
-// Underdog, the coordinator dashboard: a full-bleed map of the Worthing St block with floating cards
+// UnderDog, the coordinator dashboard: a full-bleed map of the Worthing St block with floating cards
 // (who needs help first; the database headline; rescuers and robot; houses) and an Agents page.
 // All data comes live from SpacetimeDB through useBoard(); see src/view/derive.ts for what each card shows.
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -22,14 +22,14 @@ import type { DashboardConfig } from './stdb/connection';
 import { timestampToMs } from './stdb/time';
 import { loadSite, type House, type SiteGeometry } from './site/geometry';
 import { buildStreetGraph } from './site/route';
-import { DEMO_RESCUER, demoStepLabel, runDemo, type DemoStep, type GlassesDemoCommand } from './view/demo';
+import { DEMO_RESCUER, demoStepLabel, glassesMismatch, runDemo, type DemoStep, type GlassesDemoCommand } from './view/demo';
 import {
   agentCards, chainOptions, chainSteps, glassesRescuers, headline, helpRows, houseSummary, mapLayers, onlineRescuers, peopleRows,
   pendingMissions, robotFrames, systemChips, taskTimeline,
 } from './view/derive';
 
 const DEMO_HOUSE = { lat: 32.9968745, lon: -96.7704708 }; // 7716 Worthing St, until the site row arrives
-// The floating card columns (see .fcol in assess.css, narrower under 1500 px), so the map frames the block between them.
+// The floating card columns (see .fcol in underdog.css, narrower under 1500 px), so the map frames the block between them.
 // Where Camera View finds the glasses heads-up: the glasses fallback page and the glasses service socket.
 // Set VITE_GLASSES_PAGE_URL and VITE_GLASSES_WS_URL, or ?glassesPage= and ?glassesWs= on the dashboard URL.
 function glassesSocketUrl(): string {
@@ -103,9 +103,9 @@ export default function App({ config }: { config: DashboardConfig }) {
   // Tell the launch animation (src/splash.ts) the dashboard can be shown: the map has loaded, or failed with a notice.
   useEffect(() => {
     if (!site && !siteError) return;
-    (window as { assessReady?: boolean }).assessReady = true;
-    window.dispatchEvent(new Event('assess:ready'));
-    window.assessDesktop?.dashboardReady();
+    (window as { underdogReady?: boolean }).underdogReady = true;
+    window.dispatchEvent(new Event('underdog:ready'));
+    window.underdogDesktop?.dashboardReady();
   }, [site, siteError]);
   useEffect(() => {
     const onResize = () => setInsets(insetsFor(window.innerWidth));
@@ -175,6 +175,12 @@ export default function App({ config }: { config: DashboardConfig }) {
     if (!connection || demoBusy) return;
     setGlassesOpen(true);
     runDemo({
+      preflight: async () => {
+        const health = await fetch(`${glassesServiceBase()}/healthz`, { signal: AbortSignal.timeout(3000) }).then((response) => response.json(), () => undefined);
+        if (!health) throw new Error('The glasses service is not running. Start everything with `npm run demo` in frontend/dashboard.');
+        const mismatch = glassesMismatch(config, health);
+        if (mismatch) throw new Error(mismatch);
+      },
       board: () => boardRef.current,
       createSearch: (cellId, robotId) => {
         const command = mapCellActionCommand('send', cellId, { robotId });
@@ -184,6 +190,7 @@ export default function App({ config }: { config: DashboardConfig }) {
       propose: (survivorId, rescuer) => connection.reducers.proposeAssignment({ survivorId, rescuerIdentity: rescuer.identity, reason: 'coordinator assignment' }),
       glasses: (command: GlassesDemoCommand) => glassesPost(`/demo/${DEMO_RESCUER}/${command}`, command),
       accept: (assignmentId) => glassesPost(`/rescuer/${DEMO_RESCUER}/action`, 'accept', { action: 'accept', assignment_id: assignmentId.toString() }),
+      release: (assignmentId) => glassesPost(`/rescuer/${DEMO_RESCUER}/action`, 'release', { action: 'release', assignment_id: assignmentId.toString() }),
       waitFor,
       onStep: setDemoStep,
     }).catch((error: unknown) => {

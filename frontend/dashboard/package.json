@@ -10,8 +10,8 @@
     "test": "vitest run --config vitest.config.ts",
     "app": "node scripts/app-dev.mjs",
     "app:start": "npm run build && electron .",
-    "app:pack": "npm run build && electron-builder --mac dir",
-    "app:dmg": "npm run build && electron-builder --mac dmg",
+    "app:pack": "node scripts/stamp-repo.mjs && npm run build && electron-builder --mac dir",
+    "app:dmg": "node scripts/stamp-repo.mjs && npm run build && electron-builder --mac dmg",
     "demo": "node scripts/demo.mjs"
   },
   "devDependencies": {
@@ -30,11 +30,11 @@
     "vitest": "^2.1.8"
   },
   "main": "electron/main.cjs",
-  "productName": "Underdog",
-  "description": "Underdog coordinator dashboard (desktop app)",
+  "productName": "UnderDog",
+  "description": "UnderDog coordinator dashboard (desktop app)",
   "build": {
-    "appId": "com.hackutd.assess",
-    "productName": "Underdog",
+    "appId": "com.hackutd.underdog",
+    "productName": "UnderDog",
     "directories": {
       "output": "release",
       "buildResources": "electron"

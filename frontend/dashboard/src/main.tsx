@@ -9,10 +9,10 @@ import { ReplaySource } from './data/ReplaySource';
 import '@fontsource/chakra-petch/700-italic.css';
 import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/600.css';
-import './styles/assess.css';
+import './styles/underdog.css';
 import { runSplash } from './splash';
 
-if (window.assessDesktop) {
+if (window.underdogDesktop) {
   document.getElementById('splash')?.remove();
   document.body.classList.remove('splashing');
 } else {

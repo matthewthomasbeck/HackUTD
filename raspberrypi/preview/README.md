@@ -62,7 +62,7 @@ Both `camera` and `thermal` should be true. `vision` is false on the Pi because 
 runs on the laptop. Actual hardware capture must be verified on the Pi; virtual serial and
 fake-camera tests exercise concurrency locally but do not establish hardware compatibility.
 
-## Laptop model and Underdog
+## Laptop model and UnderDog
 
 One-time laptop setup, from the repository root:
 
@@ -83,14 +83,14 @@ From frontend/dashboard, launch the app once with the Pi address:
 npm run app -- --robot-preview-url=http://PI_HOST:8081
 ```
 
-Replace PI_HOST with the Pi's reachable LAN or Tailscale address. Underdog saves the address, starts the laptop inference worker automatically on
+Replace PI_HOST with the Pi's reachable LAN or Tailscale address. UnderDog saves the address, starts the laptop inference worker automatically on
 localhost 8082, restarts it after an exit, and stops it on app quit. Open the existing
 Camera view to see model detections and thermal side by side. Later launches need no flags.
 
 For packaged apps, pass `--vision-python=/absolute/path/to/raspberrypi/preview/.venv/bin/python`
 once. The bundle includes preview/perception source, not Python or model weights. Weights
 are saved in the app's writable preview-data directory. Edit robotPreviewUrl or visionPython
-through Server > Open settings file, then restart Underdog if settings change.
+through Server > Open settings file, then restart UnderDog if settings change.
 
 For a website without Electron, start the model worker on the laptop:
 

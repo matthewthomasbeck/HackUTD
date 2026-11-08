@@ -1,4 +1,4 @@
-// The Underdog mascot: a small cartoon tornado, one per agent, each in its agent tint with one prop
+// The UnderDog mascot: a small cartoon tornado, one per agent, each in its agent tint with one prop
 // (headset: orchestrator, magnifier: auditor, signal: comms, glasses: rescuer, shield: database fallback).
 import { useId } from 'react';
 

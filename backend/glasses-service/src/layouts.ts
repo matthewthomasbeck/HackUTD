@@ -3,8 +3,24 @@ import type { ContainerMsg } from './protocol.js';
 export type LayoutName='map'|'arrow'|'arrived'|'idle'|'ack'|'released'|'ask';
 export interface LayoutData { [key:string]: string | undefined }
 const frame=(id:number,kind:'text'|'image',name:string,x:number,y:number,w:number,h:number,z:number,content?:string):ContainerMsg => kind==='text'
-  ? {kind,id,name,x,y,w,h,z,content:toAscii(content ?? ''),text_color:id===8?2:4,padding:2,...(id===1?{capture:true}:{})}
+  ? {kind,id,name,x,y,w,h,z,content:id===1?toAscii(content ?? ''):fitText(toAscii(content ?? ''),w,h,2),text_color:id===8?2:4,padding:2,...(id===1?{capture:true}:{})}
   : {kind,id,name,x,y,w,h,z};
+// G2 font metrics, the same numbers as frontend/glasses/src/fallback/text.ts (CHAR_W, LINE_H, GLYPH_H).
+const CHAR_W=13, LINE_H=27, GLYPH_H=22;
+// Text that would run past its container (a long briefing in a two-line box) keeps the lines that fit and ends in "...",
+// instead of showing a half-cut last line. Text that fits is returned unchanged.
+export function fitText(content:string,w:number,h:number,padding=0):string {
+  const perLine=Math.max(1,Math.floor((w-2*padding)/CHAR_W)); const capacity=Math.max(1,Math.floor((h-2*padding+LINE_H-GLYPH_H)/LINE_H));
+  const lines:string[]=[];
+  for(const para of content.split('\n')){let line='';for(const word of para.split(' ').filter(Boolean)){let rest=word;while(rest.length>perLine){if(line){lines.push(line);line='';}lines.push(rest.slice(0,perLine));rest=rest.slice(perLine);}if(!line)line=rest;else if(line.length+1+rest.length<=perLine)line+=` ${rest}`;else{lines.push(line);line=rest;}}lines.push(line);}
+  while(lines.length&&lines[lines.length-1]==='')lines.pop();
+  if(lines.length<=capacity)return content;
+  const kept=lines.slice(0,capacity); const last=kept[capacity-1]!;
+  // Cut at a word boundary, so "survivor 13" never shows as the misleading "survivor 1...".
+  let cut=last; while(cut.length+3>perLine&&cut.includes(' '))cut=cut.slice(0,cut.lastIndexOf(' ')).trimEnd();
+  kept[capacity-1]=`${cut.length+3<=perLine?cut:cut.slice(0,Math.max(0,perLine-3))}...`;
+  return kept.join('\n');
+}
 export function toAscii(value:string):string {
   return value.replace(/°/g,' deg').replace(/[·•]/g,'-').replace(/©/g,'(c)').replace(/[–—−]/g,'-').replace(/[“”]/g,'"').replace(/[‘’]/g,"'").replace(/[^\x20-\x7E\n]/g,'');
 }
@@ -14,8 +30,8 @@ const specs:Record<LayoutName,(d:LayoutData)=>ContainerMsg[]>={
   // the rest stays black so the street is the view (Bluebook style).
   arrow:d=>[frame(1,'text','capture',0,0,576,288,1,' '),frame(2,'image','guide',196,0,184,80,2),frame(4,'text','label',8,4,184,60,4,d.label??'CRITICAL\n7716 Worthing'),frame(5,'text','brief',384,4,184,60,5,d.brief??''),frame(8,'text','status',8,250,560,30,6,d.status??'')],
   // Arrived: the target house's real outline with the survivor's spot, details on the right.
-  arrived:d=>[frame(1,'text','capture',0,0,576,288,1,' '),frame(2,'image','plan',8,84,288,144,2),frame(4,'text','head',8,8,560,72,3,d.head??'ARRIVED - 7716 Worthing St\nIMMEDIATE score 86 (conf 0.7)'),frame(5,'text','where',312,84,256,56,4,d.where??'8 m in from the\nfront door'),frame(6,'text','life',312,142,256,48,5,d.life??'Breathing 14/min'),frame(7,'text','brief',312,192,256,52,6,d.brief??''),frame(8,'text','status',8,250,560,30,7,d.status??'tap: mark reached - confirm on phone')],
-  idle:d=>[frame(1,'text','capture',0,0,576,288,1,' '),frame(2,'image','map_top',0,0,288,144,2),frame(3,'image','map_bot',0,144,288,144,3),frame(4,'text','head',296,0,280,56,4,d.head??'NO ASSIGNMENT\nstand by'),frame(5,'text','count',296,58,280,84,5,d.count??'2 CRITICAL\n3 unassigned\nwithin 0.3 mi'),frame(6,'text','brief',296,144,280,84,6,d.brief??''),frame(8,'text','status',296,232,280,28,7,d.status??'scroll: browse  hold: ask'),frame(7,'text','attrib',296,260,280,28,8,d.attrib??'(c) Esri, OSM')],
+  arrived:d=>[frame(1,'text','capture',0,0,576,288,1,' '),frame(2,'image','plan',8,84,288,144,2),frame(4,'text','head',8,8,560,72,3,d.head??'ARRIVED - 7716 Worthing St\nIMMEDIATE score 86 (conf 0.7)'),frame(5,'text','where',312,84,256,56,4,d.where??'8 m in from the\nfront door'),frame(6,'text','life',312,142,256,56,5,d.life??'Breathing 14/min'),frame(7,'text','brief',312,200,256,46,6,d.brief??''),frame(8,'text','status',8,250,560,30,7,d.status??'tap: mark reached - confirm on phone')],
+  idle:d=>[frame(1,'text','capture',0,0,576,288,1,' '),frame(2,'image','map_top',0,0,288,144,2),frame(3,'image','map_bot',0,144,288,144,3),frame(4,'text','head',296,0,280,56,4,d.head??'NO ASSIGNMENT\nstand by'),frame(5,'text','count',296,58,280,84,5,d.count??'2 CRITICAL\n3 unassigned\nwithin 0.3 mi'),frame(6,'text','brief',296,144,280,84,6,d.brief??''),frame(8,'text','status',296,232,280,28,7,d.status??'hold:ask  scroll:next'),frame(7,'text','attrib',296,260,280,28,8,d.attrib??'(c) Esri, OSM')],
   ack:d=>[frame(1,'text','capture',0,0,576,288,1,' '),frame(2,'image','arrow',16,40,144,144,2),frame(4,'text','head',184,0,384,56,3,d.head??'NEW TASK - IMMEDIATE\nhouse 3, 120 m NE'),frame(5,'text','detail',184,60,384,84,4,d.detail??'breathing 34/min (conf 0.7)\n8 m in from front door'),frame(6,'text','brief',184,148,384,80,5,d.brief??''),frame(8,'text','status',8,232,560,28,6,d.status??'TAP TO ACCEPT - 24s left')],
   released:d=>[frame(1,'text','capture',0,0,576,288,1,' '),frame(4,'text','head',8,0,560,56,2,d.head??'ASSIGNMENT RELEASED\nhouse 3 - IMMEDIATE'),frame(5,'text','why',8,60,560,84,3,d.why??'Link to glasses was lost.\nSurvivor is back on the board for\nthe next rescuer.'),frame(6,'text','next',8,148,560,80,4,d.next??'If you are still going, tell the\ncoordinator.'),frame(8,'text','status',8,232,560,28,5,d.status??'tap: ok')],
   ask:d=>[frame(1,'text','capture',0,0,576,288,1,' '),frame(4,'text','head',8,0,560,56,2,d.head??'ASK - speak now\ntap to send'),frame(5,'text','heard',8,60,560,84,3,d.heard??''),frame(6,'text','answer',8,148,560,80,4,d.answer??''),frame(8,'text','status',8,232,560,28,5,d.status??'ASKING - speak now 6s')]

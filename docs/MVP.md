@@ -49,7 +49,7 @@ The dashboard and the glasses view (on the G2 or the fallback page) are real cli
 The judged story is short and ends at the find:
 
 1. The robot dog enters 7716 Worthing St (house 3) and searches inside.
-2. It finds the hidden person: IMMEDIATE, breathing 8/min, back bedroom under debris.
+2. It finds the hidden person: IMMEDIATE, breathing 8/min, in the front yard under rubble.
 3. The dashboard and the glasses view show the find, and the demo ends there.
 
 The judged demo has no scale 300 run, no glasses walk, no disconnect beat, and no agent-stop beat.
@@ -108,7 +108,7 @@ It stays as the plan for rehearsal and video material, not for judging.
 - Map view on the glasses when far, switching to the arrow when close.
 - Replay of a run on the dashboard.
 - Simulator that adds hundreds of survivors across the area to show "at scale", with the unattended headline staying at 0.
-  (This applied to the earlier rehearsal plan; since 2026-11-08 the sim crew is minimal, R1 and R2 only with `extra_sim_rescuers` 0, so it would need extra helper rescuers, and it is not in the judged demo.)
+  (This applied to the earlier rehearsal plan; since 2026-11-08 the sim crew is minimal, R1 only with `extra_sim_rescuers` 0, so it would need extra helper rescuers, and it is not in the judged demo.)
 - Person reports: a coordinator enters what family or neighbors report (2 people live in house 4, or someone is safe); a house with anyone unaccounted for stays open.
 - Blocked or partly covered areas marked partially searched, never clear.
 
@@ -133,7 +133,7 @@ All screens follow design control in `docs/DESIGN.md`: one design file, tokens b
 
 | Surface | Look | Reference |
 | --- | --- | --- |
-| Coordinator dashboard (Assess, a desktop app) | The real block as a full-screen map with floating cards: who needs help first, the headline "critical unattended over 60 s: 0", rescuers and robots, houses; night-purple top bar; status always labelled, not color only (built 2026-11-08, `docs/specs/dashboard.md`) | Standard Response (Cal Hacks 13.0), Stochastic, HackUTD Zero Day colors; UI only, no copied code |
+| Coordinator dashboard (UnderDog, a desktop app) | The real block as a full-screen map with floating cards: who needs help first, the headline "critical unattended over 60 s: 0", rescuers and robots, houses; night-purple top bar; status always labelled, not color only (built 2026-11-08, `docs/specs/dashboard.md`) | Standard Response (Cal Hacks 13.0), Stochastic, HackUTD Zero Day colors; UI only, no copied code |
 | Agents page | The hand-off chain per survivor, a card per agent with its tornado mascot, the database fallback, and the live task board | Stochastic's agent tints and Agents page (`../Stochastic/docs/design/README.md`) |
 | Glasses (G2) and the fallback page | Green on black (black is see-through), large text, map when far, arrow when close | bluebook and tesla-even-g2 (`docs/research/bluebook-reference.md`) |
 | Slides and video | Same tokens and type as the dashboard, real screenshots, one idea per slide | `docs/DESIGN.md` outline; Cal Hacks deck plan and Stochastic evidence cards |

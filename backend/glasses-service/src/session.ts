@@ -7,7 +7,7 @@ import { renderOfflineMap, renderArrows } from './render/arrows.js';
 import { frontDoor, guideFix, guidePng, housePlanPng, turnCue } from './render/guide.js';
 import { streetRoute } from './render/route.js';
 import { composeBaseMap, renderMap } from './render/map.js';
-import { buildingAt, followFrame, vectorZoom, type SiteGeometry } from './render/vector.js';
+import { buildingAt, containsPoint, followFrame, vectorZoom, type SiteGeometry } from './render/vector.js';
 import { createTileSource } from './tiles/source.js';
 import { enumTag, type DbSnapshot } from './db.js';
 
@@ -84,8 +84,9 @@ export class FakeSession {
   currentSurvivorId():number|string|undefined{return this.targetSurvivor()?.id;}
   currentPosition():Point{return {...this.demo.position};}
   currentHeading():number|null{return this.headingDeg;}
-  // Street route to the curb in front of the target house, then its door (see render/route.ts).
-  private walkRoute(from:Point,target:Point):Point[]{if(!this.geometry)return [];const building=buildingAt(this.geometry,target);if(!building)return [];const door=frontDoor(building.ring,this.geometry.roads);return [...streetRoute(this.geometry,from,door),door];}
+  // Someone inside a house: the streets to the curb in front of it, then its door. Someone outside (a front yard):
+  // the streets to the curb nearest them; the walker then goes straight to them (see render/route.ts).
+  private walkRoute(from:Point,target:Point):Point[]{if(!this.geometry)return [];const building=buildingAt(this.geometry,target);if(!building||!containsPoint(building.ring,target))return streetRoute(this.geometry,from,target);const door=frontDoor(building.ring,this.geometry.roads);return [...streetRoute(this.geometry,from,door),door];}
   // What the map draws as the dashed line: the walker's remaining path, else a fresh street route.
   currentRoute():Point[]{const target=this.targetSurvivor();if(!target)return [];const rest=this.demo.walking&&this.demo.path?.length?this.demo.path:this.walkRoute(this.demo.position,target);return [{...this.demo.position},...rest,{lat:target.lat,lon:target.lon}];}
   beginAsk(){this.view='ask';this.askTranscript='';this.askAnswer='';this.askUntil=Date.now()+30_000;void this.broadcast();}

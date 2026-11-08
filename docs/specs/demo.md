@@ -30,7 +30,7 @@ The rules below that mention the real robot, the real breathing check, or the re
 
 - The dashboard shows "DEMO MODE" whenever `site.demo_mode` is true, and it stays on screen in the video.
 - Simulated robot ids say so (`sim-dog`, `sim-dog-2` and up; the dashboard shows them as Dog 1 and Dog 2).
-  Since 2026-11-08 (Cayden) nothing people see says "(sim)": the sim rescuers are named R1 and R2, and texts the sim writes to the board (notes, mission reasons, resolutions) carry no "simulated" wording.
+  Since 2026-11-08 (Cayden) nothing people see says "(sim)": the sim rescuer is named R1 (R2 was dropped on 2026-11-08), and texts the sim writes to the board (notes, mission reasons, resolutions) carry no "simulated" wording.
   The `sim_injection` events and DEMO MODE still mark what the simulator did.
 - The presenter says out loud which parts are live (the real robot, the real breathing check, the real agents, the real glasses) and which are simulated (the hundreds of other survivors, the extra rescuers, injected failures).
 - Every sim injection writes `log_event(kind = sim_injection, message, payload_json)`, so the dashboard marks it "SIMULATED" and the replay stays honest.
@@ -80,12 +80,11 @@ The houses are about 17 m apart, so cells are 15 m.
   },
   "rescuers": [
     { "key": "cayden", "name": "Cayden", "real": true },
-    { "key": "r1", "name": "R1", "start": { "east_m": -150, "north_m": -60 } },
-    { "key": "r2", "name": "R2", "start": { "east_m": 150, "north_m": -60 } }
+    { "key": "r1", "name": "R1", "start": { "east_m": -150, "north_m": -60 } }
   ],
   "extra_sim_rescuers": 0,
   "hidden_survivors": [
-    { "house": "house 3", "east_m": 2.4, "north_m": 3.2, "note": "back bedroom, under debris", "level": "immediate", "breathing": "detected", "rate_bpm": 8, "visibility_pct": 35 },
+    { "house": "house 3", "east_m": 1.0, "north_m": 13.0, "note": "front yard, under rubble", "level": "immediate", "breathing": "detected", "rate_bpm": 8, "visibility_pct": 35 },
     { "house": "house 4", "east_m": 16.2, "north_m": 3.5, "note": "front room", "level": "delayed", "breathing": "detected", "rate_bpm": 18, "visibility_pct": 70 },
     { "house": "house 10", "east_m": 34.1, "north_m": -39.5, "note": "under stairs", "level": "immediate", "breathing": "not_detected", "visibility_pct": 15 }
   ],
@@ -118,9 +117,10 @@ The houses are about 17 m apart, so cells are 15 m.
 Notes:
 
 - Updated 2026-11-08: the JSON above is copied from the committed `backend/sim/demo-site.json`.
-  The simulated crew is minimal at Cayden's request: `fleet_size` 1 (so two robot dogs, `sim-dog` and `sim-dog-2`), rescuers Cayden (real, glasses) plus R1 and R2 (sim rescuers, keys `r1` and `r2`), and `extra_sim_rescuers` 0.
-  `setup` prints "Robots: sim-dog, sim-dog-2" and "Rescuers: R1, R2".
-  `hidden_survivors` now starts with the house 3 person the judged demo finds (back bedroom, under debris, IMMEDIATE, breathing 8 per minute).
+  The simulated crew is minimal at Cayden's request: `fleet_size` 1 (so two robot dogs, `sim-dog` and `sim-dog-2`), rescuers Cayden (real, glasses) plus R1 (sim rescuer, key `r1`; R2 was dropped later on 2026-11-08), and `extra_sim_rescuers` 0.
+  `sim-dog` (Dog 1) has its home on Worthing St in front of house 3 (`home` 6 m east, 19 m north), so the Play demo search starts at once.
+  `setup` prints "Robots: sim-dog, sim-dog-2" and "Rescuers: R1".
+  `hidden_survivors` now starts with the house 3 person the judged demo finds (in the front yard under rubble, IMMEDIATE, breathing 8 per minute; moved out of the back bedroom on 2026-11-08 so the walk ends in front of the house).
 - The center is an approximate point near UT Dallas, a placeholder.
   Before the first run, open the dashboard map, move the center to a residential block nearby so mock houses sit on houses, and run `coords` again.
 - "house 3" is the real mock rubble pile at the booth, 140 m north of the center.
@@ -133,7 +133,7 @@ Notes:
   The sim never connects as Cayden.
 - Earlier rehearsal plan (2026-11-07): `extra_sim_rescuers` was 36, so with 40 sim rescuers and about 15 `immediate` survivors in the scale run, every immediate person can be acknowledged inside 60 s and the headline stays at 0.
   The presenter says the extra rescuers are simulated; the point is that nobody is lost when the queue is long, not that 40 people are at the booth.
-  Since 2026-11-08 `extra_sim_rescuers` is 0 (only R1 and R2), so the scale beat would need extra helper rescuers added back.
+  Since 2026-11-08 `extra_sim_rescuers` is 0 (only R1), so the scale beat would need extra helper rescuers added back.
 - Site timings are the contract's demo-mode defaults: mission lease 15 s, assignment lease 30 s, proposal 30 s, escalation after 45 s (and the commander at 90 s).
   Heartbeat timeouts are 15 s for rescuers and 5 s for robots.
   The watchdog delay is the module constant `AGENT_WATCHDOG_S` (30 s, 15 s in demo mode), not a `site` column; `set_site_timings(site_id, mission_lease_s, assignment_lease_s, proposal_lease_s, escalate_after_s)` does not change it.
@@ -235,7 +235,7 @@ Every command that changes the story (marked "inj") also writes a `sim_injection
 
 ### In-progress board (`scene.ts`, added 2026-11-08)
 
-`scene` makes a board with only 2 robots and 2 sim rescuers look like a search under way, on the newest site after `setup`:
+`scene` makes a board with only 2 robots and 1 sim rescuer look like a search under way, on the newest site after `setup`:
 
 1. Survivors from `scene` in `demo-site.json` (3 IMMEDIATE, 4 delayed, 5 minor): placed like `scale`, inside real building footprints and their lot cells, at least `min_spacing_m` apart, but only in lots within `scene.radius_m` (250 m) of the center, from seed `scale.seed + 300`.
    Each is a `report_detection` by `sim-dog` or `sim-dog-2` (mission 0), then breathing and score as in `scale`, so the module labels it with its lot ("lot 28").
@@ -244,7 +244,7 @@ Every command that changes the story (marked "inj") also writes a `sim_injection
    The house 3 hidden survivor is not part of the scene.
 3. The configured `family_report` for house 4 (2 missing), unless house 4 already has a person report, so house 4 shows 2 unaccounted.
 4. `rescuers start` and `robot start`.
-   The module backstop then proposes the nearest free sim rescuer for each IMMEDIATE survivor within about 15 s (demo mode), and R1 and R2 accept, walk, reach, and resolve them.
+   The module backstop then proposes the nearest free sim rescuer for each IMMEDIATE survivor within about 15 s (demo mode), and R1 accepts, walks, reaches, and resolves them.
 
 Running `scene` again adds nothing: it skips survivors already at their planned points, cells already in their state, and an existing house 4 report.
 `timelines/scene.json` runs the same steps (`scene seed`, `rescuers start`, `robot start`) and waits for Enter.
@@ -318,7 +318,7 @@ The orchestrator batches new survivors, and for the scale burst it uses its dete
 
 ### Simulated rescuers (`rescuers.ts`)
 
-Each sim rescuer (the named ones, R1 and R2 since 2026-11-08 and R1 to R4 in the earlier plan, plus `extra_sim_rescuers`, 0 since 2026-11-08, named "R5" and up, starting at seeded points on the site circle) runs:
+Each sim rescuer (the named ones, R1 since 2026-11-08 and R1 to R4 in the earlier plan, plus `extra_sim_rescuers`, 0 since 2026-11-08, named "R5" and up, starting at seeded points on the site circle) runs:
 
 1. Every `rescuer_heartbeat_ms`: `rescuer_heartbeat()`; every `position_ms`: `participant_update_position(lat, lon)`.
    Both renew its leases.
@@ -450,7 +450,7 @@ The story is short and ends at the find:
 
 1. The robot dog enters 7716 Worthing St (house 3) to search it.
 2. It searches inside.
-3. It finds the hidden person: IMMEDIATE, breathing 8/min, back bedroom under debris (the house 3 entry in `hidden_survivors` in `demo-site.json`).
+3. It finds the hidden person: IMMEDIATE, breathing 8/min, in the front yard under rubble (the house 3 entry in `hidden_survivors` in `demo-site.json`).
 4. The dashboard and the glasses view show the find, and the demo ends there.
 
 There is no scale 300 run, no glasses walk, no disconnect beat, and no agent-stop beat in the judged demo.
@@ -463,7 +463,7 @@ The timeline `timelines/demo.json`:
 4. Cue: "The robot dog enters 7716 Worthing St (house 3) to search it".
 5. After 2 s, `search house 3` (queues a `sim-dog` search mission for house 3).
 6. Await `survivor_in` house 3 for up to 120 s; on timeout, run `robot replay house3` as the fallback.
-7. Cue: "Found: IMMEDIATE, breathing 8/min, back bedroom under debris. The dashboard and glasses show it now."
+7. Cue: "Found: IMMEDIATE, breathing 8/min, front yard under rubble. The dashboard and glasses show it now."
 8. Await Enter, then `run end demo`.
 
 Verified live on a local server on 2026-11-08: the find arrived at 0:14 with no fallback.
@@ -529,7 +529,7 @@ This script is the original live plan; the judged demo is "Judged demo (hard-cod
 | Time | Beat | What happens | Track | Fallback |
 | --- | --- | --- | --- | --- |
 | 0:00 to 0:20 | Hook | "A tornado hits a town. Thousands need help at once, and the ones who need it most often cannot call. Who do you reach first, and how do you make sure no one is forgotten?" Presenter clicks "Start run" on Screen A; REC shows on both screens. | State Farm | "Start run" fails: `rs` in the console. |
-| 0:20 to 0:50 | Scale and second screen in sync | (Earlier rehearsal plan: with the minimal crew of 2026-11-08, R1 and R2 only, this beat would need extra helper rescuers.) `scale 300`: survivors stream onto both maps, the ranked list reorders, cells turn searched or partial. The headline stays at "Critical survivors unattended over 60 s: 0". The orchestrator proposes a mission "search house 3 (unsearched)"; the presenter clicks "Approve" on Screen A and points at Screen B, where it flips to `queued` at the same moment. "Two screens, one database, no API server between them." | State Farm, SpacetimeDB | Cloud slow: both screens `?db=local`. No proposal in 15 s: coordinator clicks house 3, "Send robot to search", and says "a human can always act". |
+| 0:20 to 0:50 | Scale and second screen in sync | (Earlier rehearsal plan: with the minimal crew of 2026-11-08, R1 only, this beat would need extra helper rescuers.) `scale 300`: survivors stream onto both maps, the ranked list reorders, cells turn searched or partial. The headline stays at "Critical survivors unattended over 60 s: 0". The orchestrator proposes a mission "search house 3 (unsearched)"; the presenter clicks "Approve" on Screen A and points at Screen B, where it flips to `queued` at the same moment. "Two screens, one database, no API server between them." | State Farm, SpacetimeDB | Cloud slow: both screens `?db=local`. No proposal in 15 s: coordinator clicks house 3, "Send robot to search", and says "a human can always act". |
 | 0:50 to 1:50 | Robot finds a person in dim light and checks breathing | `dog1` crosses the mock rubble into the dim pile; the terrain marker beside the robot changes to debris; the thermal camera finds the warm shape; it stops and records about 20 s of video. While it records, the presenter points at the partially searched cells ("never called clear") and the house 10 survivor that reads "No signs of life detected, low confidence", kept high on the list. The result arrives: "Breathing seen, 14 per min (confidence 0.7)", visibility, IMMEDIATE, reasons; the person jumps to the top. "A triage aid, not a diagnosis." | State Farm, NVIDIA | Robot stalls: `rr`, and say "this is the clip the robot recorded at rehearsal"; show the rehearsal robot video on a phone. Perception slow: `rr` writes the rehearsal result after 20 s; say so. |
 | 1:50 to 2:30 | One agent chain end to end | Press `A` to open the Agents panel full screen, and click the house 3 survivor. Its chain fills in order: detection, score, orchestrator proposal ("Cayden, nearest free, 140 m"), auditor verdict ("AGREE" with its reason), comms briefing to Cayden, while the task board and the action log in the same panel update beside it. The glasses (and fallback page) show "1 critical within 0.3 mi", Cayden taps the ring, and "acknowledged on the glasses" closes the chain. `walk house 3` starts in the background. "Three Nemotron agents, each with one job, talking only through a task board in the database." | NVIDIA, SpacetimeDB | Agents slow: the coordinator proposes Cayden from the survivor detail; the auditor still reviews it. Auditor slow: the chain shows "auditor reviewing", which is honest, because reviews never block. Glasses fail: the fallback page, same view. Ring tap fails: tap on the fallback page. |
 | 2:30 to 2:55 | Glasses connection drops | Cayden closes the Even app. Both screens at once: Cayden's avatar leaves, the assignment reads "RELEASED, glasses disconnected", the survivor is "UNASSIGNED, no rescuer" and back on top. "The database noticed the dropped connection itself, in a lifecycle reducer." Cayden reopens the app; the orchestrator re-proposes and he acknowledges again. | SpacetimeDB, State Farm | Release does not show within 3 s: `f4` (`fail rescuer-drop r2`) shows the same rule on a sim rescuer; if only the heartbeat path works, show the 15 s release and say which rule fired. |

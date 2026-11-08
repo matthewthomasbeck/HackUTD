@@ -124,7 +124,9 @@ export async function housePlanPng(building: SiteBuilding, roads: SiteRoad[], su
   const metersPerLat = 110574, metersPerLon = 111320 * Math.cos(center.lat * Math.PI / 180);
   const local = (point: Point): [number, number] => [(point.lon - center.lon) * metersPerLon, (point.lat - center.lat) * metersPerLat];
   const meters = building.ring.map(local);
-  const xs = meters.map(([x]) => x), ys = meters.map(([, y]) => y);
+  // Frame the survivor too, so someone in the front yard is drawn in front of the house, not off the image.
+  const framed = [...meters, local(survivor)];
+  const xs = framed.map(([x]) => x), ys = framed.map(([, y]) => y);
   const scale = Math.min((PLAN_W - 110) / (Math.max(...xs) - Math.min(...xs)), (PLAN_H - 18) / (Math.max(...ys) - Math.min(...ys)));
   const midX = (Math.max(...xs) + Math.min(...xs)) / 2, midY = (Math.max(...ys) + Math.min(...ys)) / 2;
   const toPixel = ([x, y]: [number, number]): [number, number] => [PLAN_W / 2 + (x - midX) * scale, PLAN_H / 2 - (y - midY) * scale];

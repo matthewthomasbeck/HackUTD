@@ -60,14 +60,28 @@ export function containsPoint(ring: readonly GeoPoint[], p: GeoPoint): boolean {
 }
 
 // The house that holds a point, else the nearest house center within maxMeters (GPS and cell centers are approximate).
+// The house that holds a point, else the house whose outline is nearest within maxMeters, so someone in a front
+// yard belongs to the house they are in front of.
 export function houseAt(houses: readonly House[], p: GeoPoint, maxMeters = 12): House | undefined {
   let best: House | undefined;
   let bestDistance = maxMeters;
   for (const house of houses) {
     if (containsPoint(house.ring, p)) return house;
-    const [x, y] = toMeters(p, house.center);
-    const distance = Math.hypot(x, y);
+    const distance = distanceToRing(house.ring, p);
     if (distance < bestDistance) { best = house; bestDistance = distance; }
+  }
+  return best;
+}
+
+// Meters from a point to the nearest edge of an outline.
+function distanceToRing(ring: readonly GeoPoint[], p: GeoPoint): number {
+  let best = Infinity;
+  for (let i = 0; i < ring.length - 1; i += 1) {
+    const [ax, ay] = toMeters(p, ring[i]!); // the edge's ends, in meters from the point
+    const [bx, by] = toMeters(p, ring[i + 1]!);
+    const dx = bx - ax, dy = by - ay;
+    const t = dx || dy ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy))) : 0;
+    best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy));
   }
   return best;
 }
