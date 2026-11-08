@@ -815,7 +815,7 @@ Mission id 0 (local test) messages are logged by the bridge and not sent to Spac
   3. On an error, a timeout (1 s), or no C++ client, it sends nothing; it never retries or spools hints, because an old hint is useless.
   The bridge does not change the hint and never calls `report_terrain` with it.
 
-- PROPOSED (section 18): `{"type":"teleop","vx":<m/s>,"vy":<m/s>,"wz":<deg/s>,"seq":<n>}`, one remote driving command from the dashboard. The robot side is built: it drives only during a `teleop` mission, and stops when no command has come for `teleop.deadman_ms` (300 ms).
+- `{"type":"teleop","vx":<m/s>,"vy":<m/s>,"wz":<deg/s>,"seq":<n>}` (CONTRACTS.md 8.3), one remote driving command from the dashboard. The robot drives on it only during a `teleop` mission, and stops when no command has come for `teleop.deadman_ms` (300 ms). The bridge sends one for each `teleop` row change a reducer makes, never spools them, and never sends rows a (re)subscription replays.
 
 The C++ parser ignores unknown `type` values with a log line, so new bridge messages cannot break the robot.
 
@@ -1455,7 +1455,11 @@ Cut order if time runs out: leg IK and legged motion (stretch), the camera terra
 
 ## 18. Proposed contract changes
 
-### 18.1 Remote driving from the dashboard (PROPOSED 2026-11-08, Camille)
+### 18.1 Remote driving from the dashboard (Camille, 2026-11-08; approved by Cayden and built 2026-11-08)
+
+Status: merged into CONTRACTS.md version 8.3, and built end to end: the module (`take_over`, `teleop_drive`, the `teleop` table), the bridge forwarding, the sim dog, and Camera View's Take over (see `dashboard.md`).
+Differences from the proposal below: the "operator" is the coordinator or commander role; one person drives at a time (the identity that took over); `take_over` pauses the robot's running mission back into its queue instead of the dashboard creating a mission, so it resumes after the hand back; closing Camera View hands the robot back.
+The table is kept as the record of the proposal.
 
 Why: the MVP lets the robot drive "by script or remote control", and with the legs not walking, remote control is the reliable way to get it into the mock rubble for the demo.
 Today the website can only send missions, not driving commands.

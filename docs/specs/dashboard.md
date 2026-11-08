@@ -111,6 +111,20 @@ Their output goes to `~/Library/Logs/UnderDog/demo-services.log`, and a failure 
 Only one run of the services is alive at a time (`.demo.pid`), and only one UnderDog: a second launch brings the first window forward.
 `npm run demo` passes `--no-services` to the app, since it runs the services itself; on Maincloud the app starts nothing.
 
+### Camera View and Take over (2026-11-08)
+
+Camera View (bottom dock) shows the robot's live camera, model detections, and thermal feeds (from `raspberrypi/preview`, set with `--robot-preview-url` in the app or `?robotPreview=` on the website), the glasses heads-up, and saved findings.
+A robot bar on top says what the selected robot is doing (state, mission in words, battery), with a robot picker when there is more than one.
+
+Take over (contract version 8.3, `robot.md` 18.1) lets the person at the dashboard drive the robot:
+
+1. Take over calls `take_over(robot_id, reason)`. The robot's running mission goes back into its queue, the bridge cancels it on the robot, and the robot claims the `teleop` mission (about 1 s with the sim, up to `CLAIM_INTERVAL_MS` plus a heartbeat on the real robot). Until then the pad says it is waiting.
+2. The drive layout replaces the four tiles: the robot view (Camera, Model, or Thermal) on the left; the drive pad and a live map centred on the robot on the right. Everything fits the window without scrolling.
+3. Hold a pad button or key to drive: W/S or the up and down arrows forward and back, A/D sideways, Q/E or the left and right arrows to turn (the same keys as `robotctl teleop`), Space stops. Each held input sends `teleop_drive` every 100 ms at the limits (0.2 m/s, 45 deg/s), and one zero command goes out on release. Losing window focus lets go of every key. The drive keys never reach the board shortcuts (A does not open Agents).
+4. Hand back to autonomy, Esc, or × calls `cancel_mission` on the `teleop` mission; the robot resumes its paused mission. Another screen sees "Remote control by NAME" and can end that control.
+
+The robot stops by itself 300 ms after the last command (closed tab, dropped Wi-Fi), and its safety gate still limits speed and acceleration. In the judged demo the sim dog obeys the same commands and moves on the map (a full stick is 4 m/s on the map so it shows); the real robot and its live feeds are not part of the judged demo.
+
 ### Play demo (2026-11-08)
 
 On a demo_mode site, the top bar has a Play demo button next to Record run.
@@ -198,7 +212,8 @@ frontend/dashboard/
       SideCards.tsx        headline, rescuers and robot, houses (with mission approvals), map key
       HousePanel.tsx       one house: state, reports, send robot, mark, add a report
       CardHeader.tsx       card header whose count folds the card
-      CameraView.tsx       robot stills and the glasses heads-up
+      CameraView.tsx       live robot feeds, the glasses heads-up, the robot bar, and Take over
+      DrivePad.tsx         remote driving controls (hold to drive)
       AgentsPage.tsx       hand-off chain, agent cards, database fallback, task board
       Mascot.tsx           the tornado mascot
       TransportBar.tsx     replay controls
@@ -349,7 +364,7 @@ The dashboard never calls robot, agent, auditor, perception, or sim reducers (`p
 - Each card's count (or title) folds the card to its header; a folded count shows as a dark pill.
   The app opens with every card folded (Cayden, 2026-11-08), so the map shows first.
 - Clicking a house on the map replaces the rescuers card with the house panel (state, reports, Send robot, Mark searched, Mark partial, Add report).
-- Bottom dock: Status toggles the house colors; hovering Status shows the Rescuers and Robots layer toggles; Camera view opens robot stills next to the live glasses heads-up; zoom buttons and Recenter.
+- Bottom dock: Status toggles the house colors; hovering Status shows the Rescuers and Robots layer toggles; Camera view opens the live robot feeds next to the glasses heads-up, and Take over to drive the robot; zoom buttons and Recenter.
 - Keyboard: `A` opens the Agents page, `Esc` returns to the board and closes the house panel or Camera View.
 - System chips (SpacetimeDB, robots, glasses, agents) fold into one "System all OK" or "System 1 issue" chip.
   For the judged demo (Cayden, 2026-11-08) the robot, glasses, and agents chips always read "Dog 1 online", "1 glasses", and "3 of 3 agents"; only the SpacetimeDB chip is live, and the cards and map still show the live rows.

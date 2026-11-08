@@ -173,7 +173,7 @@ When all 12 are pasted in, set `legs.impl: two_link`, `legs.stance_height_m`, an
 
 ## Remote driving (`robotctl start teleop`)
 
-A person drives the robot. The website side (a dashboard joystick through SpacetimeDB and the bridge) is PROPOSED in docs/specs/robot.md section 18.1; on the Pi it works today:
+A person drives the robot from UnderDog's Camera View (Take over; `docs/specs/dashboard.md`, "Camera View and Take over"), through SpacetimeDB (`take_over`, `teleop_drive`) and the bridge's `teleop` message (CONTRACTS.md 8.3). On the Pi it also works without the website:
 
 ```
 ./build/robotctl start teleop
@@ -183,6 +183,9 @@ A person drives the robot. The website side (a dashboard joystick through Spacet
 ```
 
 The robot stops by itself 300 ms after the last command (`teleop.deadman_ms`), and the safety gate's limits still apply.
+
+To see the thermal feed while driving, run the preview in robot mode (`raspberrypi/preview/README.md`, "Later integration with the C++ robot"), never `--standalone`: the robot program owns the Pico, and two Pico readers each get garbage.
+Tested on a laptop: `./build/robot --config config/robot.laptop.yaml`, the bridge on the same database, and `python3 raspberrypi/preview/server.py --socket /tmp/robot/control.sock --no-camera --port 8081`, then the dashboard with `?robotPreview=http://127.0.0.1:8081`.
 
 ## Autonomous thermal seek (`robotctl start seek_thermal`)
 

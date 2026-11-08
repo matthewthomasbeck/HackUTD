@@ -141,8 +141,8 @@ struct Config {
   MecanumSettings mecanum;
   LegsSettings legs;
   ThermalConfig thermal;  // thermal.* (docs/specs/robot.md section 7)
-  SeekConfig seek;
-  double teleop_deadman_ms = 300;  // teleop.deadman_ms: no command this long, the robot stops        // seek.*, inspect.standoff_m, scan.rotate_wz_dps
+  SeekConfig seek;        // seek.*, inspect.standoff_m, scan.rotate_wz_dps
+  double teleop_deadman_ms = 300;  // teleop.deadman_ms: no command this long, the robot stops
   int camera_width = 0;
   int camera_height = 0;
   double camera_fps = 0;

@@ -24,6 +24,7 @@ Eric's agents (`backend/agent/`) and perception service (`backend/perception/`) 
 The robot program foundation (state machine, safety gate, threads, mocks) is in `raspberrypi/robot/` and the first Pico sensor firmware is in `pico/`, and the bridge to SpacetimeDB (R3: `raspberrypi/bridge/` plus the C++ bridge client and localizer) is on branch `eric-r3-bridge`, tested on a laptop with mocks only, so the sim robot still stands in for the robot on the board.
 The Maincloud database is `assess-0hw81` (owned by Cayden's `spacetime login`); the local fallback server uses the same name, and clients set `STDB_URI` and `STDB_DATABASE`.
 The judged demo is HARD-CODED (Cayden, 2026-11-08): only SpacetimeDB runs live, and the simulator scripts the robot (`sim-dog`), the find, the breathing result and critical score, and any rescuer actions; the agents, perception, the real robot, and the real G2 are not live in it, so never claim they are.
+Camera View's Take over drives a robot by remote control (contracts 8.3, `docs/specs/dashboard.md` "Camera View and Take over"); in the judged demo it drives the sim dog, never the real robot.
 Run it from `backend/sim/` with `npm run sim -- setup`, then `npm run sim -- timeline demo` (story ends at the house 3 find); the run of show is `docs/specs/demo.md`, "Judged demo (hard-coded, 2026-11-08)".
 Open work and per-task status are in `docs/tasks/cayden.md` and `docs/TASKS.md`.
 Run the module typecheck and build with `cd backend/spacetimedb && npx tsc --noEmit -p . && spacetime build`.

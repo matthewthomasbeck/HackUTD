@@ -13,7 +13,7 @@ import { MissionLink } from './missions.ts';
 import { Router } from './router.ts';
 import { Spool, type SendOutcome } from './spool.ts';
 import { StdbLink } from './stdb.ts';
-import { currentSite, siteMessage } from './to_wire.ts';
+import { currentSite, siteMessage, teleopForward } from './to_wire.ts';
 
 const config = loadConfig();
 const log = (line: string) => console.log(`${new Date().toISOString()} ${line}`);
@@ -46,7 +46,16 @@ const stdb: StdbLink = new StdbLink(config, {
   onMissionDelete: (row) => missions.onMissionDelete(row),
   onSiteChange: () => sendSite(),
   onRobotRow: () => router.startKick(),
+  // Remote driving goes straight to the robot or is dropped: never spooled, because a late command is dangerous.
+  onTeleop: (row, live) => {
+    const message = teleopForward(row, live, config.robotId);
+    if (!message) return;
+    const sent = socket.send(message);
+    if (!sent && teleopSent) log('teleop: no robot program connected; dropping driving commands');
+    teleopSent = sent;
+  },
 }, log);
+let teleopSent = true;
 
 const socket: LocalSocket = new LocalSocket(config.bridgeSocket, {
   onMessage: (msg) => {

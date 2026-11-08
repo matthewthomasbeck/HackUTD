@@ -116,7 +116,10 @@
   --layout-map-marker-size: 18px;
   --layout-media-height: 200px;
   --layout-camera-tile-height: clamp(160px, 26vh, 320px);
-  --layout-camera-expanded-height: 65vh;
+  --layout-camera-expanded-height: clamp(240px, calc(100vh - 360px), 65vh);  /* an expanded feed and its captions fit the panel */
+  --layout-drive-side-width: 340px;   /* Camera View while driving: the controls and map column */
+  --layout-drive-height: clamp(420px, calc(100vh - 290px), 760px);  /* the whole drive view fits without scrolling */
+  --layout-drive-map-min-height: 150px;
   --layout-detail-scroll-height: 520px;
   --border-w: 1px;
   --border-w-strong: 2px;

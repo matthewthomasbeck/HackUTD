@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { Timestamp } from 'spacetimedb';
-import type { Mission, Site } from '../../../backend/spacetimedb-bindings/types.js';
-import { cancelMessage, currentSite, enumToContract, missionMessage, optional, siteMessage, timestampToIso, u64ToNumber } from '../src/to_wire.ts';
+import { Identity } from 'spacetimedb';
+import type { Mission, Site, Teleop } from '../../../backend/spacetimedb-bindings/types.js';
+import { cancelMessage, currentSite, enumToContract, missionMessage, optional, siteMessage, teleopForward, timestampToIso, u64ToNumber } from '../src/to_wire.ts';
 
 const T = Timestamp.fromDate(new Date('2026-11-08T15:00:00.000Z'));
 
@@ -61,4 +62,15 @@ test('cancel and site messages', () => {
   const newest = currentSite([site(1n, false), site(2n, true)]);
   assert.ok(newest);
   assert.deepEqual(siteMessage(newest), { type: 'site', demo_mode: true, site: { id: 2, center_lat: 32.98, center_lon: -96.75, radius_m: 483 } });
+});
+
+test('a teleop mission kind maps to its contract string', () => {
+  assert.equal(missionMessage(mission({ kind: { tag: 'Teleop' }, targetCellIds: [] })).mission.kind, 'teleop');
+});
+
+test('teleop: only a live change for this robot is forwarded, with contract field names', () => {
+  const row: Teleop = { robotId: 'dog1', vxMps: 0.15, vyMps: -0.05, wzDps: 20, seq: 12n, sentBy: Identity.zero(), sentAt: T };
+  assert.deepEqual(teleopForward(row, true, 'dog1'), { type: 'teleop', vx: 0.15, vy: -0.05, wz: 20, seq: 12 });
+  assert.equal(teleopForward(row, false, 'dog1'), undefined, 'a row from a (re)subscription is an old command');
+  assert.equal(teleopForward(row, true, 'dog2'), undefined);
 });
