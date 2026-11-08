@@ -20,8 +20,8 @@ Its older files (produced water, leak detection, inspection robots, images) were
 `docs/IDEAS.md` and `docs/notes/` are the history of the ideation phase (the grid outage idea led until this pivot), so do not treat them as current decisions.
 
 As of 2026-11-08, code has landed in the SpacetimeDB module (`backend/spacetimedb/`, with bindings in `backend/spacetimedb-bindings/`), the simulator (`backend/sim/`), the glasses service (`backend/glasses-service/`), the glasses plugin and fallback page (`frontend/glasses/`), and the dashboard (`frontend/dashboard/`).
-Eric's agents (`backend/agent/`) and perception service (`backend/perception/`) arrive with the merge of the local branch `integration/eric-agents`.
-The robot program foundation (state machine, safety gate, threads, mocks) is in `raspberrypi/robot/`, but the Node.js bridge to SpacetimeDB and the Pico firmware are not pushed yet, so the sim robot stands in for the robot on the board.
+Eric's agents (`backend/agent/`) and perception service (`backend/perception/`) are merged, with the integration fixes from 2026-11-08.
+The robot program foundation (state machine, safety gate, threads, mocks) is in `raspberrypi/robot/` and the first Pico sensor firmware is in `pico/`, but the Node.js bridge to SpacetimeDB is not pushed yet, so the sim robot stands in for the robot on the board.
 The Maincloud database is `assess-0hw81` (owned by Cayden's `spacetime login`); the local fallback server uses the same name, and clients set `STDB_URI` and `STDB_DATABASE`.
 Open work and per-task status are in `docs/tasks/cayden.md` and `docs/TASKS.md`.
 Run the module typecheck and build with `cd backend/spacetimedb && npx tsc --noEmit -p . && spacetime build`.
