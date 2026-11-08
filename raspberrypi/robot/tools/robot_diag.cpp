@@ -7,6 +7,7 @@
 //   robot_diag [--config PATH] wheel fl|fr|bl|br DUTY [SECONDS]   + rolls the robot forward
 //   robot_diag [--config PATH] drive VX_MPS VY_MPS WZ_DPS [SECONDS] through the mecanum mixer
 //   robot_diag [--config PATH] calibrate                 guided: directions, top speed, lx + ly, radius
+//   robot_diag [--config PATH] ping [--wiggle]           are the Maestros answering? (--wiggle: twitch each leg servo)
 //   robot_diag [--config PATH] servo a|b CHANNEL US      one leg servo to a raw pulse (ramped)
 //   robot_diag [--config PATH] joint LEG_JOINT DEGREES   one calibrated joint, e.g. joint FL_knee 30
 //   robot_diag [--config PATH] legcal [LEG_JOINT]        guided leg servo calibration (all 12, or one)
@@ -531,6 +532,87 @@ JointCal cal_from(const JointSettings& s) {
   return JointCal{s.bus, s.channel, s.zero_us, s.us_per_rad, s.direction, s.min_us, s.max_us};
 }
 
+// Maestro error bits (Pololu Maestro user's guide, "Errors").
+std::string maestro_errors_text(int bits) {
+  static const char* names[9] = {"serial signal", "serial overrun", "serial RX buffer full", "serial CRC",
+                                 "serial protocol", "serial timeout", "script stack", "script call stack",
+                                 "script program counter"};
+  if (bits == 0) return "none";
+  std::string out;
+  for (int i = 0; i < 9; ++i) {
+    if (bits & (1 << i)) out += (out.empty() ? "" : ", ") + std::string(names[i]);
+  }
+  return out.empty() ? "unknown bits" : out;
+}
+
+// Step 1 sends nothing that moves a servo: it only asks each Maestro for its errors and each leg
+// channel for the pulse it is sending now. Step 2 (--wiggle) twitches each fitted leg servo by
+// +-40 us (a few degrees) around its zero, one at a time, and asks if the right joint moved.
+int cmd_ping(const std::string& config, bool wiggle) {
+  ServoRig rig;
+  const bool any = open_servos(config, rig);
+  const char* bus_name[2] = {"Maestro A (maestro_a)", "Maestro B (maestro_b)"};
+  for (int b = 0; b < 2; ++b) {
+    if (!rig.bus[b] || !rig.bus[b]->ready()) {
+      std::printf("%s: not answering\n", bus_name[b]);
+      continue;
+    }
+    const auto err = rig.bus[b]->get_errors();
+    std::printf("%s: answering, errors: %s\n", bus_name[b], err ? maestro_errors_text(*err).c_str() : "no reply");
+  }
+  if (!any) {
+    std::printf("\nNo Maestro answered. Check: the port in maestro_a.path, the baud (maestro_a.baud, default 9600),\n"
+                "that the Maestro is in UART mode (Maestro Control Center), TX/RX not swapped, and a shared ground.\n");
+    return 1;
+  }
+
+  struct Joint { std::string name; JointCal cal; };
+  std::vector<Joint> joints;
+  for (int l = 0; l < kLegCount; ++l)
+    for (int j = 0; j < kJointsPerLeg; ++j) {
+      const JointCal cal = cal_from(rig.cfg.legs.joints[static_cast<std::size_t>(l)][static_cast<std::size_t>(j)]);
+      if (cal.fitted()) joints.push_back({std::string(kLegNames[l]) + "_" + kJointNames[j], cal});
+    }
+
+  std::printf("\nLeg channels (from robot.yaml):\n");
+  for (const auto& jt : joints) {
+    const auto& bus = rig.bus[jt.cal.bus];
+    const auto pos = bus && bus->ready() ? bus->get_position_us(jt.cal.channel) : std::nullopt;
+    std::printf("  %-12s Maestro %c ch %-2d  %s\n", jt.name.c_str(), jt.cal.bus == 0 ? 'A' : 'B', jt.cal.channel,
+                !pos ? "no reply" : *pos == 0 ? "no pulses yet (limp)" : (std::to_string(static_cast<int>(*pos)) + " us").c_str());
+  }
+  if (!wiggle) {
+    std::printf("\nNothing moved. Add --wiggle to twitch each servo (+-40 us, a few degrees).\n");
+    return 0;
+  }
+
+  std::printf("\nWiggle: each servo goes to its zero pulse, +40 us, -40 us, and back, one at a time.\n"
+              "A limp servo jumps to its zero pulse first: 1500 us, the centre it was assembled at.\n");
+  if (!confirm("Robot hung up, legs free, hand on the servo power?")) return 1;
+  std::vector<std::string> wrong;
+  for (const auto& jt : joints) {
+    if (g_stop) break;
+    const double c = jt.cal.calibrated() ? jt.cal.zero_us : 1500;
+    std::printf("  %s (ch %d) around %.0f us...\n", jt.name.c_str(), jt.cal.channel, c);
+    for (const double us : {c, c + 40, c - 40, c}) {
+      if (!rig.move(jt.cal.bus, jt.cal.channel, us)) break;
+      std::this_thread::sleep_for(150ms);
+    }
+    const std::string a = ask("    Did " + jt.name + " twitch? [y]es, [n]o, [o]ther joint moved:");
+    if (a == "n" || a == "o") wrong.push_back(jt.name + (a == "o" ? " (another joint moved: channel map wrong)" : " (nothing moved)"));
+  }
+  if (g_stop) return 130;
+  if (wrong.empty()) {
+    std::printf("\nAll %zu servos answered on the right channels.\n", joints.size());
+    return 0;
+  }
+  std::printf("\nCheck these:\n");
+  for (const auto& w : wrong) std::printf("  %s\n", w.c_str());
+  std::printf("Nothing moved: servo power, the servo cable on that channel, or a dead servo.\n"
+              "Another joint moved: fix that joint's channel in legs.joints in robot.yaml.\n");
+  return 1;
+}
+
 int cmd_servo(const std::string& config, const std::string& which, int channel, double us) {
   if ((which != "a" && which != "b") || channel < 0 || channel > 23) {
     std::fprintf(stderr, "servo: use a or b, channel 0..23\n");
@@ -686,6 +768,7 @@ void usage() {
                "       robot_diag [--config PATH] wheel fl|fr|bl|br DUTY [SECONDS]\n"
                "       robot_diag [--config PATH] drive VX_MPS VY_MPS WZ_DPS [SECONDS]\n"
                "       robot_diag [--config PATH] calibrate\n"
+               "       robot_diag [--config PATH] ping [--wiggle]\n"
                "       robot_diag [--config PATH] servo a|b CHANNEL US\n"
                "       robot_diag [--config PATH] joint LEG_JOINT DEGREES\n"
                "       robot_diag [--config PATH] legcal [LEG_JOINT]\n");
@@ -715,6 +798,7 @@ int main(int argc, char** argv) {
   if (cmd == "wheel" && args.size() >= 3) return cmd_wheel(config, args[1], duty_arg(args[2].c_str()), num(3, 1.5));
   if (cmd == "drive" && args.size() >= 4) return cmd_drive(config, num(1, 0), num(2, 0), num(3, 0), num(4, 2));
   if (cmd == "calibrate") return cmd_calibrate(config);
+  if (cmd == "ping") return cmd_ping(config, args.size() >= 2 && args[1] == "--wiggle");
   if (cmd == "servo" && args.size() >= 4) return cmd_servo(config, args[1], std::atoi(args[2].c_str()), num(3, 1500));
   if (cmd == "joint" && args.size() >= 3) return cmd_joint(config, args[1], num(2, 0));
   if (cmd == "legcal") return cmd_legcal(config, args.size() >= 2 ? args[1] : "");

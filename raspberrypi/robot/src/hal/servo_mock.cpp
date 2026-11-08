@@ -27,6 +27,14 @@ class ServoMock : public IServoBus {
     return true;
   }
 
+  std::optional<double> get_position_us(int channel) override {
+    std::lock_guard<std::mutex> lock(mutex_);
+    const auto it = targets_.find(channel);
+    return it == targets_.end() ? 0.0 : it->second;
+  }
+
+  std::optional<int> get_errors() override { return 0; }
+
   bool release_all() override {
     std::lock_guard<std::mutex> lock(mutex_);
     targets_.clear();

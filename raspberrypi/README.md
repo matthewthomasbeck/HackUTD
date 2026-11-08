@@ -162,6 +162,8 @@ Calibrate at the stance the robot drives in: moving the legs changes the wheel s
 Each leg has 3 servos on Maestro A (abduction, hip, knee). Each servo maps an angle to a pulse with its own calibration in `legs.joints` (`pulse_us = zero_us + direction * us_per_rad * angle`). The zero pose comes from the Rubble Dog assembly: femur straight down, tibia in line with the femur, leg hanging straight.
 
 ```
+./build/robot_diag --config config/robot.yaml ping              # Maestros answering? errors? nothing moves
+./build/robot_diag --config config/robot.yaml ping --wiggle     # twitch each leg servo +-40 us, confirm its channel
 ./build/robot_diag --config config/robot.yaml servo a 3 1500      # one channel to a raw pulse (ramped)
 ./build/robot_diag --config config/robot.yaml legcal              # guided, all 12 joints
 ./build/robot_diag --config config/robot.yaml legcal FL_knee      # or one joint

@@ -308,6 +308,63 @@ TEST(Maestro, InitAsksForErrorsAndTargetsUseQuarterMicroseconds) {
   EXPECT_EQ(tail, (std::vector<unsigned char>{0x84, 5, 6000 & 0x7F, (6000 >> 7) & 0x7F}));
 }
 
+TEST(Maestro, PingReadsErrorsAndPositions) {
+  // A fake Maestro: answers Get Errors (0xA1) with bit 4 set, and Get Position (0x90, ch) with
+  // the last target sent to that channel, in quarter-microseconds, like the real board.
+  int master = -1, slave = -1;
+  char name[128];
+  ASSERT_EQ(openpty(&master, &slave, name, nullptr, nullptr), 0);
+  ::fcntl(master, F_SETFL, O_NONBLOCK);
+  std::atomic<bool> quit{false};
+  std::thread fake([&] {
+    std::vector<unsigned char> in;
+    int target_q[24] = {0};
+    int errors_reads = 0;
+    while (!quit) {
+      unsigned char b[64];
+      const ssize_t n = ::read(master, b, sizeof(b));
+      for (ssize_t i = 0; i < n; ++i) in.push_back(b[i]);
+      bool progress = true;
+      while (progress && !in.empty()) {
+        progress = false;
+        if (in[0] == 0xAA) { in.erase(in.begin()); progress = true; }
+        else if (in[0] == 0xA1) {
+          const unsigned char r[2] = {static_cast<unsigned char>(errors_reads++ == 0 ? 0 : 0x10), 0};
+          (void)!::write(master, r, 2);
+          in.erase(in.begin());
+          progress = true;
+        } else if (in[0] == 0x90 && in.size() >= 2) {
+          const int q = target_q[in[1] % 24];
+          const unsigned char r[2] = {static_cast<unsigned char>(q & 0xFF), static_cast<unsigned char>(q >> 8)};
+          (void)!::write(master, r, 2);
+          in.erase(in.begin(), in.begin() + 2);
+          progress = true;
+        } else if (in[0] == 0x84 && in.size() >= 4) {
+          target_q[in[1] % 24] = in[2] | (in[3] << 7);
+          in.erase(in.begin(), in.begin() + 4);
+          progress = true;
+        } else if (in[0] != 0x84 && in[0] != 0x90) {
+          in.erase(in.begin());
+          progress = true;
+        }
+      }
+      std::this_thread::sleep_for(1ms);
+    }
+  });
+
+  auto bus = make_servo_maestro("maestro_a", name, 9600);
+  ASSERT_EQ(bus->init().status, DeviceStatus::OK);
+  EXPECT_EQ(bus->get_errors(), 0x10) << "serial protocol bit, decoded by robot_diag ping";
+  EXPECT_EQ(bus->get_position_us(3), 0.0) << "never driven: no pulses";
+  ASSERT_TRUE(bus->set_target_us(3, 1540));
+  std::this_thread::sleep_for(20ms);
+  EXPECT_EQ(bus->get_position_us(3), 1540.0);
+  quit = true;
+  fake.join();
+  ::close(master);
+  ::close(slave);
+}
+
 TEST(Maestro, BaudTbdFailsWithAReason) {
   const InitResult r = make_servo_maestro("maestro_b", "/dev/null", 0)->init();
   EXPECT_EQ(r.status, DeviceStatus::FAILED);
