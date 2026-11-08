@@ -89,6 +89,7 @@ Run `python scripts/smoke_stdb.py --save-fixture` once the module is published, 
 
 ```bash
 cd stdb-helper && npm install && npm run build
+npm test                 # builds, then node --test test/
 ```
 
 The helper imports the generated bindings from `backend/spacetimedb-bindings/` (`spacetimedb.md` section 1.6).

@@ -37,8 +37,13 @@ function snake(name: string): string {
   return name.replace(/([a-z0-9])([A-Z])/g, '$1_$2').replace(/([A-Z])([A-Z][a-z])/g, '$1_$2').toLowerCase();
 }
 
+// True for the payload of a unit enum variant: undefined, or an empty object.
+export function isUnitValue(v: unknown): boolean {
+  return v === undefined || (typeof v === 'object' && v !== null && !Array.isArray(v) && Object.keys(v).length === 0);
+}
+
 // Convert one SDK value to plain JSON in the contract shape.
-function plain(value: any): any {
+export function plain(value: any): any {
   if (value === undefined || value === null) return null;
   if (typeof value === 'bigint') return Number(value);
   if (Array.isArray(value)) return value.map(plain);
@@ -50,8 +55,9 @@ function plain(value: any): any {
   if (typeof value.tag === 'string') {
     // Enum. The bindings use PascalCase tags (EnRoute); the tables perception reads only have
     // lower snake_case variants, so snake() restores the contract spelling (en_route).
+    // The SDK delivers a unit variant as { tag, value: {} }, so an empty value is a unit too.
     const tag = snake(value.tag);
-    return value.value === undefined ? tag : { [tag]: plain(value.value) };
+    return isUnitValue(value.value) ? tag : { [tag]: plain(value.value) };
   }
   const out: Record<string, any> = {};
   for (const [k, v] of Object.entries(value)) out[snake(k)] = plain(v);
@@ -102,4 +108,5 @@ function main(): void {
   (token ? builder.withToken(token) : builder).build();
 }
 
-main();
+// Run only as a program, so tests can import plain() without connecting.
+if (require.main === module) main();
