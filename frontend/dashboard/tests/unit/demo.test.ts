@@ -3,9 +3,9 @@ import type { BoardState } from '../../src/data/BoardData';
 import { glassesMismatch, runDemo, sameServer, type DemoStep, type GlassesDemoCommand } from '../../src/view/demo';
 
 const identity = (hex: string) => ({ toHexString: () => hex });
-const HOUSE3 = { lat: 32.99691, lon: -96.77046 };
+const HOUSE3 = { lat: 32.9860622, lon: -96.7514391 }; // the person in the east side of 2520 Rutford Ave
 
-const START = { lat: 32.9965, lon: -96.7712 }; // the demo walker's start on Worthing St
+const START = { lat: 32.9854219, lon: -96.7512228 }; // the demo walker's start in the parking lot south of the building
 
 // A tiny in-memory board: the fake reducers and glasses controls change it the way the module would.
 function world(options: { survivorAlready?: boolean; dogOnline?: boolean; caydenAtHouse?: boolean } = {}) {

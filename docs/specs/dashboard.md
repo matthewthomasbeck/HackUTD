@@ -42,7 +42,7 @@ It has four views that share one set of components:
 Approved by Cayden on 2026-11-08 after four review rounds (the mockup and its versions are in `.lavish/`).
 References, for approach only (no copied code or assets): Standard Response (Cal Hacks 13.0, the map as the whole screen with floating cards), Stochastic (agent tints, hand-off strip, shape plus word for every status), and the HackUTD Zero Day site (colors and the Satoshi font).
 
-- The map is the screen: the real block around 7716 Worthing St, drawn from OpenStreetMap outlines, with floating cards on top.
+- The map is the screen: the buildings around 2520 Rutford Ave on the UT Dallas campus (since 2026-11-08; before that the Worthing St block in Dallas), drawn from OpenStreetMap outlines, with floating cards on top.
 - One question first: "Who needs help first", the ranked survivors in the top-left card.
 - Two pages only: Dashboard and Agents.
 - Night-purple top bar (HackUTD Zero Day colors), light map and cards underneath, so the projector does not wash out the data.
@@ -121,7 +121,7 @@ It runs the scripted house 3 rescue through the real path, so the board, the gla
    Its title bar buttons close it (red), fold it to the title bar (yellow, or double-click the title bar), and put it back in the default place and size (green).
    Its place and size are remembered in this browser (`localStorage`, key `underdog:glasses-window`).
    Folding and closing during a run only hide the display, because unloading it would drop his connection and release his assignment.
-2. It resets the glasses service's demo walker (`POST /demo/cayden/reset`), which puts Cayden at the start on Worthing St.
+2. It resets the glasses service's demo walker (`POST /demo/cayden/reset`), which puts Cayden at the start in the parking lot south of Franklyn Jenifer Dr.
 3. If house 3 has no open survivor, it queues a search of house 3 for `sim-dog` (`create_mission`) and waits for the simulator's robot to report the hidden person.
 4. It proposes Cayden (`propose_assignment`), then accepts as Cayden through the glasses service (`POST /rescuer/cayden/action`, the same accept a ring tap sends).
 5. It starts the walker (`POST /demo/cayden/start`) and waits until Cayden is within 8 m of the survivor.
@@ -175,7 +175,7 @@ frontend/dashboard/
   scripts/
     app-dev.mjs            npm run app: Vite dev server, then Electron
   public/
-    site/block.geojson     the 72 buildings of the Worthing St block (OpenStreetMap, ODbL), with row labels
+    site/block.geojson     the 14 tracked buildings within 180 m of 2520 Rutford Ave (OpenStreetMap, ODbL; built by backend/sim/scripts/build-site.mjs)
     site/context.geojson   the neighborhood around it: 522 buildings, roads, parks, water
     brand/underdog-logo.png   the logo
   src/
@@ -187,7 +187,7 @@ frontend/dashboard/
     model/                 headline, ranking, labels, timers, agents, chains, accounting, map actions
     site/
       geometry.ts          load and parse the site files, meters, point in house, block homes
-      houses.ts            each house's state from cells and survivors; place names ("7716 Worthing St", "Building near Coit Rd")
+      houses.ts            each house's state from cells and survivors; place names ("2520 Rutford Ave", "Karl Hoblitzelle Hall", "Building near Drive D")
       route.ts             walking routes along the streets (Dijkstra on the OSM road graph)
     view/
       derive.ts            everything the cards show, from BoardState (pure, unit tested)
@@ -329,7 +329,7 @@ The dashboard never calls robot, agent, auditor, perception, or sim reducers (`p
 
 ```
 +---------------------------------------------------------------------------------------------+
-| BAR: dog logo UnderDog | Worthing St block | Dashboard | Agents |      System (fold) | Record run |
+| BAR: dog logo UnderDog | UT Dallas, 2520 Rutford Ave | Dashboard | Agents |      System (fold) | Record run |
 +---------------------------------------------------------------------------------------------+
 | +-------------------+                                                  +------------------+ |
 | | WHO NEEDS HELP    |                                                  | 0 critical       | |
@@ -786,7 +786,7 @@ Run `npm run dev` (Vite on `0.0.0.0:5180`) on Laptop A, so Screen B opens `http:
 - `fold.test.ts`: a fixture event list folds to the expected survivor states at three times; a bad `payload_json` is skipped and counted.
 - `fold.test.ts` also: two `terrain` events (`debris`, then `flat`) give the robot entity the right class at each time.
 - `snapshots.test.ts`: seeking via a snapshot gives the same state as folding from the start.
-- `site.test.ts`: 7716 Worthing St is found from its GPS point; the 68 homes come in reading order; a house takes its worst open survivor, else its cell; place names ("Building near …", "Open ground near …"); walking routes never cross a house; short map tags; crew names without simulator markers.
+- `site.test.ts`: 2520 Rutford Ave is found from its center and from the person inside it; the 14 tracked buildings come north to south; a house takes its worst open survivor, else its cell; place names ("Building near …", "Open ground near …"); walking routes never cross a house; short map tags; crew names without simulator markers.
 - `connection.test.ts`: `?uri=` overrides the build-time address (the desktop app's server switch).
 
 ### End-to-end tests (Playwright)

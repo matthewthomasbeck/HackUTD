@@ -57,7 +57,7 @@ cd backend/perception && python -m pytest                 # after the integratio
 The judged demo is hard-coded (decision 2026-11-08): only SpacetimeDB runs live, and the simulator scripts the robot, the find, the breathing result and critical score, and any rescuer actions.
 The agents, perception, the real robot, and the real G2 hardware are built and tested separately, and they do not run in the judged demo.
 The dashboard and the glasses view (on the G2 or the fallback page) render the scripted data live from SpacetimeDB.
-The story ends when the robot dog finds the hidden person in 7716 Worthing St (house 3).
+The story ends when the robot dog finds the hidden person in 2520 Rutford Ave on the UT Dallas campus (house 3).
 
 ```bash
 cd backend/sim

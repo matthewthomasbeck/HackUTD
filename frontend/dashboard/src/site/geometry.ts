@@ -1,9 +1,10 @@
-// The demo site drawn from OpenStreetMap outlines (public/site/*.geojson): the 72 buildings of the
-// Worthing St block in Dallas, plus the neighborhood around it as quiet context. No map tiles, so the
-// map is sharp on a projector and works with no network at the venue.
+// The demo site drawn from OpenStreetMap outlines (public/site/*.geojson, built by backend/sim/scripts/build-site.mjs):
+// the buildings around 2520 Rutford Ave on the UT Dallas campus, plus the campus around them as quiet context. No map
+// tiles, so the map is sharp on a projector and works with no network at the venue.
 
 export interface GeoPoint { lat: number; lon: number }
-export type BlockRow = 'worthing_north' | 'worthing_south' | 'benchmark_north' | 'benchmark_south' | 'worthing_east_segment' | 'other';
+// 'block' for the buildings the dashboard tracks, 'other' for context-only outlines.
+export type BlockRow = 'block' | 'other';
 
 export interface House { id: string; ring: GeoPoint[]; address: string; row: BlockRow; center: GeoPoint }
 export interface ContextRoad { line: GeoPoint[]; highway: string; name: string | null }
@@ -86,10 +87,9 @@ function distanceToRing(ring: readonly GeoPoint[], p: GeoPoint): number {
   return best;
 }
 
-const ROW_ORDER: Record<BlockRow, number> = { worthing_north: 0, worthing_south: 1, benchmark_north: 2, benchmark_south: 3, worthing_east_segment: 4, other: 5 };
-
-// Homes only (the commercial buildings on Frankford and Coit are left out), in reading order: row by row, west to east.
+// The tracked buildings in reading order: north to south in 30 m bands, west to east within a band.
 export function blockHomes(houses: readonly House[]): House[] {
+  const band = (house: House) => Math.round(-house.center.lat * 110_574 / 30);
   return houses.filter((house) => house.row !== 'other')
-    .sort((a, b) => ROW_ORDER[a.row] - ROW_ORDER[b.row] || (a.row === 'worthing_east_segment' ? b.center.lat - a.center.lat : a.center.lon - b.center.lon));
+    .sort((a, b) => band(a) - band(b) || a.center.lon - b.center.lon);
 }

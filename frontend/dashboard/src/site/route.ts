@@ -3,8 +3,8 @@
 // service (backend/glasses-service/src/render/route.ts): street graph from OSM roads, then Dijkstra.
 import { toMeters, type ContextRoad, type GeoPoint } from './geometry';
 
-// Service roads (driveways, parking lots) are walkable too, so routes reach the commercial buildings.
-const WALKABLE = new Set(['secondary', 'tertiary', 'residential', 'unclassified', 'living_street', 'service']);
+// Streets plus service roads, pedestrian ways, and paths: on the UT Dallas campus most walking is on paths.
+const WALKABLE = new Set(['secondary', 'tertiary', 'residential', 'unclassified', 'living_street', 'service', 'pedestrian', 'footway', 'path', 'cycleway']);
 const MERGE_M = 1.5; // OSM ways meet at shared nodes; merge vertices this close so intersections connect
 
 type Edge = { to: number; cost: number };
@@ -38,6 +38,25 @@ export function buildStreetGraph(roads: readonly ContextRoad[]): StreetGraph {
     let previous = nodeFor(road.line[0]!);
     for (const p of road.line.slice(1)) { const next = nodeFor(p); link(previous, next); previous = next; }
   }
+  // Keep the largest connected network only, so both ends of a route snap onto paths that join (stray footway
+  // pieces would otherwise strand a route).
+  const component = new Map<number, number>();
+  const sizes: number[] = [];
+  for (const start of edges.keys()) {
+    if (component.has(start)) continue;
+    const id = sizes.length;
+    const stack = [start];
+    component.set(start, id);
+    let size = 0;
+    while (stack.length) {
+      const node = stack.pop()!;
+      size += 1;
+      for (const { to } of edges.get(node) ?? []) if (!component.has(to)) { component.set(to, id); stack.push(to); }
+    }
+    sizes.push(size);
+  }
+  const largest = sizes.indexOf(Math.max(...sizes));
+  for (const node of [...edges.keys()]) if (component.get(node) !== largest) edges.delete(node);
   return { nodes, edges };
 }
 

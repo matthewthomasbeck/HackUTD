@@ -2,8 +2,8 @@ import { destinationPoint, type Point } from './geo.js';
 // path: street waypoints walked in order before heading to the target (render/route.ts); empty walks straight.
 export interface DemoState { position:Point; origin:Point; target:Point; walking:boolean; path?:Point[]; }
 export const DEMO_SPEED_MPS=3;
-export const DEMO_START_DISTANCE_M=250;
-export const DEMO_START_BEARING_DEG=225;
+export const DEMO_START_DISTANCE_M=92; // with the bearing: the parking lot south of Franklyn Jenifer Dr, about 115 m on foot
+export const DEMO_START_BEARING_DEG=158;
 export function makeDemoState(center:Point,target:Point,bearingDeg=DEMO_START_BEARING_DEG,distanceM=DEMO_START_DISTANCE_M):DemoState {return {position:destinationPoint(center,bearingDeg,distanceM),origin:destinationPoint(center,bearingDeg,distanceM),target,walking:false};}
 export function moveDemo(s:DemoState,dn:number,de:number):void {s.position=destinationPoint(destinationPoint(s.position,dn>=0?0:180,Math.abs(dn)),de>=0?90:270,Math.abs(de));}
 export function stepDemo(s:DemoState,seconds=.5,speedMps=DEMO_SPEED_MPS):boolean {if(!s.walking)return false;const {distanceM,bearingDeg}=requireGeo();const next=s.path?.[0];if(next){const gap=distanceM(s.position,next);const step=speedMps*seconds;if(gap<=step){s.position={...next};s.path!.shift();}else s.position=destinationPoint(s.position,bearingDeg(s.position,next),step);return true;}const d=distanceM(s.position,s.target);if(d<=2){s.walking=false;return false;}s.position=destinationPoint(s.position,bearingDeg(s.position,s.target),Math.min(d-2,speedMps*seconds));return true;}
