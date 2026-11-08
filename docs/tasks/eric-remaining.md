@@ -268,7 +268,7 @@ fallback flags on failure. Only matters if the agents are shown outside the hard
 | Confirm Maincloud roles for the perception, orchestrator, auditor and comms identities | Cayden, C1/C4 | Demo mode or granted roles on `assess-0hw81`; confirmed lease and watchdog timings | Agents and perception writing to the shared database |
 | Full flow on dashboard and glasses (simulator detection to glasses acknowledgement, one `chain_id`, plus a second subscribed screen) | Cayden, C2/C3/G1-G3 | A time to run it together, after A4 | The integrated story, outside the hard-coded demo |
 | E8 7: voice question from the glasses or fallback page, timed | Cayden, G1-G3 | Upload, transcribe and `rescuer_ask` flow working | Spoken question and answer |
-| E2 8: Pi upload over the team network | Camille, R3/R5/R6 | Node.js bridge pushed; reachable media URL; uploads with detection and survivor IDs | Real thermal-to-breathing path |
+| E2 8: Pi upload over the team network | Eric (R3 bridge, branch `eric-r3-bridge`), Camille (R5/R6) | R3 bridge merged; reachable media URL; uploads with detection and survivor IDs | Real thermal-to-breathing path |
 | Inspect capture and E1 recordings (steps 1 to 7) | Camille R5, Matthew M4/M6/M7 | Stopped camera, about 20 s clips, locked exposure, gain and white balance; agreed light and mock rubble scene | Real-camera breathing and ROI checks |
 | E9: terrain model | Camille R7, Cayden dashboard | Timestamped forward frames, independently labelled hazard images, a single writer for terrain fields | Advisory terrain hints, only after held-out evaluation |
 | E0 step 7: post the Brev results to the team chat | Eric | Nothing; a person posts it | Team knows what was measured |

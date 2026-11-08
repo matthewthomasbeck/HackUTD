@@ -13,7 +13,7 @@ Items marked PROPOSED were unassigned in the MVP; confirm or move them at the ne
 | Person | Owns | Code folders (team repo) | Detail |
 | --- | --- | --- | --- |
 | Matthew Beck | Electrical system, robot assembly, leg motion with Camille, the physical demo set, outdoor test and footage (PROPOSED) | `3d_parts/`, `raspberrypi/` config for hardware, `images/` | `tasks/matthew.md` |
-| Camille | Robot edge software: C++ program on the Pi, Pico firmware, the bridge to SpacetimeDB, robot missions, terrain rules | `raspberrypi/`, `pico/` | `tasks/camille.md` |
+| Camille | Robot edge software: C++ program on the Pi, Pico firmware, robot missions, terrain rules (R3, the bridge, moved to Eric on 2026-11-08) | `raspberrypi/`, `pico/` | `tasks/camille.md` |
 | Eric Lee | Computer vision and models: breathing check, thermal confirmation, critical score, media server, speech-to-text for rescuer questions from the glasses, terrain camera model; the Nemotron agents (PROPOSED) | `backend/perception/`, `backend/agent/` | `tasks/eric.md` |
 | Cayden Hutcheson | G2 glasses; extra work: SpacetimeDB module and contracts, dashboard, simulator, design control, slides and pitch, integration (all PROPOSED except glasses) | `frontend/glasses/`, `backend/glasses-service/`, `backend/spacetimedb/`, `frontend/dashboard/`, `backend/sim/` | `tasks/cayden.md` |
 
@@ -80,7 +80,7 @@ the full combined run still needs to be recorded. Evidence:
 
 - Checkpoint 1: the module half is done.
   The module is published locally and on Maincloud as `assess-0hw81`, with bindings in `backend/spacetimedb-bindings/` and 62 passing smoke checks.
-  The robot half is open: the robot program foundation is in `raspberrypi/robot/` (task R1), but the bridge to SpacetimeDB and the Pico firmware are not pushed, so no bridge heartbeat has reached the module yet.
+  The robot half is open: the robot program foundation is in `raspberrypi/robot/` (task R1), and the bridge to SpacetimeDB (task R3) is built on branch `eric-r3-bridge`: on a laptop with mocks the robot's heartbeat, positions, devices, a mission and a test detection reached a local module, but it is not merged and has not run on the Pi.
 - Checkpoint 2: the whole flow with no robot runs in the simulator, but it is not marked passed.
   The sim robot finds survivors, and the dashboard and the glasses service show changes live.
   With Eric's agents merged locally (`integration/eric-agents`) and `LLM_MODE=mock`, the orchestrator proposed, the auditor reviewed, and the comms agent briefed against the live module.

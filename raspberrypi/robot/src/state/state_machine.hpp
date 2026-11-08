@@ -81,6 +81,7 @@ struct StepResult {
   Event mission{EventType::start};
   bool abort_mission = false;     // ACTIVE ended by a safety event: tell the mission runner it failed
   std::string abort_note;         // "safe stop: <reason>"
+  bool operator_stop = false;     // ACTIVE ended by `robotctl stop`: the main loop fails the mission
   bool alert = false;             // fault retries exhausted: send device FAILED and an alert log line
   std::vector<MissionRejection> rejected;
 };

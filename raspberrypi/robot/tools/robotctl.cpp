@@ -7,6 +7,7 @@
 //   robotctl mock estop_sense on|off
 //   robotctl mock stale DEVICE on|off
 //   robotctl mock init DEVICE OK|DEGRADED|FAILED
+//   robotctl test_detection [MISSION_ID]   TEST HOOK: one fake detection to the bridge (task R3 check)
 //
 // Sends one JSON line, prints the one-line reply, and exits 0 if the reply says ok.
 
@@ -16,6 +17,8 @@
 #include <unistd.h>
 
 #include <cerrno>
+#include <cstdint>
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -31,7 +34,8 @@ int usage() {
   std::fprintf(stderr,
                "usage: robotctl [--socket PATH] status | start [KIND] | stop | estop | reset\n"
                "       robotctl mock pico_link lost|ok | mock estop_sense on|off\n"
-               "       robotctl mock stale DEVICE on|off | mock init DEVICE OK|DEGRADED|FAILED\n");
+               "       robotctl mock stale DEVICE on|off | mock init DEVICE OK|DEGRADED|FAILED\n"
+               "       robotctl test_detection [MISSION_ID]   (test hook: one fake detection)\n");
   return 2;
 }
 
@@ -56,6 +60,14 @@ int main(int argc, char** argv) {
     request = {{"cmd", cmd}};
   } else if (cmd == "start" && words.size() <= 2) {
     request = {{"cmd", "start"}, {"kind", words.size() == 2 ? words[1] : "hold"}};
+  } else if (cmd == "test_detection" && words.size() <= 2) {
+    request = {{"cmd", "test_detection"}};
+    if (words.size() == 2) {
+      char* end = nullptr;
+      const unsigned long long id = std::strtoull(words[1].c_str(), &end, 10);
+      if (end == words[1].c_str() || *end != '\0' || id == 0) return usage();
+      request["mission_id"] = static_cast<std::uint64_t>(id);
+    }
   } else if (cmd == "mock" && words.size() == 3) {
     request = {{"cmd", "mock"}, {"what", words[1]}, {"value", words[2]}};
   } else if (cmd == "mock" && words.size() == 4) {

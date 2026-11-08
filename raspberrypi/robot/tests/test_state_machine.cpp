@@ -155,6 +155,14 @@ TEST_P(ActiveEndsNormally, GoesToReady) {
   const auto r = step1(in(State::ACTIVE), healthy_world(), {ev(GetParam())});
   EXPECT_EQ(r.next.state, State::READY);
   EXPECT_FALSE(r.abort_mission);
+  // Only an operator stop needs a "failed" from the main loop; the others report their own end.
+  EXPECT_EQ(r.operator_stop, GetParam() == EventType::stop);
+}
+
+TEST(StateMachine, StopOutsideActiveIsNotAnOperatorStop) {
+  const auto r = step1(in(State::READY), healthy_world(), {ev(EventType::stop)});
+  EXPECT_EQ(r.next.state, State::READY);
+  EXPECT_FALSE(r.operator_stop);
 }
 
 INSTANTIATE_TEST_SUITE_P(StateMachine, ActiveEndsNormally,

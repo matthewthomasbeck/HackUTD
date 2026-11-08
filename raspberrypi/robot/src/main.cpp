@@ -11,11 +11,13 @@
 //
 // Startup: load the config (BOOT), start the control socket and the two workers, then INIT the
 // devices. Then one fixed-rate loop on the main thread. Each tick runs, in this order:
-//   1. observe   drain the Pico link (non-blocking), then snapshot devices, sensors, frames, detections
+//   1. observe   drain the Pico link (non-blocking), then snapshot devices, sensors, frames, detections;
+//                poll the control socket and the bridge socket (bridge/bridge_client.hpp) once each
 //   2. step      the state machine decides whether to change state
 //   3. behavior  in ACTIVE, the mission behavior proposes a command
 //   4. gate      the safety gate filters it (the only path to the actuators)
-//   5. send      hand the gated command to the movement thread
+//   5. send      hand the gated command to the movement thread, update the localizer, and queue
+//                heartbeat, position, and device messages for the bridge
 //   6. log       state changes, gate interventions, a 1 Hz summary
 // then pings the systemd watchdog if the tick finished in time and the movement thread is alive,
 // and sleeps until the next tick. Nothing in the loop blocks on I/O.
@@ -26,6 +28,7 @@
 #include <csignal>
 #include <cstdint>
 #include <cstdio>
+#include <map>
 #include <memory>
 #include <optional>
 #include <set>
@@ -35,7 +38,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include "bridge/bridge_client.hpp"
 #include "bridge/control_server.hpp"
+#include "bridge/messages.hpp"
 #include "core/clock.hpp"
 #include "core/config.hpp"
 #include "core/log.hpp"
@@ -44,10 +49,12 @@
 #include "hal/device_manager.hpp"
 #include "hal/device_mock.hpp"
 #include "mission/behaviors/behavior.hpp"
+#include "mission/mission_intake.hpp"
 #include "hal/camera.hpp"
 #include "hal/dc_driver.hpp"
 #include "hal/pico_link.hpp"
 #include "hal/servo_bus.hpp"
+#include "localization/localizer.hpp"
 #include "motion/leg_ik.hpp"
 #include "motion/movement_thread.hpp"
 #include "vision/detector.hpp"
@@ -245,6 +252,24 @@ std::string apply_mock(const json& body, MockControls& controls) {
   return "";
 }
 
+// Heading rate in degrees per second clockwise from the newest IMU sample, if it is fresh.
+// heading.gyro_axis and heading.gyro_sign are TBD until the IMU mounting is known.
+std::optional<double> imu_heading_rate(const Config& cfg, const IPicoLink& pico, SteadyTime now) {
+  const auto imu = pico.readings().imu.read();
+  if (!imu) return std::nullopt;
+  const auto stale = cfg.stale_ms.find("imu");
+  if (stale == cfg.stale_ms.end() || ms_between(imu->written, now) > stale->second) return std::nullopt;
+  const std::string& axis = cfg.location.heading_gyro_axis;
+  const double g = axis == "x" ? imu->value.gx : axis == "y" ? imu->value.gy : imu->value.gz;
+  return cfg.location.heading_gyro_sign * g;
+}
+
+// The next due time of a periodic message; after a slow stretch it restarts from now, no burst.
+SteadyTime next_due(SteadyTime due, double hz, SteadyTime now) {
+  due += std::chrono::duration_cast<SteadyTime::duration>(std::chrono::duration<double>(1.0 / hz));
+  return due < now ? now : due;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -285,6 +310,39 @@ int main(int argc, char** argv) {
   } else {
     log::error(control_error + " (robotctl will not work; e-stop only by power)");
   }
+
+  // The bridge client never blocks, so it starts before the devices (robot.md 4.1 step 2). It
+  // connects on its first poll and keeps retrying with backoff while the bridge is not up.
+  BridgeClient bridge(BridgeClientConfig{cfg.bridge.socket, cfg.bridge.outbox});
+  MessageBuilder messages(cfg.robot_id);
+  log::info("bridge socket " + cfg.bridge.socket + ", outbox " +
+            (cfg.bridge.outbox.empty() ? std::string("off") : cfg.bridge.outbox));
+
+  // Location (robot.md section 8). Demo places come from paths_file; without it, demo positions
+  // start at the site center.
+  DemoPlaces places;
+  places.anchor = {cfg.site.center_lat, cfg.site.center_lon};
+  std::string places_error;
+  if (!load_demo_places(cfg.location.paths_file, &places, &places_error)) {
+    log::warn("location: " + places_error + "; demo positions start at site.center");
+  }
+  Localizer localizer(LocalizerConfig{cfg.location.force_demo, cfg.location.heading_initial_deg,
+                                      cfg.location.heading_gps_min_speed_mps, cfg.location.heading_source == "imu",
+                                      cfg.location.odometry_scale},
+                      places);
+  // Until the bridge sends a `site` message, the config's site.* stands in for it.
+  SiteMsg site;
+  site.demo_mode = cfg.site.demo_mode_default;
+  site.center_lat = cfg.site.center_lat;
+  site.center_lon = cfg.site.center_lon;
+  site.radius_m = cfg.site.radius_m;
+  localizer.set_site_demo_mode(site.demo_mode);
+  // Missions the robot cannot run yet (every kind but hold) are kept here and logged. The mission
+  // runner (task R6) takes them over; until then they are not started and get no progress.
+  // With missions.auto_start off, a hold mission waits here too, until `robotctl start`.
+  std::optional<MissionMsg> stored_mission;
+  FinishedMissions finished_missions;  // done or failed this boot, so a resend does not restart them
+  std::optional<TerrainHintMsg> terrain_hint;  // advisory, for the terrain assessor (task R7)
 
   auto controls = std::make_shared<MockControls>();
   Hardware hw = build_hardware(cfg, controls);
@@ -337,6 +395,18 @@ int main(int argc, char** argv) {
   double worst_tick_ms = 0;
   long long tick = 0;
 
+  // Bridge messages: mission_progress only for real missions (id 0 is a local robotctl test).
+  // A done or failed mission is remembered, so the bridge's resend of it is ignored.
+  auto send_progress = [&](std::uint64_t id, const char* status, const std::string& note) {
+    if (id == 0) return;
+    bridge.send(messages.mission_progress(id, status, note));
+    if (std::string(status) != "active") finished_missions.add(id);
+  };
+  std::map<std::string, std::pair<DeviceStatus, std::string>> devices_sent;  // last status sent per device
+  SteadyTime next_heartbeat = clock.now();
+  SteadyTime next_position = clock.now();
+  bool position_unknown_logged = false;
+
   const auto period = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
       std::chrono::duration<double>(1.0 / cfg.loop.rate_hz));
   const double period_ms = 1000.0 / cfg.loop.rate_hz;
@@ -358,7 +428,56 @@ int main(int argc, char** argv) {
     for (const auto& req : control.poll()) {
       const std::string cmd = req.body.value("cmd", "");
       if (cmd == "status") {
-        control.reply(req.client, status_json(cfg, machine, last_reason, world, gate_memory.last_sent, mission_kind));
+        json status = status_json(cfg, machine, last_reason, world, gate_memory.last_sent, mission_kind);
+        const Location& loc = localizer.location();
+        status["bridge"] = {{"connected", bridge.connected()},
+                            {"telemetry_queued", bridge.telemetry_queued()},
+                            {"important_queued", bridge.important_queued()},
+                            {"site_demo_mode", site.demo_mode},
+                            {"stored_mission", stored_mission ? json(stored_mission->id) : json(nullptr)}};
+        status["location"] = {{"mode", to_string(loc.mode)},
+                              {"lat", loc.lat ? json(*loc.lat) : json(nullptr)},
+                              {"lon", loc.lon ? json(*loc.lon) : json(nullptr)},
+                              {"heading_deg", loc.heading_deg},
+                              {"note", loc.note}};
+        control.reply(req.client, status);
+      } else if (cmd == "test_detection") {
+        // TEST HOOK for the R3 laptop check: queue one fake thermal detection so the bridge path
+        // (report_detection) can be seen before the inspect behavior exists (task R6). Mission id:
+        // the one robotctl passed, else the running mission, else bridge.test_mission_id. Never 0,
+        // because the bridge drops mission 0 messages.
+        std::uint64_t id = 0;
+        const auto given = req.body.find("mission_id");
+        if (given != req.body.end() && given->is_number_unsigned()) {
+          id = given->get<std::uint64_t>();
+        } else if (machine.state == State::ACTIVE && mission_id != 0) {
+          id = mission_id;
+        } else {
+          id = cfg.bridge.test_mission_id;
+        }
+        const Location& loc = localizer.location();
+        if (id == 0) {
+          control.reply(req.client, {{"ok", false},
+                                     {"error", "no mission id: pass one, run a mission, or set bridge.test_mission_id"}});
+        } else if (!loc.lat || !loc.lon) {
+          control.reply(req.client, {{"ok", false}, {"error", "location unknown; report_detection needs lat and lon"}});
+        } else {
+          DetectionFields d;
+          d.mission_id = id;
+          d.source = "thermal";
+          d.lat = loc.lat;
+          d.lon = loc.lon;
+          d.gps_fix = loc.gps_fix;
+          d.location_note = localizer.note_with_bearing(std::nullopt);
+          d.max_temp_c = 34.0;          // made up: a test hook, not a reading
+          d.thermal_confidence = 0.9;   // made up
+          d.thermal_debug = {{"test_hook", true}};
+          const json detection = messages.detection(d);
+          bridge.send(detection);
+          log::warn("TEST HOOK: queued fake detection " + detection.value("client_ref", "") + " for mission " +
+                    std::to_string(id));
+          control.reply(req.client, {{"ok", true}, {"client_ref", detection["client_ref"]}, {"mission_id", id}});
+        }
       } else if (cmd == "start") {
         const std::string kind = req.body.value("kind", "hold");
         if (kind != "hold") {
@@ -368,8 +487,14 @@ int main(int argc, char** argv) {
         }
         Event e{EventType::start};
         e.mission_kind = kind;  // mission_id 0: a local test mission, not sent to SpacetimeDB
+        // With missions.auto_start off, a stored bridge hold mission starts here instead (in READY
+        // only, so a start in another state does not fail it).
+        if (machine.state == State::READY && stored_mission && stored_mission->kind == "hold") {
+          e.mission_id = stored_mission->id;
+          stored_mission.reset();
+        }
         events.push_back(e);
-        control.reply(req.client, {{"ok", true}, {"queued", "start " + kind}});
+        control.reply(req.client, {{"ok", true}, {"queued", "start " + kind}, {"mission_id", e.mission_id}});
       } else if (cmd == "stop" || cmd == "estop" || cmd == "reset") {
         events.push_back(Event{cmd == "stop" ? EventType::stop : cmd == "estop" ? EventType::estop : EventType::reset});
         control.reply(req.client, {{"ok", true}, {"queued", cmd}});
@@ -377,7 +502,70 @@ int main(int argc, char** argv) {
         const std::string error = apply_mock(req.body, *controls);
         control.reply(req.client, error.empty() ? json{{"ok", true}} : json{{"ok", false}, {"error", error}});
       } else {
-        control.reply(req.client, {{"ok", false}, {"error", "commands: status, start, stop, estop, reset, mock"}});
+        control.reply(req.client, {{"ok", false}, {"error", "commands: status, start, stop, estop, reset, mock, test_detection"}});
+      }
+    }
+    // The bridge only ever sends mission, cancel, site, and terrain_hint (robot.md 9.4).
+    for (const auto& msg : bridge.poll(tick_start)) {
+      switch (msg.type) {
+        case InboundType::Mission: {
+          const MissionMsg& m = msg.mission;
+          const std::string id = std::to_string(m.id);
+          const MissionContext ctx{machine.state == State::ACTIVE, mission_id,
+                                   stored_mission ? std::optional<std::uint64_t>(stored_mission->id) : std::nullopt,
+                                   cfg.missions_auto_start};
+          switch (classify_mission(m, ctx, events, finished_missions)) {
+            case MissionAction::ignore_duplicate:
+              log::info("bridge: duplicate mission " + id + " ignored");  // the resend after a reconnect
+              break;
+            case MissionAction::ignore_finished:
+              log::info("bridge: mission " + id + " already ended this boot, ignored");
+              break;
+            case MissionAction::start: {
+              Event e{EventType::start};
+              e.mission_id = m.id;
+              e.mission_kind = m.kind;
+              events.push_back(e);  // the state machine accepts it in READY or rejects it with a note
+              log::info("bridge: mission " + id + " (hold) from " + m.created_by);
+              break;
+            }
+            case MissionAction::store:
+              stored_mission = m;
+              if (m.kind == "hold") {
+                log::warn("bridge: mission " + id + " (hold) stored: missions.auto_start is off, run robotctl start");
+              } else {
+                log::warn("bridge: mission " + id + " (" + m.kind + ") stored, not started: the mission runner is task R6");
+              }
+              break;
+          }
+          break;
+        }
+        case InboundType::Cancel: {
+          const std::uint64_t id = msg.cancel_mission_id;
+          bool found = false;
+          if (id != 0 && machine.state == State::ACTIVE && id == mission_id) {
+            events.push_back(Event{EventType::mission_cancelled});
+            found = true;
+          }
+          if (drop_pending_start(events, id) > 0) found = true;  // its mission came in this same batch
+          if (stored_mission && stored_mission->id == id) {
+            stored_mission.reset();
+            found = true;
+          }
+          log::info("bridge: cancel mission " + std::to_string(id) + (found ? "" : " ignored: not running or pending"));
+          break;
+        }
+        case InboundType::Site:
+          if (msg.site.demo_mode != site.demo_mode) {
+            log::info(std::string("bridge: site demo mode ") + (msg.site.demo_mode ? "on" : "off"));
+          }
+          site = msg.site;
+          localizer.set_site_demo_mode(site.demo_mode);
+          break;
+        case InboundType::TerrainHint:
+          terrain_hint = msg.terrain_hint;
+          log::debug("bridge: terrain hint " + msg.terrain_hint.terrain_class);
+          break;
       }
     }
 
@@ -390,25 +578,33 @@ int main(int argc, char** argv) {
       log::info(std::string(to_string(machine.state)) + ": " + r.reason);
     }
     for (const auto& rej : r.rejected) {
-      // The bridge (R3) will send this as mission_progress(mission_id, "failed", note).
       log::warn("mission " + std::to_string(rej.mission_id) + " rejected: " + rej.note);
+      send_progress(rej.mission_id, "failed", rej.note);
     }
     if (r.abort_mission) {
-      // The bridge (R3) will send this as mission_progress(mission_id, "failed", note).
       log::warn("mission " + std::to_string(mission_id) + " failed: " + r.abort_note);
+      send_progress(mission_id, "failed", r.abort_note);
     }
     if (r.alert) log::error("ALERT: " + r.reason);
     if (r.begin_init) devices.start_init(machine.state == State::BOOT);
+    // An operator stop ends a bridge mission too; tell SpacetimeDB, or it stays active there.
+    // A bridge cancel sends nothing: the module already knows.
+    if (r.operator_stop && mission_id != 0) {
+      log::warn("mission " + std::to_string(mission_id) + " failed: stopped by operator");
+      send_progress(mission_id, "failed", "stopped by operator");
+    }
     if (r.next.state != State::ACTIVE && behavior) {
       behavior->cancel();
       behavior.reset();
       mission_kind.clear();
+      mission_id = 0;
     }
     if (r.start_mission) {
       behavior = std::make_unique<HoldBehavior>();
       behavior->start();
       mission_kind = r.mission.mission_kind;
       mission_id = r.mission.mission_id;
+      send_progress(mission_id, "active", "started " + mission_kind);
     }
     if (r.next.state == State::READY && !notified_ready) {
       notify::ready();
@@ -420,8 +616,14 @@ int main(int argc, char** argv) {
     BehaviorOutput output;
     if (machine.state == State::ACTIVE && behavior) {
       output = behavior->tick(world);
-      if (output.done) pending.push_back(Event{EventType::mission_done});
-      if (output.failed) pending.push_back(Event{EventType::mission_failed});
+      if (output.done) {
+        pending.push_back(Event{EventType::mission_done});
+        send_progress(mission_id, "done", mission_kind + " done");
+      }
+      if (output.failed) {
+        pending.push_back(Event{EventType::mission_failed});
+        send_progress(mission_id, "failed", mission_kind + " failed");
+      }
     }
 
     // 4. Safety gate.
@@ -431,6 +633,45 @@ int main(int argc, char** argv) {
 
     // 5. Send. One short lock; the movement thread applies it on its next step.
     movement.submit(MovementCommand{++movement_seq, gated.motion}, clock.now());
+
+    // Location: dead-reckon with the command just sent (robot.md section 8).
+    LocalizerInput where;
+    where.now = tick_start;
+    where.vx_mps = gated.motion.command().vx_mps;
+    where.vy_mps = gated.motion.command().vy_mps;
+    where.wz_dps = gated.motion.command().wz_dps;
+    where.imu_heading_rate_dps = imu_heading_rate(cfg, *hw.pico, tick_start);
+    // TODO(R2): where.gps from the gpsd reader's latest fix slot, once the GPS device exists.
+    const Location& loc = localizer.update(where);
+
+    // Bridge messages. send() only queues; the socket is written on the next tick's poll.
+    if (bridge.take_reconnected()) {
+      devices_sent.clear();  // a new bridge (or a restarted one) gets every device again
+      next_heartbeat = tick_start;
+      next_position = tick_start;
+    }
+    if (tick_start >= next_heartbeat) {
+      bridge.send(messages.heartbeat(to_string(machine.state), std::nullopt));  // battery_pct: no monitor, TBD
+      next_heartbeat = next_due(next_heartbeat, cfg.bridge.heartbeat_hz, tick_start);
+    }
+    if (tick_start >= next_position) {
+      if (loc.lat && loc.lon) {
+        bridge.send(messages.position(PositionFields{*loc.lat, *loc.lon, loc.gps_fix, loc.indoor_offset_m,
+                                                     loc.heading_deg}));
+        position_unknown_logged = false;
+      } else if (!position_unknown_logged) {
+        log::warn("location unknown (no GPS fix, not demo mode): no position messages until there is one");
+        position_unknown_logged = true;
+      }
+      next_position = next_due(next_position, cfg.bridge.position_hz, tick_start);
+    }
+    for (const auto& d : world.devices) {
+      if (!d.initialized) continue;  // "not initialized" is not news
+      const auto it = devices_sent.find(d.name);
+      if (it != devices_sent.end() && it->second.first == d.status && it->second.second == d.detail) continue;
+      bridge.send(messages.device(d.name, to_string(d.status), d.detail));
+      devices_sent[d.name] = {d.status, d.detail};
+    }
 
     // 6. Log.
     for (const auto& line : gated.log_lines) log::warn(line);
@@ -465,7 +706,9 @@ int main(int argc, char** argv) {
       char worst[32];
       std::snprintf(worst, sizeof(worst), "%.2f ms", worst_tick_ms);
       log::info(std::string("summary: state ") + to_string(machine.state) + (machine.latched ? " (latched)" : "") +
-                ", health " + (health.ok ? "ok" : health.reason) + ", worst tick " + worst);
+                ", health " + (health.ok ? "ok" : health.reason) + ", bridge " +
+                (bridge.connected() ? "up" : "down") + ", location " + to_string(localizer.location().mode) +
+                ", worst tick " + worst);
       worst_tick_ms = 0;
     }
 
@@ -483,6 +726,7 @@ int main(int argc, char** argv) {
   movement.join();
   hw.camera->stop();
   control.stop();
+  bridge.close();  // unsent detections, cells, and progress go to the outbox for the next start
   log::info("SHUTDOWN");
   return 0;
 }

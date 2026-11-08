@@ -8,6 +8,7 @@
 // key from section 15 so later tasks (R2 to R9) can read theirs without changing the file.
 
 #include <array>
+#include <cstdint>
 #include <map>
 #include <set>
 #include <string>
@@ -76,6 +77,35 @@ struct LegsSettings {
   double max_rate_us_per_s = 0;                           // servos.max_rate_us_per_s
 };
 
+// bridge.* (docs/specs/robot.md sections 4.3 and 10.2).
+struct BridgeSettings {
+  std::string socket;               // Unix socket the Node.js bridge listens on
+  double heartbeat_hz = 0;          // heartbeat rate; the module marks the robot offline after 5 s
+  double position_hz = 0;           // position rate
+  std::string outbox;               // important lines saved while the bridge is gone; empty disables
+  std::uint64_t test_mission_id = 0;  // TEST HOOK: `robotctl test_detection` uses it with no mission running
+};
+
+// site.* until the bridge's first `site` message (robot.md 9.4).
+struct SiteSettings {
+  bool demo_mode_default = true;
+  double center_lat = 0, center_lon = 0;  // TBD demo coordinates
+  double radius_m = 0;
+};
+
+// location.*, home.*, heading.*, odometry.* (robot.md section 8).
+struct LocationSettings {
+  bool force_demo = false;
+  double home_lat = 0, home_lon = 0;  // TBD demo coordinates
+  double heading_initial_deg = 0;
+  double heading_gps_min_speed_mps = 0;
+  std::string heading_source;       // imu | commanded (commanded: integrate the commanded turn rate)
+  std::string heading_gyro_axis;    // x | y | z, TBD per IMU mounting
+  int heading_gyro_sign = 1;        // 1 | -1, TBD: +1 if a positive gyro reading is a clockwise turn
+  double odometry_scale = 0;        // TBD: drive 2 m and measure
+  std::string paths_file;           // demo_paths.yaml (anchor and waypoints)
+};
+
 struct Config {
   std::string robot_id;
   std::string robot_name;
@@ -97,6 +127,9 @@ struct Config {
   bool missions_auto_start = false;
   int breathing_clip_s = 0;
   std::string control_socket;
+  BridgeSettings bridge;
+  SiteSettings site;
+  LocationSettings location;
 
   // Serial ports for the devices that have one (maestro_a/b, pico); baud 0 is TBD.
   std::map<std::string, std::string> device_path;

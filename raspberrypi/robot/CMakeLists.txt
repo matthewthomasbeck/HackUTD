@@ -90,6 +90,7 @@ endif()
 # Everything except main.cpp goes in robot_core, so the tests link the same code the robot runs.
 add_library(robot_core STATIC
   src/core/config.cpp
+  src/core/geo.cpp
   src/core/log.cpp
   src/core/notify.cpp
   src/core/worker.cpp
@@ -115,7 +116,11 @@ add_library(robot_core STATIC
   src/vision/detector_coral.cpp
   src/vision/detector_mock.cpp
   src/mission/behaviors/hold.cpp
+  src/mission/mission_intake.cpp
   src/bridge/control_server.cpp
+  src/bridge/messages.cpp
+  src/bridge/bridge_client.cpp
+  src/localization/localizer.cpp
 )
 target_include_directories(robot_core PUBLIC src)
 target_compile_options(robot_core PRIVATE ${ROBOT_WARNINGS})
@@ -176,6 +181,9 @@ add_executable(robot_tests
   tests/test_mecanum.cpp
   tests/test_calibration.cpp
   tests/test_legs.cpp
+  tests/test_bridge_client.cpp
+  tests/test_localizer.cpp
+  tests/test_mission_intake.cpp
 )
 target_compile_options(robot_tests PRIVATE ${ROBOT_WARNINGS})
 target_compile_definitions(robot_tests PRIVATE ROBOT_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/config")
