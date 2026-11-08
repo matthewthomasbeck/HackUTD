@@ -10,9 +10,13 @@
 const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
+const { PreviewWorker } = require('./preview-worker.cjs');
 
-const DEFAULTS = { db: 'cloud', localUri: 'ws://127.0.0.1:3000', glassesPage: '', glassesWs: '', screen: 'A' };
-const FLAG_NAMES = { db: 'db', localUri: 'local-uri', glassesPage: 'glasses-page', glassesWs: 'glasses-ws', screen: 'screen' };
+const DEFAULTS = { db: 'cloud', localUri: 'ws://127.0.0.1:3000', glassesPage: '', glassesWs: '', screen: 'A',
+  robotPreviewUrl: process.env.ASSESS_ROBOT_PREVIEW_URL || '', visionPython: process.env.ASSESS_VISION_PYTHON || '' };
+const FLAG_NAMES = { db: 'db', localUri: 'local-uri', glassesPage: 'glasses-page', glassesWs: 'glasses-ws', screen: 'screen',
+  robotPreviewUrl: 'robot-preview-url', visionPython: 'vision-python' };
+const previewWorker = new PreviewWorker();
 const settingsFile = () => path.join(app.getPath('userData'), 'assess-settings.json');
 
 function readSaved() {
@@ -20,9 +24,9 @@ function readSaved() {
 }
 
 function save(settings) {
-  const { db, localUri, glassesPage, glassesWs } = settings;
+  const { db, localUri, glassesPage, glassesWs, robotPreviewUrl, visionPython } = settings;
   fs.mkdirSync(path.dirname(settingsFile()), { recursive: true });
-  fs.writeFileSync(settingsFile(), JSON.stringify({ db, localUri, glassesPage, glassesWs }, null, 2));
+  fs.writeFileSync(settingsFile(), JSON.stringify({ db, localUri, glassesPage, glassesWs, robotPreviewUrl, visionPython }, null, 2));
 }
 
 function readFlags(argv) {
@@ -76,6 +80,10 @@ function query() {
   if (settings.db === 'local') { params.set('db', 'local'); params.set('uri', settings.localUri); }
   if (settings.glassesPage) params.set('glassesPage', settings.glassesPage);
   if (settings.glassesWs) params.set('glassesWs', settings.glassesWs);
+  if (settings.robotPreviewUrl) {
+    params.set('robotPreview', settings.robotPreviewUrl);
+    params.set('visionPreview', 'http://127.0.0.1:8082');
+  }
   return params.toString();
 }
 
@@ -187,6 +195,17 @@ function createSplashWindow() {
 
 app.whenReady().then(() => {
   settings = { ...DEFAULTS, ...readSaved(), ...readFlags(process.argv) };
+  if (settings.robotPreviewUrl) {
+    try {
+      const url = new URL(settings.robotPreviewUrl);
+      if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Expected an HTTP preview URL without credentials');
+      settings.robotPreviewUrl = url.origin;
+      save(settings);
+      const runtime = app.isPackaged ? path.join(process.resourcesPath, 'preview-runtime') : path.resolve(__dirname, '../../..');
+      const python = settings.visionPython || path.join(runtime, 'raspberrypi/preview/.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
+      previewWorker.start(python, path.join(runtime, 'raspberrypi/preview/server.py'), settings.robotPreviewUrl, path.join(app.getPath('userData'), 'preview-data'));
+    } catch (error) { console.error(`Preview setup: ${error.message}`); }
+  }
   buildMenu();
   createSplashWindow();
   createWindow();
@@ -199,3 +218,4 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('before-quit', () => previewWorker.stop());

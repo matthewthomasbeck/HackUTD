@@ -1,10 +1,11 @@
 // Camera View: what the robots last saw next to what a rescuer's glasses show right now.
-// The robots send stills with each find (detection.camera_image_url, thermal_image_url on the media server),
-// not live video, so each robot tile shows its newest still and says when it was taken.
+// Live model and thermal previews use configured read-only endpoints. Detection evidence remains
+// separate: each saved robot tile shows its newest still and says when it was taken.
 // The glasses tile embeds the glasses fallback page (frontend/glasses/fallback.html), which draws exactly the
 // containers the G2 shows, live from the glasses service.
 import { useEffect, useState } from 'react';
 import { Mascot } from './Mascot';
+import { LiveFeed } from './LiveFeed';
 
 export interface RobotFrame { robotId: string; name: string; online: boolean; cameraUrl?: string; thermalUrl?: string; takenAt?: string; place?: string }
 
@@ -13,9 +14,13 @@ type Props = {
   rescuers: ReadonlyArray<{ key: string; name: string }>;
   glassesUrl: (rescuerKey: string) => string;
   onClose: () => void;
+  replay?: boolean;
 };
 
-export function CameraView({ robots, rescuers, glassesUrl, onClose }: Props) {
+export function CameraView({ robots, rescuers, glassesUrl, onClose, replay = false }: Props) {
+  const params = new URLSearchParams(window.location.search);
+  const sensor = (params.get('robotPreview') ?? import.meta.env.VITE_ROBOT_PREVIEW_URL ?? '').replace(/\/$/, '');
+  const vision = (params.get('visionPreview') ?? import.meta.env.VITE_VISION_PREVIEW_URL ?? sensor).replace(/\/$/, '');
   const [rescuer, setRescuer] = useState(rescuers[0]?.key ?? 'cayden');
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
@@ -31,7 +36,15 @@ export function CameraView({ robots, rescuers, glassesUrl, onClose }: Props) {
       <div className="camera-grid">
         <section className="camera-robots" aria-label="Robot cameras">
           <h3>Robot cameras</h3>
-          {robots.length === 0 && <p className="empty">No robot is connected.</p>}
+          {!replay && (sensor || vision) && <article className="robot-feed">
+            <div className="feed-head"><b>Live robot preview</b></div>
+            <div className="frames">
+              {vision && <LiveFeed url={`${vision}/vision.jpg`} label="Model detections" />}
+              {sensor && <LiveFeed url={`${sensor}/thermal.png`} label="Thermal" thermal />}
+            </div>
+            <p className="feed-note">Model boxes and pose keypoints alongside live thermal. Saved findings appear below.</p>
+          </article>}
+          {robots.length === 0 && <p className="empty">No saved robot findings yet.</p>}
           {robots.map((robot) => <article key={robot.robotId} className={`robot-feed ${robot.online ? '' : 'offline'}`}>
             <div className="feed-head"><Mascot kind="robot" size={28} /><b>{robot.name}</b><span className={robot.online ? 'tone-ok' : 'tone-muted'}>{robot.online ? 'online' : 'offline'}</span></div>
             <div className="frames">

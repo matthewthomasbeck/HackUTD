@@ -502,6 +502,17 @@ int main(int argc, char** argv) {
                     std::to_string(id));
           control.reply(req.client, {{"ok", true}, {"client_ref", detection["client_ref"]}, {"mission_id", id}});
         }
+      } else if (cmd == "thermal_frame") {
+        // Read-only preview; only this robot process owns the Pico serial link.
+        const auto sample = hw.pico->readings().thermal.read();
+        if (!sample) {
+          control.reply(req.client, {{"ok", false}, {"error", "no thermal frame yet"}});
+        } else {
+          control.reply(req.client, {{"ok", true}, {"robot_id", cfg.robot_id},
+                                     {"age_ms", ms_between(sample->written, clock.now())},
+                                     {"width", sample->value.width}, {"height", sample->value.height},
+                                     {"centi_deg_c", sample->value.centi_deg_c}});
+        }
       } else if (cmd == "start") {
         const std::string kind = req.body.value("kind", "hold");
         if (kind != "hold" && kind != "seek_thermal") {

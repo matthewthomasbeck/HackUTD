@@ -44,6 +44,11 @@
       "electron/**",
       "package.json"
     ],
+    "extraResources": [{
+      "from": "../..",
+      "to": "preview-runtime",
+      "filter": ["raspberrypi/preview/server.py", "backend/perception/config.toml", "backend/perception/perception/__init__.py", "backend/perception/perception/config.py", "backend/perception/perception/roi.py"]
+    }],
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "electron/icon.png",

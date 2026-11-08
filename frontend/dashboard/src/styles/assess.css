@@ -297,6 +297,7 @@ select, input { border: 1.5px solid var(--hairline-strong); border-radius: 9px; 
 .feed-head span { margin-left: auto; font-size: 12px; font-weight: 700; }
 .frames { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .frames figure { margin: 0; }
+.frames img.thermal-image { image-rendering: pixelated; object-fit: contain; }
 .frames img, .no-frame { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--night); color: var(--on-night-muted); font-size: 12px; text-align: center; }
 .frames figcaption { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 .feed-note { margin: 6px 0 0; font-size: 12px; color: var(--text-muted); }

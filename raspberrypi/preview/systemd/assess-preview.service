@@ -1,0 +1,17 @@
+[Unit]
+Description=Assess ribbon camera and thermal preview
+After=network.target robot.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/assess-preview.env
+ExecStart=/usr/bin/python3 ${ASSESS_PREVIEW_SCRIPT} --socket ${ASSESS_CONTROL_SOCKET} $ASSESS_THERMAL_MODE --host 0.0.0.0 --port 8081
+User=robot
+SupplementaryGroups=video dialout
+Restart=always
+RestartSec=3
+KillMode=control-group
+TimeoutStopSec=8
+
+[Install]
+WantedBy=multi-user.target

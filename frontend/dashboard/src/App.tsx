@@ -252,7 +252,7 @@ export default function App({ config }: { config: DashboardConfig }) {
     {/* Kept mounted (hidden) while the demo runs: it is Cayden's glasses connection, and closing it would release his assignment. */}
     {(glassesOpen || demoBusy) && <GlassesPanel url={glassesViewUrl(DEMO_RESCUER, true)} hidden={!glassesOpen || page !== 'board'} status={demoStep ? demoStepLabel[demoStep] : ''}
       onClose={() => { setGlassesOpen(false); if (!demoBusy) setDemoStep(null); }} />}
-    {cameras && <CameraView robots={robotFrames(board, site)} rescuers={glassesRescuers(board)} glassesUrl={glassesViewUrl} onClose={() => setCameras(false)} />}
+    {cameras && <CameraView robots={robotFrames(board, site)} rescuers={glassesRescuers(board)} glassesUrl={glassesViewUrl} replay={replayMode} onClose={() => setCameras(false)} />}
     {toast && <div className="toast" role="status">{toast}</div>}
   </main>;
 }
