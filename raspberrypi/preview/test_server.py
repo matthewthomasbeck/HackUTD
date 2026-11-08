@@ -15,10 +15,37 @@ import zlib
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
-from server import Latest, capture_camera, handler_for, jpeg_frames, parse_thermal_line, read_thermal, receive_pico, thermal_png
+from server import Latest, capture_camera, handler_for, jpeg_frames, parse_thermal_line, read_thermal, receive_pico, thermal_png, thermal_stats, publish_thermal
 
 
 class PreviewTests(unittest.TestCase):
+    def test_auto_contrast_keeps_measured_temperatures_and_limits_noise_amplification(self):
+        args = SimpleNamespace(thermal_min_c=20, thermal_max_c=40, thermal_flip_x=False, thermal_fixed_range=False)
+        frame = {'width': 32, 'height': 24, 'centi_deg_c': [2400] * 768}
+        slot = Latest()
+        publish_thermal(args, slot, frame)
+        info = slot.get()[3]
+        self.assertEqual((info['display_min_c'], info['display_max_c']), (22, 26))
+        frame['centi_deg_c'][400] = 3500
+        publish_thermal(args, slot, frame)
+        info = slot.get()[3]
+        self.assertEqual(info['max_c'], 35)
+        self.assertEqual(info['background_c'], 24)
+        self.assertGreaterEqual(info['display_max_c'] - info['display_min_c'], 4)
+        self.assertEqual(info['range_mode'], 'auto')
+        args.thermal_fixed_range = True
+        publish_thermal(args, slot, frame)
+        info = slot.get()[3]
+        self.assertEqual((info['display_min_c'], info['display_max_c']), (20, 40))
+
+    def test_temperature_summary_uses_measurements_and_matches_flipped_image(self):
+        frame = {'width': 3, 'height': 2, 'centi_deg_c': [2000, 2100, 2200, 2300, 3500, 2400]}
+        info = thermal_stats(frame)
+        self.assertEqual((info['min_c'], info['max_c'], info['background_c']), (20, 35, 23))
+        self.assertEqual((info['peak_col'], info['peak_row']), (1, 1))
+        frame['centi_deg_c'][3] = 4000
+        self.assertEqual(thermal_stats(frame, flip_x=True)['peak_col'], 2)
+
     def test_standalone_captures_camera_and_pico_simultaneously(self):
         camera, thermal, stop = Latest(), Latest(), threading.Event()
         master, slave = os.openpty()

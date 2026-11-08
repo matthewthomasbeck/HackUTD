@@ -299,6 +299,10 @@ select, input { border: 1.5px solid var(--hairline-strong); border-radius: 9px; 
 .camera-tile-content figure { margin: 0; display: flex; flex-direction: column; gap: var(--space-1); }
 .camera-tile-content img, .camera-tile-content .no-frame { width: 100%; height: var(--layout-camera-tile-height); object-fit: contain; border-radius: var(--radius-md); background: var(--night); }
 .camera-tile-content .thermal-image { image-rendering: pixelated; }
+.thermal-diagnostic { width: 100%; height: var(--layout-camera-tile-height); background: var(--night); border-radius: var(--radius-md); }
+.thermal-diagnostic image { image-rendering: pixelated; }
+.thermal-peak { fill: none; stroke: var(--on-night); stroke-width: 0.15; }
+.camera-tile.is-expanded .thermal-diagnostic { height: var(--layout-camera-expanded-height); }
 .camera-tile-content figcaption { color: var(--text-muted); }
 .camera-tile .glasses-frame { height: var(--layout-camera-tile-height); aspect-ratio: auto; display: grid; align-items: center; }
 .camera-tile .glasses-frame iframe { aspect-ratio: 2 / 1; height: auto; }

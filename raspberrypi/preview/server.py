@@ -32,9 +32,9 @@ class Latest:
         self.lock = threading.Lock()
         self.sample = None
 
-    def put(self, data, content_type, age_s=0):
+    def put(self, data, content_type, age_s=0, metadata=None):
         with self.lock:
-            self.sample = (data, content_type, time.monotonic() - age_s)
+            self.sample = (data, content_type, time.monotonic() - age_s, metadata)
 
     def get(self, max_age_s=2):
         with self.lock:
@@ -87,6 +87,40 @@ def thermal_png(frame, low_c=20, high_c=40, flip_x=False):
             + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
 
 
+def thermal_stats(frame, flip_x=False):
+    values = frame['centi_deg_c']
+    peak = max(range(len(values)), key=values.__getitem__)
+    width = frame['width']
+    col = peak % width
+    return {'min_c': min(values) / 100, 'max_c': values[peak] / 100,
+            'background_c': sorted(values)[len(values) // 2] / 100,
+            'peak_col': width - 1 - col if flip_x else col, 'peak_row': peak // width,
+            'width': width, 'height': frame['height']}
+
+
+def publish_thermal(args, slot, frame, age_s=0):
+    """Auto contrast is display-only; measurements and robot thresholds stay untouched."""
+    started = time.monotonic()
+    info = thermal_stats(frame, args.thermal_flip_x)
+    low, high = args.thermal_min_c, args.thermal_max_c
+    auto = not getattr(args, 'thermal_fixed_range', False)
+    if auto:
+        values = sorted(frame['centi_deg_c'])
+        low = values[int((len(values) - 1) * 0.02)] / 100 - 0.5
+        high = values[int((len(values) - 1) * 0.98)] / 100 + 0.5
+        if high - low < 4:
+            center = (high + low) / 2
+            low, high = center - 2, center + 2
+        previous = slot.get()
+        if previous and previous[3] and previous[3].get('range_mode') == 'auto':
+            low = previous[3]['display_min_c'] * 0.85 + low * 0.15
+            high = previous[3]['display_max_c'] * 0.85 + high * 0.15
+        low, high = round(low, 1), round(high, 1)
+    info.update(display_min_c=low, display_max_c=high, range_mode='auto' if auto else 'fixed')
+    image = thermal_png(frame, low, high, args.thermal_flip_x)
+    slot.put(image, 'image/png', age_s + time.monotonic() - started, info)
+
+
 def read_thermal(path):
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
         client.settimeout(0.75)
@@ -114,8 +148,7 @@ def poll_thermal(args, slot, stop):
         try:
             started = time.monotonic()
             frame, age = read_thermal(args.socket)
-            image = thermal_png(frame, args.thermal_min_c, args.thermal_max_c, args.thermal_flip_x)
-            slot.put(image, "image/png", age + time.monotonic() - started)
+            publish_thermal(args, slot, frame, age + time.monotonic() - started)
         except (OSError, ValueError, KeyError, TypeError) as exc:
             LOG.debug("thermal unavailable: %s", exc)
         stop.wait(0.25)
@@ -160,8 +193,7 @@ def receive_thermal(args, slot, stop):
                         received = time.monotonic()
                         try:
                             frame = parse_thermal_line(newest)
-                            image = thermal_png(frame, args.thermal_min_c, args.thermal_max_c, args.thermal_flip_x)
-                            slot.put(image, "image/png", time.monotonic() - received)
+                            publish_thermal(args, slot, frame, time.monotonic() - received)
                         except ValueError as exc:
                             LOG.debug("bad thermal frame: %s", exc)
         except OSError as exc:
@@ -216,9 +248,8 @@ def receive_pico(args, slot, stop):
                 if newest is not None:
                     received = time.monotonic()
                     try:
-                        image = thermal_png(parse_thermal_line(newest), args.thermal_min_c,
-                                            args.thermal_max_c, args.thermal_flip_x)
-                        slot.put(image, "image/png", time.monotonic() - received)
+                        frame = parse_thermal_line(newest)
+                        publish_thermal(args, slot, frame, time.monotonic() - received)
                         last_frame = received
                     except ValueError as exc:
                         LOG.debug("bad thermal frame: %s", exc)
@@ -397,7 +428,7 @@ def handler_for(camera, thermal, origin, vision=None, thermal_range=(20, 40)):
             elif sample is None:
                 body, status, content_type = b"No fresh frame", 503, "text/plain"
             else:
-                body, content_type, _ = sample
+                body, content_type = sample[:2]
                 status = 200
                 if self.headers.get("If-None-Match") == etag:
                     body, status = b"", 304
@@ -406,12 +437,17 @@ def handler_for(camera, thermal, origin, vision=None, thermal_range=(20, 40)):
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("Access-Control-Allow-Origin", origin)
-            self.send_header("Access-Control-Expose-Headers", "X-Frame-Age-Ms, ETag, X-Thermal-Range-C")
+            self.send_header("Access-Control-Expose-Headers", "X-Frame-Age-Ms, ETag, X-Thermal-Range-C, X-Thermal-Stats, X-Thermal-Range-Mode")
             if sample:
                 self.send_header("ETag", etag)
                 self.send_header("X-Frame-Age-Ms", str(round((time.monotonic() - sample[2]) * 1000)))
                 if path == "/thermal.png":
-                    self.send_header("X-Thermal-Range-C", f"{thermal_range[0]:g},{thermal_range[1]:g}")
+                    info = sample[3] or {}
+                    low, high = info.get('display_min_c', thermal_range[0]), info.get('display_max_c', thermal_range[1])
+                    self.send_header("X-Thermal-Range-C", f"{low:g},{high:g}")
+                    self.send_header("X-Thermal-Range-Mode", info.get('range_mode', 'fixed'))
+                    if sample[3]:
+                        self.send_header("X-Thermal-Stats", json.dumps(sample[3], separators=(',', ':')))
             self.end_headers()
             try:
                 self.wfile.write(body)
@@ -445,6 +481,7 @@ def main():
     parser.add_argument("--fps", type=int, default=10)
     parser.add_argument("--thermal-min-c", type=float, default=20)
     parser.add_argument("--thermal-max-c", type=float, default=40)
+    parser.add_argument("--thermal-fixed-range", action="store_true", help="Disable auto contrast and use thermal-min-c/max-c")
     parser.add_argument("--thermal-flip-x", action="store_true")
     args = parser.parse_args()
     if args.thermal_device and not args.standalone:

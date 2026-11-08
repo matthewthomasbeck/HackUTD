@@ -21,7 +21,7 @@ alongside standalone mode. No worker sends actuator commands.
 
 Capture runs whether or not a viewer is connected. Sensor failures expire the affected
 view after two seconds and retry independently. Old frames are overwritten, not queued.
-Use `--thermal-min-c 20 --thermal-max-c 40` to set the fixed display scale and
+Auto contrast is enabled by default. Use `--thermal-fixed-range --thermal-min-c 20 --thermal-max-c 40` for a fixed display scale and
 `--thermal-flip-x` after checking orientation with a warm hand. Display settings do not
 change detection thresholds. Camera defaults are 640x480 at 10 fps, configurable with
 `--width`, `--height`, and `--fps`. Missing camera software is reported in the terminal.
@@ -124,9 +124,23 @@ PNG rendering, TCP units, stale feeds, and separation of model output from raw c
 
 ## Thermal display and transfer optimization
 
-The fixed range uses navy/blue for cooler surfaces, teal for middle temperatures, and
+The palette uses navy/blue for cooler surfaces, teal for middle temperatures, and
 yellow/white for warmer areas. A cached 256-color lookup table reduces rendering work.
 The thermal caption shows the scale reported by the server. No detection thresholds change.
 ETags skip unchanged image transfers and redundant model-input writes. Matching ETags never
 allow stale frames to remain live. Disconnected viewers back off to a four-second retry
 interval and return to normal polling after recovery. CORS supports conditional requests.
+
+The thermal endpoint also reports measured minimum, median background, peak temperature,
+and peak pixel position in X-Thermal-Stats. The UI marks the hottest pixel and labels it
+as not a confirmed person. This diagnostic is separate from the C++ warm-shape tracker
+and cannot select or command a movement target.
+
+## Automatic thermal contrast
+
+Auto contrast maps the frame's 2nd to 98th percentile temperatures with padding and a
+minimum 4 C display span. A smoothed range reduces flicker; clipped hotspots still retain
+their true measured temperatures in the diagnostics. The caption explicitly labels Auto
+and shows the current low/high range. Colors can change as the scene changes; use measured
+temperatures to compare frames. This changes display contrast only, never detection thresholds.
+Use --thermal-fixed-range for stable cross-frame colors.
