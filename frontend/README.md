@@ -32,6 +32,8 @@ Then press Play demo (top right, next to Record run).
 Dog 1 searches house 3 and finds the hidden person, Cayden is assigned and accepts on his glasses, and he walks the streets to the door.
 The app shows his glasses in a small window you can drag anywhere and resize from its corner, and the Even simulator shows the same screens, because both read the same glasses service.
 Press it again (Play again) to walk him from the start of the street again.
+UnderDog opened from Applications or Spotlight connects to Maincloud, while `npm run demo` runs everything on the local server, so for the local demo start it with `npm run demo` (or pick Local server in the Server menu).
+If the two differ, or the glasses service is not running, Play demo says so.
 Details: `docs/specs/dashboard.md`, "Play demo".
 
 ## `glasses/` - Even Hub plugin, fallback page, phone page

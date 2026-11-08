@@ -25,6 +25,8 @@ export const demoStepLabel: Record<DemoStep, string> = {
 export type GlassesDemoCommand = 'reset' | 'start';
 
 export interface DemoDeps {
+  // Fails with a message saying what to fix when the glasses service is missing or on another database.
+  preflight(): Promise<void>;
   board(): BoardState;
   createSearch(cellId: bigint, robotId: string): Promise<unknown>;
   propose(survivorId: bigint, rescuer: Participant): Promise<unknown>;
@@ -59,6 +61,28 @@ export function demoAssignment(board: BoardState, survivorId: bigint, rescuer: P
   return board.assignments.find((row) => row.survivorId === survivorId && row.rescuerIdentity.toHexString() === hex && ['proposed', 'active'].includes(tag(row.status)));
 }
 
+// Whether two SpacetimeDB addresses name the same server (ws and http forms, localhost and 127.0.0.1 alike).
+export function sameServer(a: string, b: string): boolean {
+  const parts = (value: string) => {
+    const url = new URL(value);
+    const secure = url.protocol === 'https:' || url.protocol === 'wss:';
+    const host = url.hostname === 'localhost' || url.hostname === '[::1]' ? '127.0.0.1' : url.hostname;
+    return `${host}:${url.port || (secure ? '443' : '80')}`;
+  };
+  try { return parts(a) === parts(b); } catch { return false; }
+}
+
+// What the app should say when its database and the glasses service's differ, or undefined when they match.
+export function glassesMismatch(app: { uri: string; database: string }, glasses: { server?: string | null; database?: string | null; db?: string }): string | undefined {
+  if (glasses.db === 'fake') return 'The glasses service is running on fake data (FAKE_DB=1). Stop it and start everything with `npm run demo`.';
+  if (!glasses.server) return undefined;
+  const where = (uri: string) => (/maincloud/i.test(uri) ? 'Maincloud' : `the local server (${uri})`);
+  if (!sameServer(app.uri, glasses.server) || (glasses.database && glasses.database !== app.database)) {
+    return `UnderDog is on ${where(app.uri)}, but the glasses service is on ${where(glasses.server)}. Pick the same one in the Server menu, or start everything with \`npm run demo\`.`;
+  }
+  return undefined;
+}
+
 // Flat-earth meters, accurate over a city block.
 export function metersBetween(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
   const north = (b.lat - a.lat) * 111320;
@@ -68,6 +92,7 @@ export function metersBetween(a: { lat: number; lon: number }, b: { lat: number;
 
 export async function runDemo(deps: DemoDeps): Promise<void> {
   deps.onStep('connecting');
+  await deps.preflight();
   const rescuer = await deps.waitFor(() => demoRescuer(deps.board()), 20_000, 'Cayden’s glasses did not connect. Start everything with `npm run demo`.');
   await deps.glasses('reset');
 
