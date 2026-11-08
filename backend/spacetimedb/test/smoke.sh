@@ -144,6 +144,13 @@ call_ok "${COMMS_TOKEN}" claim_agent_task "[${TASK_ID}]"
 [[ "$(sql_count "${SIM_TOKEN}" "SELECT id FROM event_log WHERE kind = 'agent_task_expired'")" -ge 1 ]]
 printf 'PASS claimed agent task returns to open after lease expiry\n'
 
+# Several sweeps ran during the lease wait; each escalation level fires once per unattended period.
+for kind in escalation escalation_commander; do
+  fired="$(sql_count "${SIM_TOKEN}" "SELECT id FROM event_log WHERE kind = '${kind}' AND entity_id = ${SURVIVOR2_ID}")"
+  if [[ "${fired}" != 1 ]]; then printf 'FAIL %s fired %s times for survivor %s, expected 1\n' "${kind}" "${fired}" "${SURVIVOR2_ID}"; exit 1; fi
+done
+printf 'PASS sweep does not re-fire escalation levels\n'
+
 [[ "$(sql_count "${SIM_TOKEN}" "SELECT robot_id FROM robot WHERE robot_id = 'simdog' AND online = false")" == 1 ]]
 [[ "$(sql_count "${SIM_TOKEN}" "SELECT id FROM event_log WHERE kind = 'robot_offline'")" -ge 1 ]]
 printf 'PASS sweep marks a stale robot offline\n'

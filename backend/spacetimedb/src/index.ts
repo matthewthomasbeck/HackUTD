@@ -295,6 +295,15 @@ function unassignedSince(ctx: Ctx, s: Infer<typeof survivor.rowType>): Timestamp
   return latest === 0n ? ctx.timestamp : new Timestamp(latest);
 }
 
+// Escalation event kinds already logged for this survivor in the unattended period that began at `since`.
+function escalationsFiredSince(ctx: Ctx, survivor_id: bigint, since: Timestamp): Set<string> {
+  const fired = new Set<string>();
+  for (const event of ctx.db.event_log.entity_id.filter(survivor_id)) {
+    if (event.entity === 'survivor' && (event.kind === 'escalation' || event.kind === 'escalation_commander') && event.created_at.microsSinceUnixEpoch >= since.microsSinceUnixEpoch) fired.add(event.kind);
+  }
+  return fired;
+}
+
 export const heartbeat_missed = spacetimedb.reducer({ onSchedule: heartbeat_timer }, { arg: heartbeat_timer.rowType }, (ctx, { arg }) => {
   if (arg.kind.tag === 'disconnect_grace' && [...ctx.db.presence.identity.filter(arg.identity)].length > 0) return;
   if (arg.kind.tag === 'robot' || (arg.kind.tag === 'disconnect_grace' && arg.robot_id !== '')) {
@@ -391,11 +400,12 @@ export const sweep = spacetimedb.reducer({ onSchedule: sweep_timer }, { arg: swe
   }
   for (const s of [...ctx.db.survivor.iter()]) if (s.status.tag === 'unassigned' && s.critical_level.tag === 'immediate') {
     const timers = [...ctx.db.escalation_timer.survivor_id.filter(s.id)];
+    if (timers.length === 1) continue;
     const since = unassignedSince(ctx, s); const n = siteTimings(ctx).escalate_after_s;
-    const elapsed = now - since.microsSinceUnixEpoch;
-    const level = elapsed >= BigInt(n) * 1_000_000n ? 2 : 1;
-    const due = since.microsSinceUnixEpoch + BigInt(level === 1 ? n : 2 * n) * 1_000_000n;
-    if (timers.length !== 1 || timers[0]?.level !== level) armEscalation(ctx, s.id, level, since, due);
+    const fired = escalationsFiredSince(ctx, s.id, since);
+    if (fired.has('escalation_commander')) { cancelEscalation(ctx, s.id); continue; }
+    const level = fired.has('escalation') ? 2 : 1;
+    armEscalation(ctx, s.id, level, since, since.microsSinceUnixEpoch + BigInt(level === 1 ? n : 2 * n) * 1_000_000n);
   }
 });
 
