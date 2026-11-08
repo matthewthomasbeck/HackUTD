@@ -8,7 +8,7 @@ import type { RuntimeDeps } from "../agent-types.ts";
 import { VirtualClock } from "../clock.ts";
 import { loadConfig, type Config } from "../config.ts";
 import { Budget } from "../llm/budget.ts";
-import { LlmGateway, ModelHealth, NvidiaProvider } from "../llm/client.ts";
+import { LlmGateway, ModelHealth, realProvider } from "../llm/client.ts";
 import { DEFAULT_FIXTURE_DIR, loadFixtures, MockLLM, type FixtureRule, type MockPolicy } from "../llm/mock.ts";
 import { DEFAULT_POLICIES } from "../llm/policies.ts";
 import type { ChatReply, ChatRequest, LlmProvider } from "../llm/types.ts";
@@ -88,7 +88,7 @@ export class Harness {
     const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
     let provider: LlmProvider = this.mock;
     if (this.real) {
-      const rec = new RecordingProvider(new NvidiaProvider(this.cfg.NVIDIA_API_KEY, this.cfg.NVIDIA_BASE_URL));
+      const rec = new RecordingProvider(realProvider(this.cfg));
       this.realCalls = rec.calls;
       provider = rec;
     }

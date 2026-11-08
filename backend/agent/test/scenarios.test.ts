@@ -21,6 +21,13 @@ describe("scenarios (fake module, MockLLM)", () => {
     expect(r.harness.mock.requests.every((q) => !q.native)).toBe(true);
   });
 
+  it("auditor disagreement from a seeded bad proposal, as in real-model runs", async () => {
+    const r = await SCENARIOS.auditor_disagrees({ injectBadProposal: true });
+    expect(failures(r)).toEqual([]);
+    expect(r.harness.store.rows("audit_flag")).toMatchObject([{ kind: "proposal_disagree", filed_by: "auditor", status: "acted" }]);
+    expect(r.harness.store.rows("agent_action").filter((a) => a.tool === "propose_assignment")).toEqual([]);
+  });
+
   it("chain with templates only (ENABLE_COMMS_MODEL=0)", async () => {
     const r = await SCENARIOS.chain({ env: { ENABLE_COMMS_MODEL: "0" } });
     expect(failures(r)).toEqual([]);

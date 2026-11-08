@@ -8,7 +8,8 @@
 import "dotenv/config";
 import { loadConfig, type Config } from "../src/config.ts";
 import { bearingDeg, compass, haversineM } from "../src/geo.ts";
-import { modelExtras, NvidiaProvider } from "../src/llm/client.ts";
+import { modelExtras, realProvider } from "../src/llm/client.ts";
+import type { LlmProvider } from "../src/llm/types.ts";
 import { parseReply } from "../src/llm/parse.ts";
 import { LlmError, type ChatMessage, type ChatReply, type ChatRequest, type ToolDef } from "../src/llm/types.ts";
 
@@ -51,7 +52,7 @@ interface Row {
   note: string;
 }
 
-async function call(p: NvidiaProvider, req: ChatRequest): Promise<{ reply?: ChatReply; status: string; ms: number; error?: string }> {
+async function call(p: LlmProvider, req: ChatRequest): Promise<{ reply?: ChatReply; status: string; ms: number; error?: string }> {
   const t0 = Date.now();
   try {
     const reply = await p.send(req);
@@ -71,7 +72,7 @@ function bearingResult(a: Record<string, number>) {
   return { distance_m: Math.round(haversineM(a.from_lat, a.from_lon, a.to_lat, a.to_lon)), bearing_deg: Math.round(b), compass: compass(b) };
 }
 
-async function smokeModel(cfg: Config, p: NvidiaProvider, model: string, rows: Row[]): Promise<void> {
+async function smokeModel(cfg: Config, p: LlmProvider, model: string, rows: Row[]): Promise<void> {
   const base = { agent: "orchestrator" as const, model, maxTokens: 512, timeoutMs: 30_000 };
   const extras = modelExtras(cfg, model);
   const msgs: ChatMessage[] = [{ role: "user", content: MESSAGE }];
@@ -126,7 +127,7 @@ async function smokeModel(cfg: Config, p: NvidiaProvider, model: string, rows: R
   });
 
   // Step 4: strict JSON mode, no tools field.
-  const s4 = await call(p, { ...base, messages: [{ role: "system", content: JSON_SYSTEM }, ...msgs], extra: extras });
+  const s4 = await call(p, { ...base, messages: [{ role: "system", content: JSON_SYSTEM }, ...msgs], extra: { ...extras, response_format: { type: "json_object" } } });
   const pr = s4.reply ? parseReply(s4.reply.content) : null;
   const pass4 = pr?.kind === "actions" && pr.actions[0].tool === "compute_bearing" && fourNumbers(pr.actions[0].args);
   rows.push({ model, step: "4 JSON action", mode: "json", status: s4.status, latency: `${s4.ms}`, pass: pass4 ? "pass" : "FAIL", note: s4.error ?? (pr?.kind === "error" ? pr.error : "") });
@@ -149,7 +150,7 @@ async function main(): Promise<number> {
     console.log("Never commit the key; the repo is public.");
     return 0;
   }
-  const p = new NvidiaProvider(cfg.NVIDIA_API_KEY, cfg.NVIDIA_BASE_URL);
+  const p = realProvider(cfg);
   const rows: Row[] = [];
   for (const model of [cfg.MODEL_SUPER, cfg.MODEL_NANO]) {
     console.log(`testing ${model} ...`);

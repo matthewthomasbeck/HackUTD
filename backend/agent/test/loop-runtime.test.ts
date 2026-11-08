@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CORRECTION, runCycle } from "../src/loop.ts";
 import { dispatch } from "../src/tools/dispatch.ts";
 import { ctxFor, fakeWorld, postAndClaim, RESCUER, survivorAt } from "./helpers.ts";
@@ -25,6 +25,16 @@ describe("dispatch round trip (agent.md 13 step 4)", () => {
 });
 
 describe("loop.ts", () => {
+  it("asks the serving engine for valid JSON in JSON tool mode", async () => {
+    const { h } = fakeWorld({ env: { TOOL_MODE: "json" }, rules: [{ agent: "orchestrator", turn: "any", reply: { content: "done" } }] });
+    const send = vi.spyOn(h.mock, "send");
+    await runCycle(ctxFor(h, "orchestrator"));
+    expect(send.mock.calls[0][0]).toMatchObject({
+      extra: { reasoning_effort: "low", response_format: { type: "json_object" } },
+    });
+    expect(send.mock.calls[0][0].tools).toBeUndefined();
+  });
+
   it("JSON mode: one correction, then the fallback (rules verdict) completes the review", async () => {
     const { h } = fakeWorld({ env: { TOOL_MODE: "json" }, rules: [{ agent: "auditor", turn: "any", reply: { json_content: "I agree with this." } }] });
     const sid = survivorAt(h, 3);

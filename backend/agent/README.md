@@ -15,6 +15,42 @@ cp .env.example .env      # then paste NVIDIA_API_KEY; never commit .env (the re
 npm run typecheck && npm test
 ```
 
+### Brev-only deployment (2026-11-08)
+
+Eric's deployment runs both models on Brev. The `NVIDIA_*` environment names are retained for compatibility; the base URL selects the server.
+No Build API key is needed for this deployment:
+
+```dotenv
+NVIDIA_BASE_URL=http://localhost:18001/v1
+NVIDIA_API_KEY=none
+NANO_BASE_URL=http://localhost:18000/v1
+NANO_API_KEY=none
+SUPER_REASONING_EFFORT=none
+NANO_THINKING_OFF=1
+TOOL_MODE_SUPER=native
+TOOL_MODE_NANO=native
+```
+
+Forward the two loopback-only model servers before starting the agents:
+
+```bash
+ssh -fNT -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 18000:127.0.0.1:8000 hackutd-lightning
+ssh -fNT -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 18001:127.0.0.1:8000 hackutd-super
+```
+
+`hackutd-lightning` serves Lightning BF16 using vLLM 0.27.1 on an A100 80 GB.
+`hackutd-super` serves NVIDIA's Super VL NVFP4 checkpoint using vLLM 0.32.0 on an RTX PRO 6000 96 GB.
+The served model names remain the distinct `MODEL_SUPER` and `MODEL_NANO` names below.
+The quoted combined compute rate is $4.32/hour. Lightning can be stopped; this Super instance cannot be paused and must be deleted when no longer needed.
+
+With `low` reasoning, Super sometimes took over 10 s and skipped the inspection step.
+`SUPER_REASONING_EFFORT=none` follows the slow-response policy in agent.md 4.3.
+The prompt now states that an online robot can queue its next inspection while an existing mission is active, provided there is no proposed or queued mission.
+
+The Brev smoke test passed native tool calls, tool results, reasoning off, and JSON actions on both models.
+With reasoning off, observed native tool-call latency was 1.56 s for Super and 1.12 s for Lightning; JSON actions took 1.02 s and 0.58 s respectively.
+JSON mode requests `response_format: {"type":"json_object"}` from the server and then applies the normal argument and permission checks.
+
 ## Commands
 
 | Command | What it does |
@@ -30,6 +66,11 @@ npm run typecheck && npm test
 Scenario names: `chain`, `priority`, `kill_orchestrator`, `race`, `auditor_disagrees`, `comms_fallback`, `all_down`, `budget`.
 `ENABLE_COMMS_MODEL`, `ENABLE_AUDITOR_MODEL`, `TOOL_MODE`, and `RPM_BUDGET` from the environment apply to scenarios, for example `TOOL_MODE=json npm run scenario -- chain`.
 
+`npm run scenario -- --real` calls the configured model servers against the fake database.
+It runs `chain`, `priority`, `auditor_disagrees`, and `kill_orchestrator`; the other scenarios rely on scripted model failures and stay in the mock suite.
+The real auditor test seeds a known bad proposal before starting the agents, so it checks disagreement without requiring Super to choose badly.
+The real priority test checks the resulting assignments; the intentional wrong-first-attempt guard check stays in the mock test.
+
 ## Tool mode decision (E0)
 
 `npm run smoke:llm` prints this table; paste its result here and the decision into `docs/specs/agent.md` 4.3.
@@ -42,7 +83,7 @@ Scenario names: `chain`, `priority`, `kill_orchestrator`, `race`, `auditor_disag
 | `nvidia/nemotron-3.5-lightning-30b-a3b` (auditor, comms) | pass | pass only with thinking off (empty reply otherwise) | `enable_thinking: false` accepted, reasoning text gone | 0.1 to 1.3 s | `TOOL_MODE_NANO=native`, `NANO_THINKING_OFF=1` |
 
 Smoke test run on 2026-11-07 against build.nvidia.com; no 429 seen.
-The model ids in agent.md 4.1 are out of date: Super returns 404 for our key and Nano 30B reached end of life, so `.env.example` uses the two Nemotron 3.5 models above (same sizes).
+The original Super model returned 404 for our key and Nano 30B reached end of life, so `.env.example` and agent.md 4.1 use the two Nemotron 3.5 models above.
 
 Set `TOOL_MODE_SUPER` and `TOOL_MODE_NANO` in `.env` from the result; it is a config change, not a code change.
 `NANO_THINKING_OFF=1` sends `chat_template_kwargs: {"enable_thinking": false}` to Nano, only if step 3 shows the hosted API honors it.
@@ -93,7 +134,6 @@ Only `src/stdb/` touches the generated bindings, through a dynamic import, so `n
 
 ## Still needs
 
-- The NVIDIA key: `npm run smoke:llm`, the tool-mode table above, and the real-model runs of `chain` (three times), `TOOL_MODE=json`, and `ENABLE_COMMS_MODEL=1`.
 - The generated bindings and the published module: `npm start`, the three identities registering, and checks of every UNCONFIRMED item in the top comment of `src/stdb/connect.ts` (argument key spelling, enum shapes, `Identity.fromString`, optional arguments).
 - The simulator (`backend/sim/`): `npm run scenario -- --live` is reserved for it and exits with a message today.
 

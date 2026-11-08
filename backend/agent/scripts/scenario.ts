@@ -55,7 +55,7 @@ async function main(): Promise<number> {
   }
   const env: Record<string, string> = {};
   const keys = ["ENABLE_COMMS_MODEL", "ENABLE_AUDITOR_MODEL", "TOOL_MODE", "TOOL_MODE_SUPER", "TOOL_MODE_NANO", "RPM_BUDGET"];
-  if (real) keys.push("NVIDIA_API_KEY", "NVIDIA_BASE_URL", "MODEL_SUPER", "MODEL_NANO", "NANO_THINKING_OFF");
+  if (real) keys.push("NVIDIA_API_KEY", "NVIDIA_BASE_URL", "NANO_BASE_URL", "NANO_API_KEY", "MODEL_SUPER", "MODEL_NANO", "NANO_THINKING_OFF", "SUPER_REASONING_EFFORT");
   for (const k of keys) {
     const v = process.env[k];
     if (v !== undefined && v !== "") env[k] = v;

@@ -57,7 +57,10 @@ async function modelLoop(ctx: CycleCtx): Promise<string | null> {
           tools: mode === "native" ? toolDefs(tools) : undefined,
           maxTokens: agent.maxTokens,
           timeoutMs: agent.timeoutMs,
-          extra: modelExtras(deps.cfg, agent.model),
+          extra: {
+            ...modelExtras(deps.cfg, agent.model),
+            ...(mode === "json" ? { response_format: { type: "json_object" } } : {}),
+          },
         },
         { priority: input.priority, deadlineAt: input.deadlineAt },
       );
