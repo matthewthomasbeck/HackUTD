@@ -94,6 +94,27 @@ class ServoMaestro : public IServoBus {
     return send_target(channel, static_cast<int>(std::lround(pulse_us * 4)));
   }
 
+  std::optional<double> get_position_us(int channel) override {
+    if (channel < 0 || channel > 23) return std::nullopt;
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!ready_) return std::nullopt;
+    tcflush(fd_, TCIFLUSH);
+    const unsigned char cmd[2] = {0x90, static_cast<unsigned char>(channel)};  // Get Position
+    unsigned char reply[2];
+    if (!write_all(cmd, 2) || !read_exact(reply, 2, 200)) return std::nullopt;
+    return (reply[0] | (reply[1] << 8)) / 4.0;  // quarter-microseconds
+  }
+
+  std::optional<int> get_errors() override {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!ready_) return std::nullopt;
+    tcflush(fd_, TCIFLUSH);
+    const unsigned char cmd = 0xA1;  // Get Errors
+    unsigned char reply[2];
+    if (!write_all(&cmd, 1) || !read_exact(reply, 2, 200)) return std::nullopt;
+    return reply[0] | (reply[1] << 8);
+  }
+
   bool release_all() override {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!ready_) return false;

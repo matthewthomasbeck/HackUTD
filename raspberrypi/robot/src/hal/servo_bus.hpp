@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "hal/device.hpp"
@@ -22,6 +23,14 @@ class IServoBus : public IDevice {
   virtual bool set_target_us(int channel, double pulse_us) = 0;
   // Stop sending pulses on every channel (target 0), so the servos go limp.
   virtual bool release_all() = 0;
+  // Bring-up checks (robot_diag ping); empty if the board does not answer.
+  // Position = the pulse the Maestro is sending on that channel now, in microseconds (0 = no pulses).
+  virtual std::optional<double> get_position_us(int channel) {
+    (void)channel;
+    return std::nullopt;
+  }
+  // Maestro error flags (0 = none); reading them clears them on the board.
+  virtual std::optional<int> get_errors() { return std::nullopt; }
 };
 
 // Real Maestro over UART, Pololu compact protocol. Stub until task R2.
