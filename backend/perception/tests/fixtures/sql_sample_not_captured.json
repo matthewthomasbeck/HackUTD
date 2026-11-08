@@ -1,0 +1,1027 @@
+{
+ "_note": "NOT YET CAPTURED FROM A REAL SERVER. Hand-written from docs/specs/perception.md 8.5 and spacetimedb.md (schema and column lists) to exercise every value form the decoder accepts: sums as [tag_index, value] and as {name: value}, timestamps as [micros] and as {__timestamp_micros_since_unix_epoch__: micros}. Replace with the raw output of scripts/smoke_stdb.py once the module is published.",
+ "survivor": [
+  {
+   "schema": {
+    "elements": [
+     {
+      "name": {
+       "some": "id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "site_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "cell_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "first_detection_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "lat"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "lon"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "location_note"
+      },
+      "algebraic_type": {
+       "String": []
+      }
+     },
+     {
+      "name": {
+       "some": "house_label"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "String": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "breathing"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "detected"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "not_detected"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "unknown"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "breathing_rate_bpm"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "F64": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "breathing_confidence"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "visibility_pct"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "F64": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "critical_level"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "immediate"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "delayed"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "minor"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "unknown"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "critical_score"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "score_confidence"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "score_reasons"
+      },
+      "algebraic_type": {
+       "Array": {
+        "String": []
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "status"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "unassigned"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "assigned"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "en_route"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "reached"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "resolved"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "resolution"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "Sum": {
+            "variants": [
+             {
+              "name": {
+               "some": "rescued"
+              },
+              "algebraic_type": {
+               "Product": {
+                "elements": []
+               }
+              }
+             },
+             {
+              "name": {
+               "some": "handed_off"
+              },
+              "algebraic_type": {
+               "Product": {
+                "elements": []
+               }
+              }
+             },
+             {
+              "name": {
+               "some": "false_alarm"
+              },
+              "algebraic_type": {
+               "Product": {
+                "elements": []
+               }
+              }
+             },
+             {
+              "name": {
+               "some": "duplicate"
+              },
+              "algebraic_type": {
+               "Product": {
+                "elements": []
+               }
+              }
+             }
+            ]
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "resolved_by"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "String": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "possible_duplicate_of"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "breathing_display_url"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "String": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "escalated_at"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": [
+             {
+              "name": {
+               "some": "__timestamp_micros_since_unix_epoch__"
+              },
+              "algebraic_type": {
+               "I64": []
+              }
+             }
+            ]
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "created_at"
+      },
+      "algebraic_type": {
+       "Product": {
+        "elements": [
+         {
+          "name": {
+           "some": "__timestamp_micros_since_unix_epoch__"
+          },
+          "algebraic_type": {
+           "I64": []
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "updated_at"
+      },
+      "algebraic_type": {
+       "Product": {
+        "elements": [
+         {
+          "name": {
+           "some": "__timestamp_micros_since_unix_epoch__"
+          },
+          "algebraic_type": {
+           "I64": []
+          }
+         }
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "rows": [
+    [
+     12,
+     1,
+     3,
+     40,
+     32.9858,
+     -96.7501,
+     "8 m in from the front door",
+     [
+      0,
+      "house 3"
+     ],
+     [
+      0,
+      []
+     ],
+     [
+      0,
+      17.8
+     ],
+     0.64,
+     [
+      0,
+      59.0
+     ],
+     [
+      1,
+      []
+     ],
+     38.5,
+     0.52,
+     [
+      "breathing 17/min",
+      "needs human triage"
+     ],
+     [
+      2,
+      []
+     ],
+     [
+      1,
+      []
+     ],
+     [
+      1,
+      []
+     ],
+     0,
+     [
+      1,
+      []
+     ],
+     [
+      1,
+      []
+     ],
+     [
+      1794107722000000
+     ],
+     [
+      1794107782000000
+     ]
+    ],
+    [
+     13,
+     1,
+     0,
+     41,
+     32.986,
+     -96.75,
+     "",
+     {
+      "none": []
+     },
+     {
+      "unknown": []
+     },
+     {
+      "none": []
+     },
+     0.0,
+     {
+      "none": []
+     },
+     {
+      "unknown": []
+     },
+     0.0,
+     0.0,
+     [],
+     {
+      "unassigned": []
+     },
+     {
+      "none": []
+     },
+     {
+      "none": []
+     },
+     12,
+     {
+      "none": []
+     },
+     {
+      "some": {
+       "__timestamp_micros_since_unix_epoch__": 1794107842000000
+      }
+     },
+     {
+      "__timestamp_micros_since_unix_epoch__": 1794107752000000
+     },
+     {
+      "__timestamp_micros_since_unix_epoch__": 1794107752000000
+     }
+    ]
+   ],
+   "total_duration_micros": 512,
+   "stats": {
+    "rows_inserted": 0,
+    "rows_deleted": 0,
+    "rows_updated": 0
+   }
+  }
+ ],
+ "detection": [
+  {
+   "schema": {
+    "elements": [
+     {
+      "name": {
+       "some": "id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "run_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "chain_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "robot_id"
+      },
+      "algebraic_type": {
+       "String": []
+      }
+     },
+     {
+      "name": {
+       "some": "mission_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "source"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "thermal"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "camera"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "survivor_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "client_ref"
+      },
+      "algebraic_type": {
+       "String": []
+      }
+     },
+     {
+      "name": {
+       "some": "lat"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "lon"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "gps_fix"
+      },
+      "algebraic_type": {
+       "Bool": []
+      }
+     },
+     {
+      "name": {
+       "some": "location_note"
+      },
+      "algebraic_type": {
+       "String": []
+      }
+     },
+     {
+      "name": {
+       "some": "max_temp_c"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "F64": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "thermal_confidence"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "thermal_image_url"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "String": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "camera_image_url"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "String": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "breathing_clip_url"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "String": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "created_at"
+      },
+      "algebraic_type": {
+       "Product": {
+        "elements": [
+         {
+          "name": {
+           "some": "__timestamp_micros_since_unix_epoch__"
+          },
+          "algebraic_type": {
+           "I64": []
+          }
+         }
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "rows": [
+    [
+     40,
+     3,
+     7,
+     "dog1",
+     2,
+     [
+      0,
+      []
+     ],
+     12,
+     "dog1-0007",
+     32.9858,
+     -96.7501,
+     true,
+     "8 m in from the front door",
+     [
+      0,
+      34.2
+     ],
+     0.82,
+     [
+      0,
+      "http://192.168.1.20:8080/media/r3_dog1_thermal_20261108T031522Z_1a2b3c4d.npy"
+     ],
+     [
+      0,
+      "http://192.168.1.20:8080/media/r3_dog1_camera_20261108T031522Z_5e6f7a8b.jpg"
+     ],
+     [
+      0,
+      "http://192.168.1.20:8080/media/r3_dog1_clip_20261108T031522Z_9f2c41ab.mp4"
+     ],
+     [
+      1794107722000000
+     ]
+    ],
+    [
+     41,
+     3,
+     0,
+     "dog1",
+     2,
+     {
+      "thermal": []
+     },
+     0,
+     "dog1-0008",
+     32.986,
+     -96.75,
+     false,
+     "",
+     {
+      "none": []
+     },
+     0.21,
+     {
+      "none": []
+     },
+     {
+      "none": []
+     },
+     {
+      "none": []
+     },
+     {
+      "__timestamp_micros_since_unix_epoch__": 1794107727000000
+     }
+    ]
+   ],
+   "total_duration_micros": 512,
+   "stats": {
+    "rows_inserted": 0,
+    "rows_deleted": 0,
+    "rows_updated": 0
+   }
+  }
+ ]
+}

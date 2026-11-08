@@ -1,0 +1,16 @@
+[
+  { "agent": "orchestrator", "contains": ["SURVIVORS (unassigned"], "turn": 0, "policy": "greedy_orchestrator" },
+  {
+    "agent": "auditor",
+    "contains": ["TASK: review"],
+    "turn": 0,
+    "reply": {
+      "tool_calls": [
+        {
+          "name": "submit_review",
+          "arguments": { "reason": "nearest available rescuer with load 0 at the time", "verdict": "agree", "suggested_action": "" }
+        }
+      ]
+    }
+  }
+]

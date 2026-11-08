@@ -1,0 +1,106 @@
+# Perception service config (docs/specs/perception.md).
+# Load order: this file, then .env, then PERCEPTION_<SECTION>_<KEY> environment overrides
+# (for example PERCEPTION_BREATHING_MIN_FPS=12). See perception/config.py.
+# Every [breathing] and [score] value is an untuned default from the spec tables.
+# Tune them on the recorded teammate clips (perception.md section 10) and say here which clips.
+
+[server]
+host = "0.0.0.0"
+port = 8080
+public_base_url = "http://localhost:8080"   # .env PUBLIC_BASE_URL overrides (the laptop LAN IP)
+cors_origins = "http://localhost:5180"      # comma separated; .env CORS_ORIGINS overrides
+
+[paths]
+data_dir = "data"                           # relative to backend/perception/
+
+[media]
+max_mb = 200                                # per file; larger gives 413
+allowed_ext = [".jpg", ".jpeg", ".png", ".mp4", ".mkv", ".avi", ".h264", ".mov", ".wav", ".npy", ".json", ".csv", ".bin"]
+kinds = ["thermal", "camera", "clip", "terrain", "log", "voice"]
+download_timeout_s = 30                     # clip_url download when the URL is not on this server
+
+[stdb]
+uri = "https://maincloud.spacetimedb.com"   # .env STDB_URI overrides
+database = "assess-0hw81"                 # .env STDB_DATABASE overrides
+token = ""                                  # .env STDB_TOKEN; empty means data/identity.json
+participant_name = "perception"
+timeout_s = 5
+retry_backoff_s = [0.5, 1, 2, 4, 8]
+pending_retry_s = 10
+run_cache_s = 10
+poll_interval_s = 2                         # HTTP SQL fallback when the Node helper is down
+helper_enabled = true
+helper_script = "stdb-helper/dist/index.js"
+helper_restart_max_s = 30
+
+[breathing]
+default_fps = 30
+min_fps = 10
+min_duration_s = 15
+max_duration_s = 30
+yolo_model = "yolo26n-pose.pt"              # fallback yolo11n-pose.pt
+yolo_fallback_model = "yolo11n-pose.pt"     # PROPOSED key (breathing.py default)
+motion_null_ratio_min = 4.0                 # PROPOSED key: chest signal vs matched noise, below it nothing moves (still chest)
+yolo_conf = 0.25
+kp_conf = 0.5
+yolo_frames = 5
+person_confirm_conf = 0.5
+chest_width_factor = 1.1
+center_roi_frac = 0.4
+min_roi_px = 40
+roi_max_w = 160
+roi_max_h = 120
+grid = 8
+clip_dark_mean_min = 40
+clip_noise_max = 6
+sat_frac_max = 0.2
+dark_mean_min = 8
+tex_min = 4
+band_lo_hz = 0.1
+band_hi_hz = 1.0
+filter_order = 2
+nfft = 4096
+peak_halfwidth_hz = 0.05
+c_min = 0.15
+c_good = 0.5
+c_detect = 0.35
+snr_detect_db = 6
+half_tol_bpm = 6
+flow_tol_bpm = 4
+bg_ratio_max = 0.5
+flicker_c_max = 0.5
+k_not_detected = 0.75
+
+[evm]
+enabled = false                             # could have (perception.md section 6)
+evm_levels = 3
+evm_alpha = 10
+evm_band = [0.2, 1.0]
+
+[score]
+rr_high = 30
+rr_low = 10
+v_buried = 0.3
+b_absent = 1.0
+b_abnormal = 0.9
+b_normal = 0.3
+w_breath = 0.5
+w_buried = 0.3
+w_wait = 0.2
+wait_full_min = 30
+absent_conf_cap = 0.3
+rescore_interval_s = 60
+rescore_min_delta = 2.0
+rescore_conf_delta = 0.05
+
+[terrain]
+terrain_max_age_s = 5
+terrain_min_conf = 0.5
+terrain_write_db = false                    # only for a test with the robot's own terrain reports off
+
+[stt]
+engine = "nvidia_riva"                      # nvidia_riva | whisper_local | none; .env STT_ENGINE overrides
+riva_server = "grpc.nvcf.nvidia.com:443"    # UNCONFIRMED until the smoke test
+riva_function_id = ""
+whisper_model = "small.en"
+# The NVIDIA key is read from NVIDIA_API_KEY in .env only and is never copied into this config.

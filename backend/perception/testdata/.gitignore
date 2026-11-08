@@ -1,0 +1,6 @@
+# Generated synthetic clips (scripts/make_synthetic.py) and model weights stay out of git.
+synthetic/
+*.pt
+# Recorded teammate clips show faces; keep them out of git unless every teammate agrees.
+real/*.mp4
+real/*.mov

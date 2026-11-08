@@ -68,7 +68,7 @@ C++ main program --local socket--> Node.js bridge --+                 phone (Eve
 - Robot link: SpacetimeDB has no standalone C++ client (official clients: Rust, C#, TypeScript, Unreal), so a small Node.js bridge on the Pi holds the connection, and the C++ program talks to it over a local non-blocking socket.
   Option to test: the C++ program calls reducers directly with an HTTP POST to `/v1/database/:name/call/:reducer`.
 - Agents: Node.js SpacetimeDB clients on a laptop whose write tools are reducers and who coordinate through the `agent_task` board.
-  Model: `nvidia/nemotron-3-super-120b-a12b` through NVIDIA's OpenAI-compatible API at `https://integrate.api.nvidia.com/v1`, with `nvidia/nemotron-3-nano-30b-a3b` for the smaller agents and as the fallback.
+  Model: `nvidia/nemotron-3.5-super-vl-120b-a12b` through NVIDIA's OpenAI-compatible API at `https://integrate.api.nvidia.com/v1`, with `nvidia/nemotron-3.5-lightning-30b-a3b` for the smaller agents and as the fallback.
   The hosted API schema does not list `tools`, so test one tool call first.
 - GPS: Matthew's module on the Pi's USB through a USB-to-TTL adapter (or a USB GPS dongle), read with `gpsd`.
   This uses no Pi or Pico UART.
