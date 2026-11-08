@@ -10,6 +10,7 @@
 
 #include "core/clock.hpp"
 #include "hal/device.hpp"
+#include "hal/pico_link.hpp"
 #include "vision/detection.hpp"
 
 namespace robot {
@@ -40,6 +41,12 @@ struct WorldSnapshot {
   bool clip_recording = false;        // the camera is recording a breathing clip (task R5)
   TerrainAction terrain = TerrainAction::None;
   std::optional<Detections> detections;  // newest result from the vision thread, if any
+
+  // Pico sensors the mission behaviors use, only when fresh (thermal.stale_ms etc.).
+  std::optional<ThermalFrame> thermal;   // newest thermal frame
+  SteadyTime thermal_at{};               // when it arrived, so a behavior can tell a new frame
+  std::optional<double> range_m;         // TF-Luna, straight ahead, only with a trustworthy strength
+  std::optional<Ld19Scan> ld19;          // newest full LD19 revolution (the 360 degree lidar on top)
 
   const DeviceView* device(const std::string& name) const {
     for (const auto& d : devices) {

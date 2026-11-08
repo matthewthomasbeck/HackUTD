@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <atomic>
 
 #include "hal/device_mock.hpp"
@@ -30,6 +31,10 @@ class PicoLinkMock : public IPicoLink {
       t.width = 32;  // TBD thermal model
       t.height = 24;
       t.centi_deg_c.assign(32 * 24, 2200);  // a 22 C room
+      // `robotctl mock thermal_blob <col>`: a 34 C person-sized patch, 4 wide and 8 tall.
+      const int col = controls_->thermal_blob();
+      for (int y = 8; col >= 0 && y < 16; ++y)
+        for (int x = std::max(0, col - 2); x < std::min(32, col + 2); ++x) t.centi_deg_c[static_cast<std::size_t>(y * 32 + x)] = 3400;
       readings_.thermal.write(t, now);
     }
     if (!controls_->is_stale("ads1115")) readings_.force.write(ForceSample{}, now);

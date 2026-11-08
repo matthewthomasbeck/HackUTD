@@ -115,6 +115,8 @@ add_library(robot_core STATIC
   src/vision/detector_coral.cpp
   src/vision/detector_mock.cpp
   src/mission/behaviors/hold.cpp
+  src/mission/behaviors/thermal_seek.cpp
+  src/perception/thermal_detector.cpp
   src/bridge/control_server.cpp
 )
 target_include_directories(robot_core PUBLIC src)
@@ -175,6 +177,7 @@ add_executable(robot_tests
   tests/test_mecanum.cpp
   tests/test_calibration.cpp
   tests/test_legs.cpp
+  tests/test_thermal_seek.cpp
 )
 target_compile_options(robot_tests PRIVATE ${ROBOT_WARNINGS})
 target_compile_definitions(robot_tests PRIVATE ROBOT_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/config")

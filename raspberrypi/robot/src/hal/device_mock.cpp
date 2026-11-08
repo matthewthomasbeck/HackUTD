@@ -55,4 +55,14 @@ InitResult MockDevice::init() {
   return {status, status == DeviceStatus::OK ? "mock" : "mock, forced by robotctl"};
 }
 
+void MockControls::set_thermal_blob(int column) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  thermal_blob_ = column;
+}
+
+int MockControls::thermal_blob() const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return thermal_blob_;
+}
+
 }  // namespace robot

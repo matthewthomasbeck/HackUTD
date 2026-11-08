@@ -15,6 +15,9 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include "mission/seek_config.hpp"
+#include "perception/thermal_detector.hpp"
+
 namespace robot {
 
 // Devices on the Pi, in init order (docs/specs/robot.md section 4.1), then the light.
@@ -104,6 +107,8 @@ struct Config {
   std::map<std::string, DcDriverSettings> dc_driver;  // dc_driver_a, dc_driver_b
   MecanumSettings mecanum;
   LegsSettings legs;
+  ThermalConfig thermal;  // thermal.* (docs/specs/robot.md section 7)
+  SeekConfig seek;        // seek.*, inspect.standoff_m, scan.rotate_wz_dps
   int camera_width = 0;
   int camera_height = 0;
   double camera_fps = 0;

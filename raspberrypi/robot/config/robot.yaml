@@ -78,6 +78,7 @@ thermal:
   contrast_full_c: 6
   render_scale: 10
   mask: []                                                  # list of [col0, row0, col1, row1]
+  flip_x: false                     # TBD on the robot: true if a warm thing on the right shows on the left
 terrain:
   impl: rules                       # rules | mock
   front_sector_deg: 60
@@ -106,6 +107,23 @@ terrain:
   camera_hint: { enabled: false, frame_every_s: 1.0, max_age_ms: 1500, weight: 0.3 }
 scan: { seconds_per_cell: 10, mode: rotate, rotate_wz_dps: 20, dedupe_deg: 15, dedupe_m: 1.0, min_view_m: 0.5, min_fresh_frac: 0.9, min_clear_frac: 0.7 }
 inspect: { standoff_m: 1.0, approach_timeout_s: 10, settle_s: 2, still_gyro_dps: 2.0 }
+seek:                               # seek_thermal mission (robotctl start seek_thermal); tune on the floor
+  scan_step_s: 1.0                  # turn this long (at scan.rotate_wz_dps)...
+  scan_dwell_s: 1.0                 # ...then hold still this long to look
+  scan_max_s: 60                    # nothing found by then: give up
+  turn_gain: 1.5                    # deg/s of turn per degree the target is off center
+  max_turn_dps: 30
+  center_deg: 5                     # target within this counts as straight ahead
+  approach_mps: 0.1
+  close_frac: 0.25                  # no distance known: stop when the blob fills this much of the frame
+  lost_s: 1.5                       # target unseen this long: scan again
+  approach_timeout_s: 20
+  ld19_front_deg: 0                 # TBD on the robot: LD19 angle that points straight ahead
+  ld19_clockwise: true              # TBD on the robot: LD19 angles grow to the right
+  ld19_window_deg: 4                # distance to a target = closest LD19 return within this of its bearing
+  blocked_m: 0.3                    # something nearer than this ahead (not the target): stop driving
+  front_sector_deg: 40
+  lock_deg: 10                      # keep the same target while it stays within this of where it was
 breathing: { clip_s: 20 }                                   # validation: >= 15
 nav: { match_radius_m: 5, min_clearance_m: 0.30, blocked_timeout_s: 5 }
 hold: { max_s: 0, inspect_candidates: false }

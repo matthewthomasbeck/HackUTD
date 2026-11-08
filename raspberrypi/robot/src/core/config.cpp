@@ -162,6 +162,48 @@ Config parse(const YAML::Node& root) {
     c.dc_driver[name] = d;
   }
 
+  ThermalConfig& th = c.thermal;
+  th.fov_h_deg = get_number(root, "thermal.fov_h_deg");
+  th.yaw_offset_deg = get_number(root, "thermal.yaw_offset_deg");
+  th.flip_x = get_bool(root, "thermal.flip_x");
+  th.delta_c = get_number(root, "thermal.delta_c");
+  th.min_c = get_number(root, "thermal.min_c");
+  th.max_c = get_number(root, "thermal.max_c");
+  th.min_blob_px = get_int(root, "thermal.min_blob_px");
+  th.max_blob_frac = get_number(root, "thermal.max_blob_frac");
+  th.persist_frames = get_int(root, "thermal.persist_frames");
+  th.persist_window = get_int(root, "thermal.persist_window");
+  th.persist_px = get_number(root, "thermal.persist_px");
+  th.contrast_full_c = get_number(root, "thermal.contrast_full_c");
+  for (const auto& m : get<std::vector<std::vector<int>>>(root, "thermal.mask", "a list of [col0, row0, col1, row1]")) {
+    require(m.size() == 4, "thermal.mask entries must be [col0, row0, col1, row1]");
+    th.mask.push_back({m[0], m[1], m[2], m[3]});
+  }
+  require(th.fov_h_deg > 0 && th.delta_c > 0 && th.min_c < th.max_c, "thermal.fov_h_deg, delta_c, min_c < max_c");
+  require(th.persist_frames >= 1 && th.persist_frames <= th.persist_window, "thermal.persist_frames must be 1..persist_window");
+
+  SeekConfig& sk = c.seek;
+  sk.scan_wz_dps = get_number(root, "scan.rotate_wz_dps");
+  sk.standoff_m = get_number(root, "inspect.standoff_m");
+  sk.scan_step_s = get_number(root, "seek.scan_step_s");
+  sk.scan_dwell_s = get_number(root, "seek.scan_dwell_s");
+  sk.scan_max_s = get_number(root, "seek.scan_max_s");
+  sk.turn_gain = get_number(root, "seek.turn_gain");
+  sk.max_turn_dps = get_number(root, "seek.max_turn_dps");
+  sk.center_deg = get_number(root, "seek.center_deg");
+  sk.approach_mps = get_number(root, "seek.approach_mps");
+  sk.close_frac = get_number(root, "seek.close_frac");
+  sk.lost_s = get_number(root, "seek.lost_s");
+  sk.approach_timeout_s = get_number(root, "seek.approach_timeout_s");
+  sk.ld19_front_deg = get_number(root, "seek.ld19_front_deg");
+  sk.ld19_clockwise = get_bool(root, "seek.ld19_clockwise");
+  sk.ld19_window_deg = get_number(root, "seek.ld19_window_deg");
+  sk.blocked_m = get_number(root, "seek.blocked_m");
+  sk.front_sector_deg = get_number(root, "seek.front_sector_deg");
+  sk.lock_deg = get_number(root, "seek.lock_deg");
+  require(sk.standoff_m > 0 && sk.approach_mps > 0 && sk.scan_step_s > 0 && sk.center_deg > 0,
+          "inspect.standoff_m, seek.approach_mps, seek.scan_step_s and seek.center_deg must be > 0");
+
   LegsSettings& legs = c.legs;
   legs.impl = get_string(root, "legs.impl");
   require(legs.impl == "mock" || legs.impl == "two_link", "legs.impl must be mock or two_link");

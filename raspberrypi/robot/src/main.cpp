@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <chrono>
 #include <csignal>
 #include <cstdint>
@@ -44,6 +45,7 @@
 #include "hal/device_manager.hpp"
 #include "hal/device_mock.hpp"
 #include "mission/behaviors/behavior.hpp"
+#include "mission/behaviors/thermal_seek.hpp"
 #include "hal/camera.hpp"
 #include "hal/dc_driver.hpp"
 #include "hal/pico_link.hpp"
@@ -182,6 +184,22 @@ WorldSnapshot observe(const Config& cfg, const DeviceManager& devices, const Har
   const auto moving = movement.status();
   w.motion_stopped = !moving || moving->stopped;
   if (const auto d = vision.detections().read()) w.detections = d->value;
+
+  // Pico sensors for the mission behaviors, only when fresh.
+  const PicoReadings& r = hw.pico->readings();
+  auto fresh = [&](const std::string& name, SteadyTime written) {
+    const auto it = cfg.stale_ms.find(name);
+    return it == cfg.stale_ms.end() || ms_between(written, now) <= it->second;
+  };
+  if (const auto t = r.thermal.read(); t && fresh("thermal", t->written)) {
+    w.thermal = t->value;
+    w.thermal_at = t->written;
+  }
+  if (const auto s = r.lidar_single.read();
+      s && fresh("lidar_single", s->written) && s->value.strength >= 100 && s->value.strength < 65535 && s->value.dist_mm > 0) {
+    w.range_m = s->value.dist_mm / 1000.0;
+  }
+  if (const auto s = r.ld19.read(); s && fresh("ld19", s->written) && !s->value.points.empty()) w.ld19 = s->value;
   return w;
 }
 
@@ -230,6 +248,12 @@ std::string apply_mock(const json& body, MockControls& controls) {
   const std::string device = body.value("device", "");
   if (what == "pico_link" && (value == "lost" || value == "ok")) {
     controls.set_pico_link_lost(value == "lost");
+  } else if (what == "thermal_blob") {
+    // A fake warm body for laptop tests: off, or the column (0..31) it shows at.
+    if (value == "off") controls.set_thermal_blob(-1);
+    else if (!value.empty() && std::isdigit(static_cast<unsigned char>(value[0])) && std::stoi(value) < 32)
+      controls.set_thermal_blob(std::stoi(value));
+    else return "usage: mock thermal_blob off|<column 0..31>";
   } else if (what == "estop_sense" && (value == "on" || value == "off")) {
     controls.set_estop_sense(value == "on");
   } else if (what == "stale" && known_device(device) && (value == "on" || value == "off")) {
@@ -361,7 +385,7 @@ int main(int argc, char** argv) {
         control.reply(req.client, status_json(cfg, machine, last_reason, world, gate_memory.last_sent, mission_kind));
       } else if (cmd == "start") {
         const std::string kind = req.body.value("kind", "hold");
-        if (kind != "hold") {
+        if (kind != "hold" && kind != "seek_thermal") {
           control.reply(req.client, {{"ok", false}, {"error", "unknown mission kind '" + kind +
                                                                    "' (only hold until the mission runner, R5)"}});
           continue;
@@ -405,7 +429,11 @@ int main(int argc, char** argv) {
       mission_kind.clear();
     }
     if (r.start_mission) {
-      behavior = std::make_unique<HoldBehavior>();
+      if (r.mission.mission_kind == "seek_thermal") {
+        behavior = std::make_unique<ThermalSeekBehavior>(cfg.thermal, cfg.seek);
+      } else {
+        behavior = std::make_unique<HoldBehavior>();
+      }
       behavior->start();
       mission_kind = r.mission.mission_kind;
       mission_id = r.mission.mission_id;
