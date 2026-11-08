@@ -27,7 +27,8 @@ const server = createServer(async (req, res) => {
   if (url.pathname === '/healthz') {
     const connected = [...sessions.values()].some(runtime => runtime.db?.isConnected);
     res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, db: config.fakeDb ? 'fake' : connected ? 'connected' : 'offline' }));
+    // server and database (no token) let the dashboard check that it and the glasses use the same database.
+    res.end(JSON.stringify({ ok: true, db: config.fakeDb ? 'fake' : connected ? 'connected' : 'offline', server: config.fakeDb ? null : config.stdbUri ?? null, database: config.fakeDb ? null : config.stdbDatabase ?? null }));
     return;
   }
   const actionMatch = /^\/rescuer\/([^/]+)\/action$/.exec(url.pathname);
@@ -65,14 +66,16 @@ const server = createServer(async (req, res) => {
     } catch (error) { res.writeHead(400); res.end(asError(error).message); }
     return;
   }
-  const demoMatch = /^\/demo\/([^/]+)\/(walk|move|reset)$/.exec(url.pathname);
+  // Demo walker controls (demo_mode sites only): walk toggles it, start always walks, reset returns to the start point,
+  // and move nudges by dn/de meters.
+  const demoMatch = /^\/demo\/([^/]+)\/(walk|start|move|reset)$/.exec(url.pathname);
   if (req.method === 'POST' && demoMatch) {
     try {
       const rescuer = safeRescuerName(decodeURIComponent(demoMatch[1]!));
       const runtime = sessions.get(rescuer);
       if (!runtime) { res.writeHead(404); res.end('rescuer session not found'); return; }
       if (!runtime.snapshot || !runtime.service.site.demo_mode) { res.writeHead(409); res.end('demo controls require an active site with demo_mode'); return; }
-      const command = demoMatch[2] as 'walk' | 'move' | 'reset';
+      const command = demoMatch[2] as 'walk' | 'start' | 'move' | 'reset';
       const body = req.headers['content-length'] ? await readJsonBody(req) : {};
       runtime.service.demoCommand(command, typeof body.dn === 'number' ? body.dn : 0, typeof body.de === 'number' ? body.de : 0);
       if (runtime.snapshot) updateMap(runtime, runtime.snapshot);
@@ -103,6 +106,9 @@ if (config.fakeDb) {
     const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
     if (url.pathname !== '/view' && url.pathname !== '/glasses' && url.pathname !== '/phone') { socket.destroy(); return; }
     const explicitlyPrimary = url.pathname === '/glasses' || url.searchParams.get('primary') === '1';
+    // The phone page and the glasses view page (fallback.html, embedded by the dashboard) name their rescuer in the URL
+    // and send no hello, so they attach at once; the plugin names itself in its hello message.
+    const rescuerInUrl = url.pathname === '/phone' || (url.pathname === '/view' && url.searchParams.has('rescuer'));
     wss.handleUpgrade(req, socket, head, ws => {
       let runtime: RuntimeSession | undefined;
       let attached = false;
@@ -135,7 +141,7 @@ if (config.fakeDb) {
       ws.on('message', async data => {
         const raw = data.toString();
         if (!runtime) {
-          const input = url.pathname === '/phone'
+          const input = rescuerInUrl
             ? { requested: url.searchParams.get('rescuer') ?? undefined }
             : parseHello(raw);
           if (!input) return;
@@ -148,7 +154,7 @@ if (config.fakeDb) {
         if (!attached) { pendingMessages.push(raw); return; }
         dispatchRuntimeMessage(runtime, ws, explicitlyPrimary || runtime.primarySockets.has(ws), raw);
       });
-      if (url.pathname === '/phone') {
+      if (rescuerInUrl) {
         const rescuer = resolveRescuer(rescuerMap!, { requested: url.searchParams.get('rescuer') ?? undefined });
         runtime = getRuntime(rescuer);
         void runtime.ready.then(() => attach(runtime!, rescuer));

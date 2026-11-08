@@ -26,6 +26,19 @@ describe('glasses session projection', () => {
     expect(distanceM(session.currentPosition(), { lat: 32.9857, lon: -96.7502 })).toBeCloseTo(250, 0);
   });
 
+  it('starts the demo walker idempotently, while walk toggles it', () => {
+    const session = new FakeSession({ demoStartBearingDeg: 225, demoStartDistanceM: 250 });
+    session.applyDbSnapshot(snapshot());
+    const walking = () => (session as unknown as { demo: { walking: boolean } }).demo.walking;
+    session.demoCommand('start');
+    session.demoCommand('start');
+    expect(walking()).toBe(true);
+    session.demoCommand('walk');
+    expect(walking()).toBe(false);
+    session.demoCommand('reset');
+    expect(walking()).toBe(false);
+  });
+
   it('projects an active assignment to the arrow view near its target', () => {
     const session = new FakeSession({ demoStartBearingDeg: 0, demoStartDistanceM: 30 });
     session.enableLiveMode();

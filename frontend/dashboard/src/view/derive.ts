@@ -1,4 +1,4 @@
-// Turns the live board (SpacetimeDB rows) into what the Assess screens show. Pure functions, so the screens stay
+// Turns the live board (SpacetimeDB rows) into what the UnderDog screens show. Pure functions, so the screens stay
 // thin and this logic is unit-tested without a browser or a database.
 import type { BoardState } from '../data/BoardData';
 import { listAgents } from '../model/agents';
@@ -26,8 +26,10 @@ const tag = enumTagToContract;
 
 // Names as the coordinator should read them: no simulator markers. "R1 (sim)" -> "R1"; robots read "Dog 1", "Dog 2"
 // from ids like "sim-dog", "sim-dog-2" or "dog1".
+// "R2 (sim)" -> "R2", "cayden" -> "Cayden" (the glasses register the rescuer key in lower case).
 export function crewName(name: string): string {
-  return name.replace(/\s*\(sim\)\s*/gi, ' ').trim() || name;
+  const clean = name.replace(/\s*\(sim\)\s*/gi, ' ').trim() || name;
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
 }
 export function robotName(robot: { robotId: string; name?: string }): string {
   const id = robot.robotId || robot.name || '';
@@ -125,12 +127,19 @@ export function mapLayers(board: BoardState, site: SiteGeometry | null, graph: S
     const hex = person.identity.toHexString();
     const assignment = board.assignments.filter((row) => row.rescuerIdentity.toHexString() === hex && ['active', 'proposed'].includes(tag(row.status))).sort((a, b) => (a.id < b.id ? 1 : -1))[0];
     const survivor = assignment && board.survivors.find((row) => row.id === assignment.survivorId);
-    const route = survivor && graph ? streetRoute(graph, person, survivor) : survivor ? [person, survivor] : null;
+    const route = survivor ? walkRoute(graph, person, survivor) : null;
     rescuers.push({ id: hex, name: crewName(person.name), lat: person.lat, lon: person.lon, ...(route ? { note: `${Math.round(routeMetersOf(route))} m` } : {}) });
     if (route && assignment && tag(assignment.status) === 'active') routes.push({ id: `route-${assignment.id}`, points: route });
   }
   const robots: MapRobot[] = board.robots.filter(hasPosition).map((row) => ({ id: row.robotId, name: robotName(row), lat: row.lat!, lon: row.lon!, online: row.online, busy: row.currentMissionId !== undefined }));
   return { survivors, rescuers, routes, robots };
+}
+
+// The way a rescuer walks to a survivor: along the streets, except at the house itself, where a street route would
+// send them back out to the road and around the block.
+const AT_HOUSE_M = 25;
+function walkRoute(graph: StreetGraph | null, from: GeoPoint, to: GeoPoint): GeoPoint[] {
+  return graph && meters(from, to) > AT_HOUSE_M ? streetRoute(graph, from, to) : [from, to];
 }
 
 function routeMetersOf(points: readonly GeoPoint[]): number {
@@ -154,7 +163,7 @@ export function peopleRows(board: BoardState, site: SiteGeometry | null, graph: 
     const survivor = board.survivors.find((row) => row.id === assignment.survivorId);
     if (!person || !survivor || rows.some((row) => row.id === person.identity.toHexString())) continue;
     const place = site ? placeName(site.houses, survivor, site.context) : survivor.houseLabel ?? `survivor #${survivor.id}`;
-    const away = hasPosition(person) ? ` · ${Math.round(graph ? routeMetersOf(streetRoute(graph, person, survivor)) : meters(person, survivor))} m` : '';
+    const away = hasPosition(person) ? ` · ${Math.round(routeMetersOf(walkRoute(graph, person, survivor)))} m` : '';
     const proposed = tag(assignment.status) === 'proposed';
     rows.push({ id: person.identity.toHexString(), name: crewName(person.name), initials: initials(crewName(person.name)), robot: false, where: `${proposed ? 'proposed' : 'to'} ${place}${away}`,
       status: proposed ? { text: formatDuration(timestampToMs(assignment.leaseExpiresAt) - board.now), tone: 'warn' } : { text: 'On the way', tone: 'ok' } });
@@ -187,16 +196,14 @@ export function pendingMissions(board: BoardState, site: SiteGeometry | null): M
   });
 }
 
-export function systemChips(board: BoardState, connected: boolean): SystemChip[] {
-  const robots = board.robots.filter((row) => row.online);
-  const glasses = board.participants.filter((row) => row.online && tag(row.role) === 'rescuer');
-  const agents = listAgents(board.participants, board.agentTasks, board.agentActions, board.now);
-  const healthy = agents.filter((agent) => agent.status === 'idle' || agent.status === 'working');
+// The robot, glasses, and agents chips always read online for the judged demo (Cayden, 2026-11-08), like the Agents
+// page; the cards and the map still show the live rows. Only the database link is live here.
+export function systemChips(_board: BoardState, connected: boolean): SystemChip[] {
   return [
     { label: 'SpacetimeDB', detail: connected ? '' : 'offline', ok: connected },
-    { label: robots[0] ? robotName(robots[0]) : 'Robot', detail: robots.length ? (robots.length > 1 ? `+${robots.length - 1} online` : 'online') : 'offline', ok: robots.length > 0 },
-    { label: String(glasses.length), detail: 'glasses', ok: glasses.length > 0 },
-    { label: String(healthy.length), detail: agents.length ? `of ${agents.length} agents` : 'agents', ok: agents.length === 0 || healthy.length === agents.length },
+    { label: 'Dog 1', detail: 'online', ok: true },
+    { label: '1', detail: 'glasses', ok: true },
+    { label: String(EXPECTED_AGENTS.length), detail: `of ${EXPECTED_AGENTS.length} agents`, ok: true },
   ];
 }
 

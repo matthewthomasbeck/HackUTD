@@ -40,14 +40,14 @@ One source, one look, one gate.
 
 The dashboard spec chose a light theme because projected black washes out in a lit hall; the glasses views stay green on black because black is see-through on the G2.
 
-## The Assess look (approved 2026-11-08)
+## The UnderDog look (approved 2026-11-08)
 
 The dashboard is built to this look; the review mockup and its versions are in `.lavish/`.
-All values are tokens in `frontend/design-tokens/tokens.css` (the "Assess look" block), so code holds no raw colors or fonts.
+All values are tokens in `frontend/design-tokens/tokens.css` (the "UnderDog look" block), so code holds no raw colors or fonts.
 
 | Element | Choice |
 | --- | --- |
-| Name and logo | "Assess"; the dog with the visor (`frontend/dashboard/public/brand/assess-dog.png`, app icon `electron/icon.png`) |
+| Name and logo | "UnderDog"; the dog with the visor (`frontend/dashboard/public/brand/underdog-logo.png`, app icon `electron/icon.png`) |
 | Colors | HackUTD Zero Day: night `#0A0718` to `#1B0F3F` in the top bar, purple `#7828FF`, lavender, magenta accents; light paper map and white cards; status colors unchanged |
 | Type | Satoshi (text), Chakra Petch Bold Italic (titles, big numbers; stands in for Zero Day's Elevon, which is a trial license), IBM Plex Mono (ids, times) |
 | Mascot | A cartoon tornado, one per agent, in its agent tint with one prop |

@@ -445,7 +445,7 @@ Resolving (`resolve_survivor` with `rescued`, `handed_off`, `false_alarm`, or `d
 | 4 | text | head | 296 | 0 | 280 | 56 | 4 | `NO ASSIGNMENT`<br>`stand by` |
 | 5 | text | count | 296 | 58 | 280 | 84 | 5 | `2 CRITICAL`<br>`3 unassigned`<br>`within 0.3 mi` |
 | 6 | text | brief | 296 | 144 | 280 | 84 | 6 | latest briefing, 3 lines |
-| 8 | text | status | 296 | 232 | 280 | 28 | 7 | `scroll: browse  hold: ask` |
+| 8 | text | status | 296 | 232 | 280 | 28 | 7 | `hold:ask  scroll:next` (21 characters, one line) |
 | 7 | text | attrib | 296 | 260 | 280 | 28 | 8 | `(c) Esri, OSM` |
 
 When the user scrolls to browse a survivor, the service switches to the map or arrow view for that survivor, and id 8 reads `VIEW ONLY 2/4 - not assigned`.
@@ -875,13 +875,13 @@ Markers (drawn on a copy of the base each time), positions from the Mercator for
 
 | Method and path | Purpose |
 | --- | --- |
-| `GET /healthz` | `{"ok":true,"db":"connected"}` |
+| `GET /healthz` | `{"ok":true,"db":"connected","server":"http://127.0.0.1:3000","database":"assess-0hw81"}` (`server` and `database` are null on fake data; the dashboard's Play demo uses them to check that it and the glasses share one database) |
 | WS `/glasses` | plugin protocol (CONTRACTS.md) |
-| WS `/view?rescuer=<name>[&primary=1]` | fallback page: same service messages; accepts `input`, `ack`, `heartbeat` (counted only with `primary=1`), and the demo messages below |
+| WS `/view?rescuer=<name>[&primary=1]` | fallback page: same service messages; accepts `input`, `ack`, `heartbeat` (counted only with `primary=1`), and the demo messages below; it attaches at once to the rescuer in the URL (no hello) |
 | WS `/phone?rescuer=<name>` | phone page: accepts `position`; receives `{"type":"phone_state",...}` with the assignment, its status and lease countdown, and the target |
 | `POST /rescuer/<name>/action` | body `{"action":"accept"\|"decline"\|"release"\|"reached"\|"resolve"\|"ask", ...}` calls the matching reducer as that rescuer (table below) |
 | `POST /rescuer/<name>/ask_audio` | body: a WAV file (16 kHz mono s16le) from the phone page microphone; same flow as section 5.15 |
-| `POST /demo/<name>/walk`, `/demo/<name>/move`, `/demo/<name>/reset` | demo walker controls (also sent over `/view` as `{"type":"demo","cmd":"walk"\|"reset"\|"move","dn":5,"de":0}`) |
+| `POST /demo/<name>/walk`, `/demo/<name>/start`, `/demo/<name>/move`, `/demo/<name>/reset` | demo walker controls on demo_mode sites: `walk` toggles, `start` always walks (the dashboard's Play demo), `reset` returns to the start point (also sent over `/view` as `{"type":"demo","cmd":"walk"\|"reset"\|"move","dn":5,"de":0}`) |
 
 | `action` | Extra fields | Reducer, called as the rescuer |
 | --- | --- | --- |

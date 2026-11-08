@@ -1,7 +1,7 @@
 # Spec: coordinator dashboard (live view, agents, replay)
 
 Status: PROPOSED (2026-11-07), follows `docs/specs/CONTRACTS.md` version 8.1.
-Updated 2026-11-08: the Assess design is built (approved in review, mockup at `.lavish/ui-revamp.html`), and the dashboard ships as a desktop app (Electron); see "UI direction: Assess", "Desktop app", and "Layout".
+Updated 2026-11-08: the UnderDog design is built (approved in review, mockup at `.lavish/ui-revamp.html`), and the dashboard ships as a desktop app (Electron); see "UI direction: UnderDog", "Desktop app", and "Layout".
 Folder in the team repo: `frontend/dashboard/`.
 Read `docs/specs/CONTRACTS.md` first, including "Recording and replay", then `docs/AGENT_WORKFLOW.md` and `docs/PROJECT.md`.
 Every table, column, enum value, reducer, and role name in this file comes from the contract.
@@ -37,7 +37,7 @@ It has four views that share one set of components:
 - Replay: the state of a chosen run at time T, rebuilt from `event_log`, `agent_action`, and `detection`, played at 1x, 4x, or 16x.
   Replay shows survivors, assignments, agents, and robot state changes, not smooth movement trails, because positions are not recorded (see "Transport bar and replay").
 
-## UI direction: Assess
+## UI direction: UnderDog
 
 Approved by Cayden on 2026-11-08 after four review rounds (the mockup and its versions are in `.lavish/`).
 References, for approach only (no copied code or assets): Standard Response (Cal Hacks 13.0, the map as the whole screen with floating cards), Stochastic (agent tints, hand-off strip, shape plus word for every status), and the HackUTD Zero Day site (colors and the Satoshi font).
@@ -47,8 +47,8 @@ References, for approach only (no copied code or assets): Standard Response (Cal
 - Two pages only: Dashboard and Agents.
 - Night-purple top bar (HackUTD Zero Day colors), light map and cards underneath, so the projector does not wash out the data.
 - Every mark has a word: level pills, a map key card, and name tags on every rescuer, robot, and survivor.
-- The mascot is a small cartoon tornado, one per agent, each with its agent's tint and one prop; the app logo is the dog with the visor (`public/brand/assess-dog.png`).
-- No simulator wording on screen: rescuers read R1 and R2, robots read Dog 1 and Dog 2 (`crewName` and `robotName` in `src/view/derive.ts`).
+- The mascot is a small cartoon tornado, one per agent, each with its agent's tint and one prop; the app logo is the dog with the visor (`public/brand/underdog-logo.png`).
+- No simulator wording on screen: rescuers read R1, robots read Dog 1 and Dog 2 (`crewName` and `robotName` in `src/view/derive.ts`).
 
 ### Light theme, with a dark option
 
@@ -105,6 +105,34 @@ The coordinator dashboard is a desktop app (Cayden, 2026-11-08).
 The page itself is unchanged, so the web dashboard (`npm run dev`) and its tests keep working.
 On desktop launch, a separate centered, transparent splash window (`electron/splash.html`) plays all 12 frames of the backflip (`electron/assets/backflip.png`, `Loading.gif` with its black background removed, 100 ms per frame), then fades to `Logo.png` placed over the last frame's dog, while the dashboard loads hidden.
 The dashboard appears after the GIF and logo hold finish and the map is ready, with a 10 second readiness fallback.
+On the local server the app starts the demo services itself (Cayden, 2026-11-08), so opening it from the Dock or Spotlight is enough for Play demo: `electron/services.cjs` runs `scripts/demo.mjs --services` from the repo the app was built from (`electron/repo.json`, written by `scripts/stamp-repo.mjs` when packaging), with the PATH of the user's login shell, because an app opened from the Dock cannot see Homebrew's `node`, `npm`, or `spacetime`.
+The splash shows "Starting the demo…" and the board loads only once the services report ready (a few seconds, or about a minute when the module has to compile), because starting them wipes the local database; quitting the app stops them.
+Their output goes to `~/Library/Logs/UnderDog/demo-services.log`, and a failure is shown in a dialog while the app still opens.
+Only one run of the services is alive at a time (`.demo.pid`), and only one UnderDog: a second launch brings the first window forward.
+`npm run demo` passes `--no-services` to the app, since it runs the services itself; on Maincloud the app starts nothing.
+
+### Play demo (2026-11-08)
+
+On a demo_mode site, the top bar has a Play demo button next to Record run.
+It runs the scripted house 3 rescue through the real path, so the board, the glasses panel, the G2 or Even simulator, and the replay all see the same rows:
+
+1. It opens Cayden's glasses in a small terminal-style window (`GlassesPanel.tsx`): the glasses fallback page with `primary=1`, so it counts as Cayden's glasses and keeps his glasses session and database connection up.
+   The window opens above the dock; drag its title bar to move it anywhere below the top bar, and drag its corner to resize it (the display keeps the G2's 2:1 shape).
+   Its title bar buttons close it (red), fold it to the title bar (yellow, or double-click the title bar), and put it back in the default place and size (green).
+   Its place and size are remembered in this browser (`localStorage`, key `underdog:glasses-window`).
+   Folding and closing during a run only hide the display, because unloading it would drop his connection and release his assignment.
+2. It resets the glasses service's demo walker (`POST /demo/cayden/reset`), which puts Cayden at the start on Worthing St.
+3. If house 3 has no open survivor, it queues a search of house 3 for `sim-dog` (`create_mission`) and waits for the simulator's robot to report the hidden person.
+4. It proposes Cayden (`propose_assignment`), then accepts as Cayden through the glasses service (`POST /rescuer/cayden/action`, the same accept a ring tap sends).
+5. It starts the walker (`POST /demo/cayden/start`) and waits until Cayden is within 8 m of the survivor.
+
+The button shows the current step, then "Play again", which repeats steps 2 and 5 for an assignment that is still active.
+The steps are in `src/view/demo.ts` (unit-tested with a fake board in `tests/unit/demo.test.ts`).
+`npm run demo` (`scripts/demo.mjs`) starts everything the button needs on the local server: SpacetimeDB (and publishes the module if the database is missing), a fresh board (`npm run reset` in `backend/sim`, which wipes the local database and runs setup; `--keep` keeps the data instead), a sim console running `hidden` and `scene`, the glasses service, the glasses pages on port 5173, and the packaged UnderDog app, so the Dock shows its name and logo.
+The board starts fresh because between runs a sim rescuer may rescue the house 3 person, which would leave Play demo nothing to find.
+The app is rebuilt (`npm run app:pack`) first when the dashboard code is newer than the last build; `--dev` opens the hot-reload development app instead, which the Dock names Electron.
+It uses the local sim identities in `backend/sim/.tokens/local` (`STDB_TOKEN_DIR`), so Maincloud tokens in `.tokens/` are never sent to the local server.
+A port already in use counts as running, except that the glasses mock or a `FAKE_DB=1` service on port 8787 stops the script with a message.
 
 Commands (from `frontend/dashboard/`):
 
@@ -112,23 +140,24 @@ Commands (from `frontend/dashboard/`):
 npm run app                      # desktop app with hot reload (Vite dev server + Electron)
 npm run app -- --db=local --local-uri=ws://127.0.0.1:3000
 npm run app:start                # build, then open the built app in Electron
-npm run app:pack                 # build Assess.app in release/mac-arm64/ (unsigned)
+npm run app:pack                 # build UnderDog.app in release/mac-arm64/ (unsigned)
 npm run app:dmg                  # build a .dmg installer in release/
+npm run demo                     # everything Play demo needs, on the local server
 ```
 
 Run-time settings, in order of precedence:
 
 1. Command-line flags: `--db=cloud|local`, `--local-uri=ws://HOST:3000`, `--glasses-page=URL`, `--glasses-ws=URL`, `--screen=A`.
-   For the packaged app: `open -n Assess.app --args --db=local --local-uri=ws://127.0.0.1:3000`.
-2. The settings file `assess-settings.json` in the app's user data folder, written by the Server menu ("Open settings file…" shows it).
-3. Defaults: Maincloud (`VITE_STDB_URI` and `VITE_STDB_DATABASE`, baked in at build time from `.env`), local server `ws://127.0.0.1:3000`.
+   For the packaged app: `open -n UnderDog.app --args --db=local --local-uri=ws://127.0.0.1:3000`.
+2. The settings file `underdog-settings.json` in the app's user data folder, written by the Server menu ("Open settings file…" shows it).
+3. Defaults: the local server `ws://127.0.0.1:3000` with the demo services (since 2026-11-08); Maincloud (`VITE_STDB_URI` and `VITE_STDB_DATABASE`, baked in at build time from `.env`) is in the Server menu.
 
 - Server menu: "Maincloud (judging)" and "Local server (address)" switch the database at run time and reload, so a venue Wi-Fi failure needs no rebuild.
   The dashboard reads the address from `?uri=` (`src/stdb/connection.ts`), which overrides the build-time value.
 - Glasses heads-up in Camera View: set `--glasses-page` and `--glasses-ws` (or `VITE_GLASSES_PAGE_URL` and `VITE_GLASSES_WS_URL` at build time).
 - Security: `contextIsolation` on, `nodeIntegration` off, `sandbox` on; the page has no Node access, links open in the default browser, and the window never navigates away from the dashboard.
 - Build uses `base: './'` in `vite.config.ts`, so assets load from `file://`.
-- Packaging: the app is unsigned (no Apple Developer ID); on first open, right-click Assess.app and choose Open.
+- Packaging: the app is unsigned (no Apple Developer ID); on first open, right-click UnderDog.app and choose Open.
   The bundle is about 310 MB, almost all of it the Electron runtime; `release/` is git-ignored.
 - The app icon is `electron/icon.png` (1024 px, the dog logo on the night purple); it is not under `build/` because the repo ignores every `build/` folder.
 
@@ -148,7 +177,7 @@ frontend/dashboard/
   public/
     site/block.geojson     the 72 buildings of the Worthing St block (OpenStreetMap, ODbL), with row labels
     site/context.geojson   the neighborhood around it: 522 buildings, roads, parks, water
-    brand/assess-dog.png   the logo
+    brand/underdog-logo.png   the logo
   src/
     main.tsx               URL params, connection, providers, fonts
     App.tsx                the two pages, actions (reducer calls), map controls, Camera View
@@ -174,7 +203,7 @@ frontend/dashboard/
       Mascot.tsx           the tornado mascot
       TransportBar.tsx     replay controls
     styles/
-      assess.css           imports ../../../design-tokens/tokens.css; every color and font is a token
+      underdog.css           imports ../../../design-tokens/tokens.css; every color and font is a token
   tests/
     unit/*.test.ts
 ```
@@ -300,7 +329,7 @@ The dashboard never calls robot, agent, auditor, perception, or sim reducers (`p
 
 ```
 +---------------------------------------------------------------------------------------------+
-| BAR: dog logo ASSESS | Worthing St block | Dashboard | Agents |      System (fold) | Record run |
+| BAR: dog logo UnderDog | Worthing St block | Dashboard | Agents |      System (fold) | Record run |
 +---------------------------------------------------------------------------------------------+
 | +-------------------+                                                  +------------------+ |
 | | WHO NEEDS HELP    |                                                  | 0 critical       | |
@@ -318,10 +347,12 @@ The dashboard never calls robot, agent, auditor, perception, or sim reducers (`p
 
 - Left card 470 px, right column 360 px (400 and 320 under 1500 px); the map frames the block in the space between them.
 - Each card's count (or title) folds the card to its header; a folded count shows as a dark pill.
+  The app opens with every card folded (Cayden, 2026-11-08), so the map shows first.
 - Clicking a house on the map replaces the rescuers card with the house panel (state, reports, Send robot, Mark searched, Mark partial, Add report).
 - Bottom dock: Status toggles the house colors; hovering Status shows the Rescuers and Robots layer toggles; Camera view opens robot stills next to the live glasses heads-up; zoom buttons and Recenter.
 - Keyboard: `A` opens the Agents page, `Esc` returns to the board and closes the house panel or Camera View.
 - System chips (SpacetimeDB, robots, glasses, agents) fold into one "System all OK" or "System 1 issue" chip.
+  For the judged demo (Cayden, 2026-11-08) the robot, glasses, and agents chips always read "Dog 1 online", "1 glasses", and "3 of 3 agents"; only the SpacetimeDB chip is live, and the cards and map still show the live rows.
 
 ### Colors, shapes, and fonts (color-blind safe)
 

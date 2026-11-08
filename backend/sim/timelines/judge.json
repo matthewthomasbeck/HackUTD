@@ -10,7 +10,7 @@
   { "await": "assignment_for", "rescuer": "cayden", "status": "active", "timeout_s": 30, "say_on_timeout": "Cayden: tap the ring" },
   { "cmd": "walk house 3" },
   { "say": "Cayden: close the Even app now" },
-  { "await": "released", "rescuer": "cayden", "timeout_s": 10, "else": "fail rescuer-drop r2" },
+  { "await": "released", "rescuer": "cayden", "timeout_s": 10, "else": "fail rescuer-drop r1" },
   { "say": "Coordinator: add the family report for house 4", "await": "person_report", "house": "house 4", "timeout_s": 30, "else": "report house 4" },
   { "say": "Stop the agents now" },
   { "after_s": 3, "cmd": "spawn immediate house 8" },

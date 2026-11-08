@@ -1,5 +1,5 @@
 interface Window {
-  assessDesktop?: {
+  underdogDesktop?: {
     dashboardReady(): void;
     splashAnimationFinished(): void;
   };

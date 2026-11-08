@@ -7,7 +7,7 @@ import { renderOfflineMap, renderArrows } from './render/arrows.js';
 import { frontDoor, guideFix, guidePng, housePlanPng, turnCue } from './render/guide.js';
 import { streetRoute } from './render/route.js';
 import { composeBaseMap, renderMap } from './render/map.js';
-import { buildingAt, followFrame, vectorZoom, type SiteGeometry } from './render/vector.js';
+import { buildingAt, containsPoint, followFrame, vectorZoom, type SiteGeometry } from './render/vector.js';
 import { createTileSource } from './tiles/source.js';
 import { enumTag, type DbSnapshot } from './db.js';
 
@@ -79,13 +79,14 @@ export class FakeSession {
     if(m.type==='ack'&&String(m.assignment_id)==String(this.assignment.id)){this.assignment.status='active';void this.broadcast();return;}
     if(m.type==='input'){this.inputAt=Date.now();if(m.event==='tap'&&this.view==='map')this.peekUntil=Date.now()+10000;if(m.event==='tap'&&this.view==='released'){this.assignment.status='idle';this.releasedUntil=0;}if(m.event==='scroll_up')this.mode=this.mode==='robot'?'survivor':'robot';void this.broadcast();}
   }
-  demoCommand(cmd:'walk'|'reset'|'move',dn=0,de=0){if(cmd==='walk'){this.demo.walking=!this.demo.walking;const target=this.targetSurvivor();if(this.demo.walking&&!this.demo.path?.length&&target)this.demo.path=this.walkRoute(this.demo.position,target);}else if(cmd==='reset'){this.demo.position={...this.rescuerStart};this.demo.walking=false;this.demo.path=[];}else moveDemo(this.demo,dn,de);this.trackHeading(this.demo.position);this.lastPositionAt=Date.now();if(this.liveMode)this.onPosition?.(this.demo.position);void this.broadcast();}
+  demoCommand(cmd:'walk'|'start'|'reset'|'move',dn=0,de=0){if(cmd==='walk'||cmd==='start'){this.demo.walking=cmd==='start'||!this.demo.walking;const target=this.targetSurvivor();if(this.demo.walking&&!this.demo.path?.length&&target)this.demo.path=this.walkRoute(this.demo.position,target);}else if(cmd==='reset'){this.demo.position={...this.rescuerStart};this.demo.walking=false;this.demo.path=[];}else moveDemo(this.demo,dn,de);this.trackHeading(this.demo.position);this.lastPositionAt=Date.now();if(this.liveMode)this.onPosition?.(this.demo.position);void this.broadcast();}
   currentLayout():LayoutName{return this.layout();}
   currentSurvivorId():number|string|undefined{return this.targetSurvivor()?.id;}
   currentPosition():Point{return {...this.demo.position};}
   currentHeading():number|null{return this.headingDeg;}
-  // Street route to the curb in front of the target house, then its door (see render/route.ts).
-  private walkRoute(from:Point,target:Point):Point[]{if(!this.geometry)return [];const building=buildingAt(this.geometry,target);if(!building)return [];const door=frontDoor(building.ring,this.geometry.roads);return [...streetRoute(this.geometry,from,door),door];}
+  // Someone inside a house: the streets to the curb in front of it, then its door. Someone outside (a front yard):
+  // the streets to the curb nearest them; the walker then goes straight to them (see render/route.ts).
+  private walkRoute(from:Point,target:Point):Point[]{if(!this.geometry)return [];const building=buildingAt(this.geometry,target);if(!building||!containsPoint(building.ring,target))return streetRoute(this.geometry,from,target);const door=frontDoor(building.ring,this.geometry.roads);return [...streetRoute(this.geometry,from,door),door];}
   // What the map draws as the dashed line: the walker's remaining path, else a fresh street route.
   currentRoute():Point[]{const target=this.targetSurvivor();if(!target)return [];const rest=this.demo.walking&&this.demo.path?.length?this.demo.path:this.walkRoute(this.demo.position,target);return [{...this.demo.position},...rest,{lat:target.lat,lon:target.lon}];}
   beginAsk(){this.view='ask';this.askTranscript='';this.askAnswer='';this.askUntil=Date.now()+30_000;void this.broadcast();}

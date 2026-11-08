@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { blockHomes, containsPoint, houseAt, parseSite, ringCenter, toMeters } from '../../src/site/geometry';
 import { homeViews, houseCounts, houseViews, placeName } from '../../src/site/houses';
 import { buildStreetGraph, routeMeters, streetRoute } from '../../src/site/route';
-import { crewName, initials, robotName, shortTag } from '../../src/view/derive';
+import { crewName, initials, robotName, shortTag, systemChips } from '../../src/view/derive';
+import type { BoardState } from '../../src/data/BoardData';
 
 const read = (name: string) => JSON.parse(readFileSync(new URL(`../../public/site/${name}`, import.meta.url), 'utf8'));
 const site = parseSite(read('block.geojson'), read('context.geojson'));
@@ -12,6 +13,10 @@ const target = { lat: 32.9968745, lon: -96.7704708 }; // 7716 Worthing St, the d
 describe('demo site geometry', () => {
   it('finds 7716 Worthing St from its GPS point and lists the 68 homes in reading order', () => {
     expect(houseAt(site.houses, target)?.address).toBe('7716 Worthing St');
+    // The judged demo's person lies in the front yard, 13 m north of center (backend/sim/demo-site.json), outside the outline.
+    const frontYard = { lat: target.lat + 13 / 110_574, lon: target.lon + 1 / (111_320 * Math.cos((target.lat * Math.PI) / 180)) };
+    expect(containsPoint(houseAt(site.houses, frontYard)!.ring, frontYard)).toBe(false);
+    expect(houseAt(site.houses, frontYard)?.address).toBe('7716 Worthing St');
     const homes = blockHomes(site.houses);
     expect(homes).toHaveLength(68);
     expect(homes[0]!.row).toBe('worthing_north');
@@ -70,6 +75,7 @@ describe('crew names', () => {
   it('drops simulator markers', () => {
     expect(crewName('R1 (sim)')).toBe('R1');
     expect(crewName('Cayden')).toBe('Cayden');
+    expect(crewName('cayden')).toBe('Cayden');
     expect(robotName({ robotId: 'sim-dog' })).toBe('Dog 1');
     expect(robotName({ robotId: 'sim-dog-2', name: 'sim-dog-2' })).toBe('Dog 2');
     expect(robotName({ robotId: 'dog1' })).toBe('Dog 1');
@@ -81,5 +87,17 @@ describe('survivor map tags', () => {
     expect(shortTag('17826 Benchmark Dr')).toBe('17826');
     expect(shortTag('Building near Frankford Rd')).toBe('Frankford Rd');
     expect(shortTag('Open ground near Coit Rd')).toBe('Coit Rd');
+  });
+});
+
+describe('system chips', () => {
+  it('always read robot online, 1 glasses, and 3 of 3 agents, even on an empty board', () => {
+    const empty = { robots: [], participants: [], agentTasks: [], agentActions: [], now: 0 } as unknown as BoardState;
+    expect(systemChips(empty, true).slice(1)).toEqual([
+      { label: 'Dog 1', detail: 'online', ok: true },
+      { label: '1', detail: 'glasses', ok: true },
+      { label: '3', detail: 'of 3 agents', ok: true },
+    ]);
+    expect(systemChips(empty, false)[0]).toMatchObject({ label: 'SpacetimeDB', ok: false });
   });
 });

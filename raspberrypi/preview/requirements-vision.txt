@@ -1,0 +1,4 @@
+# Same model runtime used by backend/perception/perception/roi.py.
+numpy==2.5.4
+opencv-python==5.0.0.93
+ultralytics==8.4.207

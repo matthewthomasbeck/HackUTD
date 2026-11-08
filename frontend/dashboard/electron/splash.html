@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Assess</title>
+    <title>UnderDog</title>
     <!--
       Desktop launch animation, in its own frameless, transparent window (electron/main.cjs), so only the dog shows
       over the desktop. It steps through all 12 frames of assets/backflip.png (the backflip from Loading.gif with the
@@ -18,12 +18,16 @@
       #logo { position: absolute; opacity: 0; transition: opacity 180ms ease; }
       body.finished #logo { opacity: 1; }
       body.finished #dog { opacity: 0; transition: opacity 180ms ease; }
+      #status { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); padding: 6px 14px; border-radius: 999px; background: rgb(10 7 24 / 0.82); color: #fff;
+        font: 600 13px/1.2 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; white-space: nowrap; opacity: 0; transition: opacity 200ms ease; }
+      #status.on { opacity: 1; }
       @media (prefers-reduced-motion: reduce) { body, #logo, body.finished #dog { transition: none; } }
     </style>
   </head>
   <body>
     <div id="dog"></div>
     <img id="logo" src="assets/Logo.png" alt="" />
+    <div id="status" role="status"></div>
     <script>
       const FRAMES = 12;
       const FRAME_MS = 100;
@@ -61,7 +65,7 @@
 
       function finish() {
         document.body.classList.add('finished');
-        window.setTimeout(() => window.assessDesktop?.splashAnimationFinished(), LOGO_HOLD_MS);
+        window.setTimeout(() => window.underdogDesktop?.splashAnimationFinished(), LOGO_HOLD_MS);
       }
 
       // Frames follow the clock, so a late timer skips ahead instead of slowing the flip down.
@@ -87,6 +91,8 @@
       };
 
       window.fadeSplash = () => document.body.classList.add('leaving');
+      // A note under the logo while the app waits (electron/main.cjs splashStatus); the colors match the night bar.
+      window.setStatus = (text) => { const status = document.getElementById('status'); status.textContent = text; status.classList.toggle('on', Boolean(text)); };
     </script>
   </body>
 </html>

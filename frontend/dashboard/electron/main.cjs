@@ -1,28 +1,50 @@
-// Assess desktop app: the coordinator dashboard in its own window (Electron).
+// UnderDog desktop app: the coordinator dashboard in its own window (Electron).
 // The page is the same Vite build as the web dashboard. This file only opens the window, passes the run-time
 // settings as URL parameters (the dashboard reads them in src/stdb/connection.ts and src/App.tsx), and adds a
 // Server menu to switch between Maincloud and a local SpacetimeDB server without rebuilding (venue Wi-Fi down).
 //
+// On the local server it also starts the demo services itself (electron/services.cjs) behind the launch animation, so
+// opening the app from the Dock is enough for Play demo; `--no-services` skips that (npm run demo already runs them).
+//
 // Settings, in order of precedence:
 //   1. Command-line flags: --db=cloud|local --local-uri=ws://HOST:3000 --glasses-page=URL --glasses-ws=URL --screen=A
-//   2. The saved file <userData>/assess-settings.json (written by the Server menu)
-//   3. Defaults: Maincloud (the address baked in at build time from .env), local server ws://127.0.0.1:3000
-const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
+//      --robot-preview-url=http://ROBOT:8081 (starts the on-laptop vision worker, electron/preview-worker.cjs)
+//      --vision-python=PATH (the Python that runs it; default raspberrypi/preview/.venv)
+//   2. The saved file <userData>/underdog-settings.json (written by the Server menu)
+//   3. Defaults: the local server ws://127.0.0.1:3000 with the demo services (Maincloud is in the Server menu)
+const { app, BrowserWindow, Menu, dialog, shell, ipcMain } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
+const { DemoServices, repoRoot } = require('./services.cjs');
+const { PreviewWorker } = require('./preview-worker.cjs');
 
-const DEFAULTS = { db: 'cloud', localUri: 'ws://127.0.0.1:3000', glassesPage: '', glassesWs: '', screen: 'A' };
-const FLAG_NAMES = { db: 'db', localUri: 'local-uri', glassesPage: 'glasses-page', glassesWs: 'glasses-ws', screen: 'screen' };
-const settingsFile = () => path.join(app.getPath('userData'), 'assess-settings.json');
+// Keep the camera settings, identity, and sessions of a machine that ran the app as "Assess" before the rename, unless
+// it has already run as UnderDog (then the UnderDog folder is the newer one).
+const legacyData = path.join(app.getPath('appData'), 'Assess');
+if (!fs.existsSync(app.getPath('userData')) && fs.existsSync(legacyData)) app.setPath('userData', legacyData);
+app.setName('UnderDog');
+
+const DEFAULTS = { db: 'local', localUri: 'ws://127.0.0.1:3000', glassesPage: '', glassesWs: '', screen: 'A',
+  robotPreviewUrl: process.env.UNDERDOG_ROBOT_PREVIEW_URL || process.env.ASSESS_ROBOT_PREVIEW_URL || '',
+  visionPython: process.env.UNDERDOG_VISION_PYTHON || process.env.ASSESS_VISION_PYTHON || '' };
+const FLAG_NAMES = { db: 'db', localUri: 'local-uri', glassesPage: 'glasses-page', glassesWs: 'glasses-ws', screen: 'screen',
+  robotPreviewUrl: 'robot-preview-url', visionPython: 'vision-python' };
+const previewWorker = new PreviewWorker();
+const settingsFile = () => path.join(app.getPath('userData'), 'underdog-settings.json');
+// The settings file before the rename; read only when the new one does not exist yet.
+const legacySettingsFile = () => path.join(app.getPath('userData'), 'assess-settings.json');
 
 function readSaved() {
-  try { return JSON.parse(fs.readFileSync(settingsFile(), 'utf8')); } catch { return {}; }
+  for (const file of [settingsFile(), legacySettingsFile()]) {
+    try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* try the next one */ }
+  }
+  return {};
 }
 
 function save(settings) {
-  const { db, localUri, glassesPage, glassesWs } = settings;
+  const { db, localUri, glassesPage, glassesWs, robotPreviewUrl, visionPython } = settings;
   fs.mkdirSync(path.dirname(settingsFile()), { recursive: true });
-  fs.writeFileSync(settingsFile(), JSON.stringify({ db, localUri, glassesPage, glassesWs }, null, 2));
+  fs.writeFileSync(settingsFile(), JSON.stringify({ db, localUri, glassesPage, glassesWs, robotPreviewUrl, visionPython }, null, 2));
 }
 
 function readFlags(argv) {
@@ -35,6 +57,19 @@ function readFlags(argv) {
 }
 
 let settings = { ...DEFAULTS };
+let services = null; // DemoServices, made once the app is ready (its log path needs the ready app)
+const wantsServices = () => settings.db === 'local' && !process.argv.includes('--no-services');
+
+// Starts the demo services when the settings call for them, then runs next(); a failure is shown, and next() still runs
+// so the app opens (Play demo then says what is missing).
+function withServices(next) {
+  if (!wantsServices()) { services.stop(); next(); return; }
+  splashStatus('Starting the demo…');
+  services.start().then(next, (error) => {
+    next();
+    void dialog.showMessageBox({ type: 'warning', message: 'The demo services did not start', detail: error.message });
+  });
+}
 let window = null;
 let splashWindow = null;
 let dashboardReady = false;
@@ -56,14 +91,14 @@ function revealDashboard() {
   setTimeout(() => { if (!finishingSplash.isDestroyed()) finishingSplash.destroy(); }, SPLASH_FADE_MS);
 }
 
-ipcMain.on('assess:dashboard-ready', (event) => {
+ipcMain.on('underdog:dashboard-ready', (event) => {
   if (window && event.sender === window.webContents) {
     dashboardReady = true;
     revealDashboard();
   }
 });
 
-ipcMain.on('assess:splash-animation-finished', (event) => {
+ipcMain.on('underdog:splash-animation-finished', (event) => {
   if (splashWindow && event.sender === splashWindow.webContents) {
     splashAnimationFinished = true;
     revealDashboard();
@@ -76,21 +111,25 @@ function query() {
   if (settings.db === 'local') { params.set('db', 'local'); params.set('uri', settings.localUri); }
   if (settings.glassesPage) params.set('glassesPage', settings.glassesPage);
   if (settings.glassesWs) params.set('glassesWs', settings.glassesWs);
+  if (settings.robotPreviewUrl) {
+    params.set('robotPreview', settings.robotPreviewUrl);
+    params.set('visionPreview', 'http://127.0.0.1:8082');
+  }
   return params.toString();
 }
 
 function load() {
-  const devUrl = process.env.ASSESS_DEV_URL;
+  const devUrl = process.env.UNDERDOG_DEV_URL;
   if (devUrl) window.loadURL(`${devUrl}?${query()}`);
   else window.loadFile(path.join(__dirname, '..', 'dist', 'index.html'), { search: query() });
-  window.setTitle(settings.db === 'local' ? `Assess · local server ${settings.localUri}` : 'Assess');
+  window.setTitle(settings.db === 'local' ? `UnderDog · local server ${settings.localUri}` : 'UnderDog');
 }
 
 function switchServer(db) {
   settings = { ...settings, db };
   save(settings);
   buildMenu();
-  load();
+  withServices(load);
 }
 
 function buildMenu() {
@@ -119,7 +158,7 @@ function createWindow() {
     height: 960,
     minWidth: 1200,
     minHeight: 760,
-    title: 'Assess',
+    title: 'UnderDog',
     backgroundColor: '#0A0718', // --night, the launch animation's backdrop, so the window does not flash before it paints
     show: false,
     icon: path.join(__dirname, 'icon.png'),
@@ -131,7 +170,7 @@ function createWindow() {
     return { action: 'deny' };
   });
   window.webContents.on('will-navigate', (event, url) => {
-    const devUrl = process.env.ASSESS_DEV_URL;
+    const devUrl = process.env.UNDERDOG_DEV_URL;
     if (!(devUrl && url.startsWith(devUrl)) && !url.startsWith('file:')) event.preventDefault();
   });
   window.on('closed', () => { window = null; });
@@ -144,6 +183,14 @@ function createWindow() {
     }, APP_READY_FALLBACK_MS);
   });
   load();
+}
+
+// A short note under the logo while the app waits for something (the demo services); a splash that is still loading
+// picks it up when it starts.
+let splashNote = '';
+function splashStatus(text) {
+  splashNote = text;
+  if (splashWindow && !splashWindow.isDestroyed()) void splashWindow.webContents.executeJavaScript(`window.setStatus?.(${JSON.stringify(text)})`).catch(() => {});
 }
 
 function createSplashWindow() {
@@ -174,6 +221,7 @@ function createSplashWindow() {
     if (splash.isDestroyed()) return;
     splash.show();
     splash.webContents.executeJavaScript('window.startSplash()').catch(() => {});
+    if (splashNote) splashStatus(splashNote);
   });
   splash.webContents.once('did-fail-load', () => {
     splashAnimationFinished = true;
@@ -185,11 +233,31 @@ function createSplashWindow() {
   });
 }
 
+// One UnderDog at a time: a second launch (Dock, Spotlight, or a second build) brings the first one forward instead.
+if (!app.requestSingleInstanceLock()) app.quit();
+app.on('second-instance', () => { if (window) { if (window.isMinimized()) window.restore(); window.focus(); } });
+
 app.whenReady().then(() => {
+  // The packaged app gets its Dock icon from the bundle; the development app (Electron.app) needs it set here.
+  if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(path.join(__dirname, 'icon.png'));
   settings = { ...DEFAULTS, ...readSaved(), ...readFlags(process.argv) };
+  services = new DemoServices(repoRoot(__dirname, app.isPackaged), path.join(app.getPath('logs'), 'demo-services.log'));
+  if (settings.robotPreviewUrl) {
+    try {
+      const url = new URL(settings.robotPreviewUrl);
+      if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Expected an HTTP preview URL without credentials');
+      settings.robotPreviewUrl = url.origin;
+      save(settings);
+      const runtime = app.isPackaged ? path.join(process.resourcesPath, 'preview-runtime') : path.resolve(__dirname, '../../..');
+      const python = settings.visionPython || path.join(runtime, 'raspberrypi/preview/.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
+      previewWorker.start(python, path.join(runtime, 'raspberrypi/preview/server.py'), settings.robotPreviewUrl, path.join(app.getPath('userData'), 'preview-data'));
+    } catch (error) { console.error(`Preview setup: ${error.message}`); }
+  }
   buildMenu();
+  // The board loads only after the services are ready: starting them wipes the local database, which would drop the
+  // dashboard's registration if it had already connected.
   createSplashWindow();
-  createWindow();
+  withServices(createWindow);
   app.on('activate', () => {
     if (!window) {
       createSplashWindow();
@@ -198,4 +266,7 @@ app.whenReady().then(() => {
   });
 });
 
+app.on('will-quit', () => services?.stop());
+
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('before-quit', () => previewWorker.stop());
