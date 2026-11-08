@@ -59,7 +59,7 @@ Each agent connects with its own identity (token in `STDB_TOKEN_DIR/<agent>.toke
 
 In demo mode, or before any site exists, the module accepts these roles directly.
 Otherwise a coordinator or commander must first call `grant_role(identity, role)` for each identity, with the role from the table; the identity hex is in the startup log line `identity <hex>`.
-For example: `spacetime call <db> grant_role '[{"__identity__":"0x<hex>"},{"agent":[]}]'`, run as a coordinator identity.
+For example, signed in as a coordinator: `spacetime call <db> grant_role 0x<hex> '{"agent":[]}'` (use `'{"auditor":[]}'` for the auditor).
 Until the grant, `register_participant` fails with `role not granted`, and the runner retries after 2, 4, 8, 15, then every 30 s, so no restart is needed.
 Heartbeats wait until registration succeeds, and an `agent_heartbeat` rejected with `not registered` starts registration again.
 
