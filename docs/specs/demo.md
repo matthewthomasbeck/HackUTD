@@ -65,7 +65,7 @@ The houses are about 17 m apart, so cells are 15 m.
     { "label": "apartments 11", "east_m": -5.0, "north_m": 45.9 },
     { "label": "house 12", "east_m": 25.5, "north_m": 47.7 }
   ],
-  "scale_lots": { "pitch_m": 60, "label_prefix": "lot", "exclude_within_m": 40 },
+  "scale_lots": { "file": "site-lots.json", "label_prefix": "lot", "exclude_within_m": 40 },
   "demo_anchor": { "label": "house 3 front door", "east_m": 1.2, "north_m": -14.3 },
   "robots": {
     "real": { "robot_id": "dog1" },

@@ -17,7 +17,7 @@ export interface DemoSiteConfig {
   };
   cell_size_m: number;
   houses: Array<{ label: string; east_m: number; north_m: number; demo_pile?: boolean; view_blocked?: boolean }>;
-  scale_lots: { pitch_m: number; label_prefix: string; exclude_within_m: number };
+  scale_lots: { file: string; label_prefix: string; exclude_within_m: number };
   demo_anchor: Offset & { label: string };
   robots: {
     real: { robot_id: string };
@@ -118,7 +118,7 @@ export function validateDemoConfig(value: unknown): asserts value is DemoSiteCon
     requireNumber(house.north_m, `houses[${index}].north_m`);
   });
   const lots = requireRecord(root.scale_lots, 'scale_lots');
-  requireNumber(lots.pitch_m, 'scale_lots.pitch_m', 0);
+  requireString(lots.file, 'scale_lots.file');
   requireString(lots.label_prefix, 'scale_lots.label_prefix');
   requireNumber(lots.exclude_within_m, 'scale_lots.exclude_within_m', 0);
   const anchor = requireRecord(root.demo_anchor, 'demo_anchor');

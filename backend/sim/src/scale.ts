@@ -1,6 +1,6 @@
 import { Breathing as BreathingEnum, CellStatus, CriticalLevel, DetectionSource, MissionKind, MissionStatus, RobotState } from '../../spacetimedb-bindings/types.js';
 import type { DemoSiteConfig } from './config.ts';
-import { offsetToLatLon } from './geo.ts';
+import { insideRing, offsetToLatLon } from './geo.ts';
 import { generateScaleLots } from './setup.ts';
 import { mulberry32 } from './rng.ts';
 import { logInjection } from './inject.ts';
@@ -35,9 +35,14 @@ export function planScaleSurvivors(config: DemoSiteConfig, count = config.scale.
   while (plans.length < count && attempts < totalAttempts) {
     attempts += 1;
     const lot = lots[Math.floor(random() * lots.length)]!;
-    const east_m = lot.east_m + (random() - 0.5) * config.cell_size_m;
-    const north_m = lot.north_m + (random() - 0.5) * config.cell_size_m;
-    if (Math.hypot(east_m, north_m) > config.site.radius_m - config.cell_size_m / 2) continue;
+    const xs = lot.ring.map((point) => point[0]);
+    const ys = lot.ring.map((point) => point[1]);
+    const east_m = Math.min(...xs) + random() * (Math.max(...xs) - Math.min(...xs));
+    const north_m = Math.min(...ys) + random() * (Math.max(...ys) - Math.min(...ys));
+    if (!insideRing(east_m, north_m, lot.ring)) continue;
+    // Stay inside the lot's search cell too, so the module labels the survivor with its lot.
+    if (Math.abs(east_m - lot.east_m) > config.cell_size_m / 2 - 0.5 || Math.abs(north_m - lot.north_m) > config.cell_size_m / 2 - 0.5) continue;
+    if (Math.hypot(east_m, north_m) > config.site.radius_m) continue;
     if (plans.some((point) => Math.hypot(point.east_m - east_m, point.north_m - north_m) < config.scale.min_spacing_m)) continue;
     const roll = random();
     const level: ScaleLevel = roll < mix.immediate
