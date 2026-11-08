@@ -22,7 +22,7 @@ import type { DashboardConfig } from './stdb/connection';
 import { timestampToMs } from './stdb/time';
 import { loadSite, type House, type SiteGeometry } from './site/geometry';
 import { buildStreetGraph } from './site/route';
-import { DEMO_RESCUER, demoStepLabel, runDemo, type DemoStep, type GlassesDemoCommand } from './view/demo';
+import { DEMO_RESCUER, demoStepLabel, glassesMismatch, runDemo, type DemoStep, type GlassesDemoCommand } from './view/demo';
 import {
   agentCards, chainOptions, chainSteps, glassesRescuers, headline, helpRows, houseSummary, mapLayers, onlineRescuers, peopleRows,
   pendingMissions, robotFrames, systemChips, taskTimeline,
@@ -175,6 +175,12 @@ export default function App({ config }: { config: DashboardConfig }) {
     if (!connection || demoBusy) return;
     setGlassesOpen(true);
     runDemo({
+      preflight: async () => {
+        const health = await fetch(`${glassesServiceBase()}/healthz`, { signal: AbortSignal.timeout(3000) }).then((response) => response.json(), () => undefined);
+        if (!health) throw new Error('The glasses service is not running. Start everything with `npm run demo` in frontend/dashboard.');
+        const mismatch = glassesMismatch(config, health);
+        if (mismatch) throw new Error(mismatch);
+      },
       board: () => boardRef.current,
       createSearch: (cellId, robotId) => {
         const command = mapCellActionCommand('send', cellId, { robotId });

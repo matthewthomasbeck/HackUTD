@@ -875,7 +875,7 @@ Markers (drawn on a copy of the base each time), positions from the Mercator for
 
 | Method and path | Purpose |
 | --- | --- |
-| `GET /healthz` | `{"ok":true,"db":"connected"}` |
+| `GET /healthz` | `{"ok":true,"db":"connected","server":"http://127.0.0.1:3000","database":"assess-0hw81"}` (`server` and `database` are null on fake data; the dashboard's Play demo uses them to check that it and the glasses share one database) |
 | WS `/glasses` | plugin protocol (CONTRACTS.md) |
 | WS `/view?rescuer=<name>[&primary=1]` | fallback page: same service messages; accepts `input`, `ack`, `heartbeat` (counted only with `primary=1`), and the demo messages below; it attaches at once to the rescuer in the URL (no hello) |
 | WS `/phone?rescuer=<name>` | phone page: accepts `position`; receives `{"type":"phone_state",...}` with the assignment, its status and lease countdown, and the target |

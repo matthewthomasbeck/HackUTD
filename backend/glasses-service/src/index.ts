@@ -27,7 +27,8 @@ const server = createServer(async (req, res) => {
   if (url.pathname === '/healthz') {
     const connected = [...sessions.values()].some(runtime => runtime.db?.isConnected);
     res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, db: config.fakeDb ? 'fake' : connected ? 'connected' : 'offline' }));
+    // server and database (no token) let the dashboard check that it and the glasses use the same database.
+    res.end(JSON.stringify({ ok: true, db: config.fakeDb ? 'fake' : connected ? 'connected' : 'offline', server: config.fakeDb ? null : config.stdbUri ?? null, database: config.fakeDb ? null : config.stdbDatabase ?? null }));
     return;
   }
   const actionMatch = /^\/rescuer\/([^/]+)\/action$/.exec(url.pathname);
