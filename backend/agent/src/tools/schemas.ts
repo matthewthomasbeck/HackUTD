@@ -48,7 +48,7 @@ export const SCHEMAS: Record<ToolName, ToolSchema> = {
     name: "list_rescuers",
     write: false,
     description:
-      "List rescuers by callsign with identity, fresh, available, free, active_assignments, and with near_survivor_id the distance, bearing, and compass word.",
+      "List rescuers by callsign with fresh, available, free, active_assignments, and with near_survivor_id the distance, bearing, and compass word.",
     parameters: {
       type: "object",
       properties: {
@@ -96,7 +96,7 @@ export const SCHEMAS: Record<ToolName, ToolSchema> = {
   propose_assignment: {
     name: "propose_assignment",
     write: true,
-    description: "Propose a rescuer (by identity hex) for an unassigned survivor. The rescuer acknowledges on the glasses.",
+    description: "Propose a rescuer (by callsign, for example Rescuer A) for an unassigned survivor. The rescuer acknowledges on the glasses.",
     parameters: {
       type: "object",
       properties: {
@@ -185,7 +185,7 @@ export const SCHEMAS: Record<ToolName, ToolSchema> = {
       type: "object",
       properties: {
         reason,
-        audience: { type: "string", description: "all, coordinators, commander, or a rescuer identity hex string" },
+        audience: { type: "string", description: "all, coordinators, commander, or a rescuer callsign such as Rescuer A" },
         text: { type: "string", minLength: 3, maxLength: 120 },
         priority: { enum: ["info", "warning", "critical"] },
         survivor_id: { type: "integer", minimum: 1 },
@@ -215,11 +215,22 @@ export const SCHEMAS: Record<ToolName, ToolSchema> = {
   },
 };
 
+/** The parameters a model sees. Models name rescuers by callsign (G8), so rescuer_identity drops
+ * its hex pattern here; the loop maps the callsign back to hex and dispatch checks the pattern. */
+function modelParameters(n: ToolName): Record<string, unknown> {
+  const params = SCHEMAS[n].parameters as { properties?: Record<string, unknown> };
+  if (!params.properties?.rescuer_identity) return params;
+  return {
+    ...params,
+    properties: { ...params.properties, rescuer_identity: { type: "string", description: "rescuer callsign, for example Rescuer A" } },
+  };
+}
+
 /** OpenAI-style tool definitions for native mode. */
 export function toolDefs(names: ToolName[]): Array<{ type: "function"; function: { name: string; description: string; parameters: Record<string, unknown> } }> {
   return names.map((n) => ({
     type: "function" as const,
-    function: { name: n, description: SCHEMAS[n].description, parameters: SCHEMAS[n].parameters },
+    function: { name: n, description: SCHEMAS[n].description, parameters: modelParameters(n) },
   }));
 }
 
@@ -227,7 +238,7 @@ export function toolDefs(names: ToolName[]): Array<{ type: "function"; function:
 export function jsonCatalog(names: ToolName[]): string {
   const lines = [
     "TOOLS (JSON mode). You cannot call tools natively. Use only these tools:",
-    ...names.map((n) => `- ${n}: ${SCHEMAS[n].description}\n  schema: ${JSON.stringify(SCHEMAS[n].parameters)}`),
+    ...names.map((n) => `- ${n}: ${SCHEMAS[n].description}\n  schema: ${JSON.stringify(modelParameters(n))}`),
     "",
     "Reply with exactly one JSON object and nothing else, in one of two shapes:",
     '{"actions":[{"tool":"<tool name>","args":{...}}]}',

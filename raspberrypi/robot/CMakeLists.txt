@@ -151,6 +151,7 @@ add_executable(robot_tests
   tests/test_state_machine.cpp
   tests/test_safety_gate.cpp
   tests/test_threads.cpp
+  tests/test_log.cpp
 )
 target_compile_options(robot_tests PRIVATE ${ROBOT_WARNINGS})
 target_compile_definitions(robot_tests PRIVATE ROBOT_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/config")

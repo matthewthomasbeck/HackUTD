@@ -59,6 +59,10 @@ These rules are in every system prompt, enforced by the runner's guards, and enf
 - G7 Agents act only on the active run (section 6.3).
 - G8 External web requests (NVIDIA only, plus the optional vision call) carry no personal information: no rescuer names, identities, phone numbers, or emails.
   Rescuers appear to models only by callsign (for example "Rescuer A").
+  Resolved 2026-11-08: the tools and task payloads below keep identity hex inside the runner and the module, but a model never sees it.
+  Before each model request the loop replaces every participant's identity hex with the rescuer's callsign (or the person's role), and the model-facing `rescuer_identity` and `audience` fields take a callsign.
+  Before dispatch the loop maps a callsign back to the identity hex, so ajv still checks the hex pattern and the guards and reducers are unchanged.
+  The callsign map is per agent process, so a callsign is resolved by the same agent that showed it.
 
 ## 3. Folder, dependencies, configuration
 
