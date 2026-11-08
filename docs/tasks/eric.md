@@ -9,17 +9,23 @@ Total with AI: about 15 h (each task 1 to 2 h with coding agents; hardware tasks
 ## Current status (2026-11-08)
 
 The primary implementation is `backend/perception/` and `backend/agent/`.
-Checks freshly passed on this branch: **750 perception tests, 87 agent tests,
-and the agent TypeScript check**. The recorded Brev validation also passed
+The completed-item audit passed **761 primary perception tests with no skips,
+99 primary agent tests plus 30 separate reference agent tests, and the agent
+TypeScript check**. See [the 75-item audit](../notes/2026-11-08-eric-completed-task-audit.md)
+for evidence, fixed defects, and reopened claims. The recorded Brev validation passed
 native and JSON model smoke tests, three consecutive chains in each mode,
 priority ordering, seeded auditor disagreement, and watchdog recovery.
 Those model scenarios use a fake database, not a published SpacetimeDB module.
+Fresh repeats passed three native and three JSON chains, but a later native
+chain failed before a diagnostic rerun passed. Real-model reliability remains open.
 
 Upstream update: merged `origin/main` at `93b49a7`, bringing Cayden's module,
 generated bindings, simulator, dashboard and glasses code into this checkout.
 Next, verify Eric's adapters against those sources and confirm the running
 deployment/roles. Do not wait for these components to be written from scratch.
-Live interoperability remains unverified.
+Local adapter interoperability is now verified against `main` at `3635d22`;
+see [transition validation](../notes/2026-11-08-eric-transition-validation.md).
+Four integration steps below are closed. Maincloud and the complete demo remain open.
 
 A checked implementation step means code and the stated local tests exist.
 It does not complete that task's separate live integration or "Done when"
@@ -30,11 +36,11 @@ acceptance. Steps combining code and an unverified live check are split below.
 | E0 | Brev setup, both models' tool/JSON smoke tests, configuration and recorded results | Post results to the team; repeat smoke on judging day |
 | E1 | Public data preparation and 140 comparison runs in the reference implementation | Port the public benchmark to the primary pipeline; broaden scene coverage and check robot-camera compatibility |
 | E2 | Media service, storage, job queue, endpoint tests | Primary environment lock; Pi upload over the team network |
-| E3 | Video/ROI/PIC pipeline, quality gates, worker, watcher, HTTP client/helper source, synthetic tests | Live database/helper smoke; primary public-data evaluation and tuning; robot capture |
+| E3 | Video/ROI/PIC pipeline, quality gates, worker, watcher, HTTP client/helper, synthetic tests, local database/helper smoke and captured SQL fixture | Primary public-data evaluation and tuning; robot capture |
 | E4 | Score formula, confidence caps, ordered writes and re-score logic | Primary E1 results/score batch; live dashboard and waiting-time demonstration |
 | E5 | Person/pose/box code and still-image output | Live service health, full E1 ROI review and dashboard display; real YOLO smoke currently recorded for the reference version |
-| E6 | Shared runner, schemas/guards, task handling, budgets, dry runs and adapter source | Verify integrated upstream bindings, connect three live identities, verify actual task/log round trip |
-| E7 | Orchestrator, auditor, comms, mock scenarios and real Brev chains | Live database watchdog/leases, two-process integration, dashboard/glasses acknowledgement |
+| E6 | Shared runner, schemas, tested guards, task handling, budgets, dry runs, upstream binding acceptance, three local identities and actual task/log round trips | Full G8 identity policy; complete runtime/simulator dry-run chain; verify Maincloud identities/roles |
+| E7 | Orchestrator, auditor, comms, mock scenarios and recorded real Brev chains | Intermittent native-chain failure; live scenario harness, two-process integration, dashboard/glasses acknowledgement |
 | E8 | Transcription engines/endpoint/fallback code, question fixtures and template answer path | Model-generated rescuer answers, hosted Riva verification, full glasses voice loop |
 | E9 | CLIP baseline, terrain endpoints, labelling/training tools and safety fusion | Independently labelled hazard data, trained/evaluated probe, enabled advisory path and map integration |
 | E10 | Primary extension points only; reference sitrep prototype exists separately | Primary vision describer, sitrep, model tests and delivery |
@@ -330,7 +336,7 @@ Environment variables: `STDB_URI`, `STDB_DATABASE`, `STDB_TOKEN`, `PUBLIC_BASE_U
 
 Checklist:
 
-- [x] 1a. Create the primary environment and requirements using `opencv-python`; the 750-test primary suite passes.
+- [x] 1a. Create the primary environment and requirements using `opencv-python`; the audited 761-test primary suite passes with no skips.
 - [ ] 1b. Commit a lock generated from the working primary demo environment; the reference environment lock does not replace it.
 - [x] 2. `config.py`: load `config.toml`, then `.env`, then `PERCEPTION_<SECTION>_<KEY>` overrides.
 - [x] 3. `store.py`: SQLite at `data/perception.db` with the `media` index table (`name, path, kind, robot_id, run_id, original_filename, bytes, sha256, created_at`) and a `jobs` table.
@@ -424,10 +430,10 @@ Checklist:
 - [x] 6. `tests/test_breathing_synthetic.py`: every row of the synthetic table passes.
 - [x] 7. Farneback flow cross-check, background gate, flicker gate; re-run the synthetic tests.
 - [x] 8a. Implement the identity/reducer HTTP client, retry policy, SATS encoding/decoding and smoke script; local tests pass.
-- [ ] 8b. Run `smoke_stdb.py` against the published module and capture a real SQL fixture.
+- [x] 8b. Run `smoke_stdb.py` against the published module and capture a real SQL fixture (isolated local module, 2026-11-08).
 - [x] 9. `worker.py`: one background thread, job states, writes `report_breathing` then `set_critical_score` (score from E4; until E4, skip it), `pending_write` retry every 10 s.
 - [x] 10a. Implement helper source and watcher filtering/deduplication, with HTTP polling fallback.
-- [ ] 10b. Build and run the subscription helper using the actual generated bindings.
+- [x] 10b. Build and run the subscription helper using the actual generated bindings (live survivor update under 0.01 s, 2026-11-08).
 - [ ] 11. Run every E1 clip, fill a results table (clip, truth, result, rate, confidence, reason), and tune `config.toml` on half the clips; check the other half.
 - [ ] 12. Write the tuned values into `config.toml` with a comment naming the clips they were tuned on, and post the results table in the team chat.
 
@@ -651,13 +657,14 @@ Checklist:
 
 - [x] 1. `config.ts` (typed, fails fast on a missing key unless `LLM_MODE=mock`), `log.ts` (console plus JSONL trace).
 - [x] 2. `geo.ts` (haversine, R = 6,371,000 m, bearing, 8 compass words) and `priority.ts` (tiers 0, 1, 2; G3), with tests.
-- [x] 3. `tools/schemas.ts` with every schema from agent.md 7.1 to 7.4 as one source for native and JSON modes, and `guards.ts` G1 to G8 (death-word regex, 120-character briefings, ASCII, no names to models).
-- [x] 4. `stdb/connect.ts` and `stdb/convert.ts` (camelCase to snake_case, bigint ids to numbers, tagged enums to strings, `Identity` to hex, `Timestamp` to ISO).
+- [x] 3a. `tools/schemas.ts` with the core schemas from agent.md 7.1 to 7.4 as one source for native and JSON modes, and tested guards for forbidden wording, briefing length/ASCII, permissions and assignments. Known participant names are redacted on every model turn, including tool results.
+- [ ] 3b. Complete G8: resolve the spec's conflicting identity requirements and prevent prohibited identity/contact data in model requests. Persistent rescuer hex identities currently reach the models; the audit did not declare full G8 compliance.
+- [x] 4. `stdb/connect.ts` and `stdb/convert.ts` (camelCase to snake_case, bigint ids to numbers, tagged enums to strings, `Identity` to hex, `Timestamp` to internal epoch milliseconds; wire JSON timestamps remain ISO).
 - [x] 5. `world.ts` (active run filter, rescuer fresh and available, robot idle) and `FakeWorld` with the same interface.
-- [ ] 6. Connect three identities to the local module, register them, and print the active run (needs Cayden's module; else continue on `FakeWorld`).
+- [x] 6. Connect three identities to the local module, register them, and print the active run (`npm run smoke:stdb`, 2026-11-08).
 - [x] 7. `chain.ts` (survivor chain is the `survivor_created` event id; tasks carry their chain) and `board.ts` (post, claim, complete; 120 s stale rule).
 - [x] 8a. Implement dispatch validation, guards, action logs and chain IDs; fake-module task/log tests pass.
-- [ ] 8b. Confirm a task round trip and matching `agent_action` in the live database.
+- [x] 8b. Confirm a task round trip and matching `agent_action` in the live database (auditor and comms tasks, isolated local module, 2026-11-08).
 - [x] 9. `llm/client.ts` and `llm/budget.ts` with the priority queue, 429 backoff, model-down switch, and tests (25 queued in a minute send 20; critical jumps normal).
 - [x] 10. `loop.ts` with step and tool-call limits, the cycle deadline (lease minus 5 s), `<think>` stripping, and the JSON mode path through `parse.ts`.
 - [ ] 11. Dry-run modes and `MockLLM`; run one full chain against the local module and the simulator with `DRY_RUN=1 LLM_MODE=mock`.
@@ -760,10 +767,12 @@ Checklist:
 - [x] 4. Heartbeat policy, model-down switch (stop heartbeat, one `model_down` action), and the "already proposed by watchdog" check.
 - [x] 5. `auditor.ts`: the agent.md 7.4 prompt, the review wake packet with `RULE CHECKS (code)`, `submit_review` (completes the task; on `disagree` files the flag with `flag_kind`), and the `rules.ts` verdict fallback.
 - [x] 6. `templates.ts` and `comms.ts` with `ENABLE_COMMS_MODEL=0`: briefing, breathing part, nudge at half of `proposal_lease_s`, navigation hint with terrain, model-down answer; every template at most 120 characters.
-- [x] 7. `scenario.ts` with the eight scenarios of agent.md 12.3, checking end states and required tool names, not exact order.
+- [x] 7a. `scenario.ts` with the eight in-process scenarios of agent.md 12.3, checking end states and required tool names, not exact order.
+- [ ] 7b. Implement the live-module/simulator scenario path; `--live` is still a placeholder even though those sources now exist.
 - [x] 8. Pass mock scenarios plus the recorded real-Brev chain, priority and seeded auditor-disagreement checks; these use the fake database.
 - [ ] 9. Two-process run; `kill_orchestrator`, `race`, `all_down`, `budget` until they pass.
-- [x] 10. Verify modeled briefings and three consecutive native/JSON Brev chains against the fake database; briefing guards remain enforced. The integrated demo is still pending.
+- [x] 10a. Verify modeled briefings and three consecutive native/JSON Brev chains against the fake database; briefing guards remain enforced. The integrated demo is still pending.
+- [ ] 10b. Resolve or bound intermittent real-model chain failures before claiming reliable demo readiness. The completed-item audit recorded one native chain with no committed assignment; subsequent native and JSON reruns passed. Keep rejected-action and fallback evidence.
 - [x] 11. Pass three recorded real JSON chains and all eight mock scenarios; mock regression tests pass.
 
 Done when: on the simulator, one detection produces a proposal, an auditor verdict, and a briefing, all with the same `chain_id`, and stopping the orchestrator still lets the module's watchdog assign.

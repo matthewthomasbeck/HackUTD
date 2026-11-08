@@ -84,16 +84,21 @@ Argument order follows `docs/specs/spacetimedb.md` section 8.5:
 `report_breathing(survivor_id, breathing, rate_bpm, confidence, visibility_pct, display_url)` and `set_critical_score(survivor_id, level, score, confidence, reasons)`.
 Check it against `spacetime describe assess-0hw81 reducers --json` before the first real call.
 
-`tests/fixtures/sql_sample_not_captured.json` is hand-written from the spec, not captured from a real server.
-Run `python scripts/smoke_stdb.py --save-fixture` once the module is published, and point `tests/test_stdb.py` at the captured file.
+`tests/fixtures/sql_sample_captured.json` was captured from the actual module on an isolated local
+SpacetimeDB 2.14.1 server on 2026-11-08. `tests/test_stdb.py` checks its enums, options,
+timestamps and row links, alongside the hand-written edge cases in `sql_sample_not_captured.json`.
+The live smoke passed registration, both writes, SQL readback and helper updates.
+See `docs/notes/2026-11-08-eric-transition-validation.md` for commands and limits.
 
 ## Node helper
 
 ```bash
 cd stdb-helper && npm install && npm run build
-npm test                 # builds, then node --test test/
+npm test                 # builds, then runs test/*.test.js
 ```
 
 The helper imports the generated bindings from `backend/spacetimedb-bindings/` (`spacetimedb.md` section 1.6).
 It does not build until those bindings exist; until then the watcher falls back to HTTP SQL polling every 2 s, which is enough for the demo.
-`DbConnection.builder().withDatabaseName(...)` and the enum tag shape (`{ tag: 'EnRoute' }`) are assumed from the SpacetimeDB 2.x SDK and not yet run against a real server; check them in `smoke_stdb.py` step 5.
+The generated bindings built and typechecked, and `smoke_stdb.py` step 5 received a real
+survivor update in under 0.01 s on the isolated local server. This verifies the helper path,
+not Pi connectivity or the full camera pipeline.

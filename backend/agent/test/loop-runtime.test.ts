@@ -28,6 +28,22 @@ describe("dispatch round trip (agent.md 13 step 4)", () => {
 });
 
 describe("loop.ts", () => {
+  it.each(["native", "json"])("redacts known participant names in %s tool results before the next model request", async (mode) => {
+    const { h } = fakeWorld({ env: { TOOL_MODE: mode }, rules: [
+      { agent: "orchestrator", turn: 0, reply: { tool_calls: [{ name: "get_survivor", arguments: { survivor_id: 1, reason: "read the facts" } }] } },
+      { agent: "orchestrator", turn: 1, reply: { content: '{"done":true,"summary":"done"}' } },
+    ] });
+    survivorAt(h, 3, { location_note: "Ana Lopez and ANA LOPEZ at the entry" });
+    const send = vi.spyOn(h.mock, "send");
+    await runCycle(ctxFor(h, "orchestrator"));
+    expect(send.mock.calls.length).toBe(2);
+    const contents = send.mock.calls[1][0].messages.map(m => m.content ?? "").join("\n");
+    expect(contents).not.toMatch(/ana lopez/i);
+    expect(contents).toContain("Rescuer A");
+    // The cache remains authoritative; only model-bound text is redacted.
+    expect(h.store.rows("survivor")[0].location_note).toContain("Ana Lopez");
+  });
+
   it("asks the serving engine for valid JSON in JSON tool mode", async () => {
     const { h } = fakeWorld({ env: { TOOL_MODE: "json" }, rules: [{ agent: "orchestrator", turn: "any", reply: { content: "done" } }] });
     const send = vi.spyOn(h.mock, "send");

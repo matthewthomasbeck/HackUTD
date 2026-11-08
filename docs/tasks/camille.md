@@ -229,7 +229,7 @@ Checklist:
 - [x] 3. Write one test per transition row, plus the latch, reset, retry, and SIGTERM tests below.
 - [x] 4. Write `MotionCommand` and the pure `SafetyGate::filter(state, snapshot, output)` with the rules from robot.md 10.1 (terrain rules can be a stub until R7).
 - [x] 5. Write the safety gate tests below.
-- [x] 6. Write the main loop in `main.cpp`: fixed rate with `sleep_until`, the six steps in order, overrun detection, and a 1 Hz summary log line.
+- [ ] 6. Finish the main loop in `main.cpp`: the fixed rate, steps, overrun detection and summary exist, but logging can block the main loop. The 2026-11-08 completed-item audit reproduced a control timeout over 2 s with a full stderr pipe. Move blocking log output off the main loop before closing this step; see `docs/notes/2026-11-08-eric-completed-task-audit.md`.
 - [x] 7. Write the control server (non-blocking Unix socket, NDJSON commands `start`, `stop`, `estop`, `reset`, `status`) and `robotctl`.
 - [x] 8. Handle SIGTERM and SIGINT: raise the `sigterm` event, stop motion, then SHUTDOWN within `shutdown.timeout_ms`.
 - [ ] 9. Run the scripted check below on mocks and paste the log into the PR.

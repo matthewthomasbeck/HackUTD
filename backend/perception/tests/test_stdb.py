@@ -1,7 +1,6 @@
 """stdb.py: SATS-JSON encoding, the HTTP client (with httpx.MockTransport), and the SQL row decoder.
 
-The SQL fixture is hand-written, NOT captured from a real server (see its _note); replace it with
-smoke_stdb.py output once the module is published."""
+Both hand-written edge cases and a captured local-module SQL fixture are checked."""
 
 import json
 from pathlib import Path
@@ -151,6 +150,24 @@ def test_sql_sends_text_body_and_decodes(tmp_path):
 
 
 # decoder (fixture NOT captured from a real server)
+
+def test_decode_captured_local_module_rows():
+    captured = json.loads((Path(__file__).parent / "fixtures" / "sql_sample_captured.json").read_text())
+    (survivor,) = decode_sql_response(captured["survivor"])[0]
+    (detection,) = decode_sql_response(captured["detection"])[0]
+    assert survivor["id"] == detection["survivor_id"] == 1
+    assert survivor["first_detection_id"] == detection["id"]
+    assert survivor["breathing"] == "unknown"
+    assert survivor["status"] == "unassigned"
+    assert survivor["breathing_rate_bpm"] is None
+    assert survivor["house_label"] is None
+    assert survivor["score_reasons"] == []
+    assert detection["source"] == "thermal"
+    assert detection["max_temp_c"] == 36.0
+    assert detection["breathing_clip_url"] is None
+    assert detection["gps_fix"] is False
+    assert survivor["created_at"].endswith("Z")
+    assert survivor["created_at"] == detection["created_at"]
 
 def test_decode_survivor_rows_both_value_forms():
     a, b = decode_sql_response(FIXTURE["survivor"])[0]

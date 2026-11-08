@@ -156,7 +156,7 @@ Only `src/stdb/` touches the generated bindings, through a dynamic import, so `n
 
 ## Still needs
 
-- The upstream module and generated bindings are now merged into this checkout. Confirm the running deployment/roles, register all three identities, and check every UNCONFIRMED adapter assumption in `src/stdb/connect.ts` (argument keys, enum shapes, `Identity.fromString`, optional arguments).
+- Local adapter acceptance passed on 2026-11-08: all three identities registered, active run and row values decoded, tasks posted/claimed/completed with matching action logs, plus an Identity-based proposal, review, briefing, simulated acknowledgement and optional mission arguments. Run `npm run smoke:stdb` against an empty disposable local database. The script rejects remote servers and existing sites. See `docs/notes/2026-11-08-eric-transition-validation.md` for setup and evidence. Maincloud service roles still need separate verification.
 - The upstream simulator source is now merged into `backend/sim/`. Live integration remains unverified: `npm run scenario -- --live` is still reserved and exits with a message today. See `docs/tasks/eric-remaining.md`.
 
 ## Extension points

@@ -54,7 +54,7 @@ export function redactNames(text: string, w: World): string {
     if (p.role !== "rescuer" && p.role !== "coordinator" && p.role !== "commander") continue;
     const name = p.name?.trim();
     if (!name || name.length < 2) continue;
-    const re = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "g");
+    const re = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
     out = out.replace(re, p.role === "rescuer" ? w.callsign(p.identity) : p.role);
   }
   return out;

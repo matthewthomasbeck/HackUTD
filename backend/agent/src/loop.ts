@@ -53,7 +53,12 @@ async function modelLoop(ctx: CycleCtx): Promise<string | null> {
         {
           agent: agent.name,
           model: agent.model,
-          messages,
+          // Read-tool results can contain participant names too. Redact every
+          // outgoing turn, not just the initial wake packet.
+          messages: messages.map(m => ({
+            ...m,
+            content: typeof m.content === "string" ? redactNames(m.content, world) : m.content,
+          })),
           tools: mode === "native" ? toolDefs(tools) : undefined,
           maxTokens: agent.maxTokens,
           timeoutMs: agent.timeoutMs,
