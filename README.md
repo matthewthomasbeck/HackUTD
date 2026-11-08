@@ -99,7 +99,7 @@ cd raspberrypi/robot && cmake -B build && cmake --build build -j && ctest --test
 ```
 
 ## Docs
-
+- Presentation: https://canva.link/dv874lbguzouirt
 - `docs/devpost-draft.md`: the Devpost entry.
 - `docs/PROJECT.md`, `docs/MVP.md`: the team's original plan, before the drone.
 - `docs/AGENT_WORKFLOW.md`: how the three agents (orchestrator, auditor, comms agent) work.
