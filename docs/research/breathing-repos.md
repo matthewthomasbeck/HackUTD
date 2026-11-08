@@ -119,12 +119,24 @@ Findings:
 - The primary pipeline differs from the reference on VRWi 030s: the reference
   gave 14.2 (0.80); the primary rejects it with the flicker gate in reference mode
   but gives 13.7 (0.40) in service mode. Most MPSC-RR rejections are the same two
-  gates. Whether these are false rejections is task A2 (development and held-out
-  split before any threshold change).
+  gates. The A2 follow-up below tests this with a frozen development/evaluation
+  split; this A1 table retains the original 0.5 threshold results.
 - The VRWi 090s case stays wrong with low confidence, as in the reference run.
   Do not report only the confident subset.
 - Service mode never gave confidence above 0.5 on these windows, so on its own
   it would not mark anyone confidently breathing from a public clip.
+
+A2 follow-up (2026-11-08): `flicker_c_max=0.6` was chosen on VRWi M14
+030s/060s, constrained by all 15 synthetic cases, and frozen before evaluating
+090s/120s. It recovers reference-mode 030s at 14.2/min (belt 14.39); both reserved
+windows are unchanged, with only 1/2 within 3/min in each mode. MPSC-RR coverage
+rises to 7/16 reference and 6/16 service, with no rate labels to verify those
+numbers. Bypassing the gates produces a wrong service-mode 090s rate of 9.2/min
+versus truth 19.12. Motion thresholds stay fixed because development did not
+reject on motion and lying ROIs are off chest. All four labelled windows were
+already seen in A1 and share one subject, so this is weak temporal-split evidence,
+not independent validation. See [the complete audit](../notes/2026-11-08-quality-gates.md)
+for every rejected window, frozen trials and unchanged evaluation results.
 
 Chest ROI review (task A3, service mode, every `roi.jpg` opened):
 

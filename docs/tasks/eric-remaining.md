@@ -112,6 +112,19 @@ regression test passes.
 
 #### A2. E3: diagnose false rejections, then tune on development inputs only (about 1 h, after A1)
 
+**Completed on `codex/a2-quality-gate-audit`, 2026-11-08.** Development was fixed
+to VRWi M14 resting 030s/060s; evaluation to 090s/120s before A2 reruns. The
+smallest successful candidate changed only `flicker_c_max`, 0.5 to 0.6, recovering
+030s in reference mode at 14.2/min versus belt 14.39. Both candidates preserved
+all 15 synthetic expectations. Evaluation showed no improvement: 1/2 within
+3/min in each mode, with 090s still wrong or abstained. MPSC-RR detected coverage
+rose from 4/16 to 7/16 reference and 6/16 service, without accuracy evidence.
+Its motion rejections are confounded by off-chest lying ROIs, so the motion
+threshold stays fixed. All four VRWi windows were previously seen in A1 and
+come from one subject; this is weak temporal-split evidence. The frozen trials,
+all evaluation numbers and gate-bypass failures are in
+[the audit](../notes/2026-11-08-quality-gates.md).
+
 Why: if the primary pipeline rejects clean public windows as low quality, the dashboard
 shows "not seen" for a breathing person.
 
@@ -305,10 +318,10 @@ fallback flags on failure. Only matters if the agents are shown outside the hard
 | E2 8: Pi upload over the team network | Camille, R3/R5/R6 | Node.js bridge pushed; reachable media URL; uploads with detection and survivor IDs | Real thermal-to-breathing path |
 | Inspect capture and E1 recordings (steps 1 to 7) | Camille R5, Matthew M4/M6/M7 | Stopped camera, about 20 s clips, locked exposure, gain and white balance; agreed light and mock rubble scene | Real-camera breathing and ROI checks |
 | E9: terrain model | Camille R7, Cayden dashboard | Timestamped forward frames, independently labelled hazard images, a single writer for terrain fields | Advisory terrain hints, only after held-out evaluation |
-| E0 step 7: post the Brev results to the team chat | Eric | Nothing; a person posts it | Team knows what was measured |
-| R1 step 9: scripted mock check log in the PR | Eric | Local check passed with 88 robot tests; [log ready](../notes/2026-11-08-r1-scripted-mock-check.md) and merged in PR #11, but not pasted into a PR body or comment yet | Closes R1 |
+| E0 step 7: post the Brev results to the team chat | Eric | [Paste-ready draft](../notes/2026-11-08-human-posts.md); a person posts it, still unsent | Team knows what was measured |
+| R1 step 9: scripted mock check log in the PR | Eric | Local check passed with 88 robot tests; [PR #11 comment draft with log](../notes/2026-11-08-human-posts.md), still unsent | Closes R1 after a person posts it |
 | R3: Node.js bridge (`raspberrypi/bridge/`) | Camille (owner); Eric offered to take it on 2026-11-08 | Camille's agreement, and whether she has unpushed bridge work | The real robot reaching SpacetimeDB; E2 8 |
-| First Pi camera clip over SSH (`rpicam-vid`, exposure, gain and white balance locked, 20 s) | Eric, with the Pi powered on | The Pi's SSH host name; a separate branch | First check that the robot camera's clips pass the pipeline |
+| First Pi camera clip over SSH (`rpicam-vid`, exposure, gain and white balance locked, 20 s) | Eric | **Done 2026-11-08** ([note](../notes/2026-11-08-first-pi-clip.md)): far clip abstains ("chest region too small"); close seated clip with a 33 ms shutter is "detected" at 7.2/min, confidence 0.35. Open: rate not counted, no held-breath clip, per-frame lock unconfirmed, camera runs at 34.4 fps not 30 | First check that the robot camera's clips pass the pipeline |
 
 E10 (vision describer and sitrep) is could-have and is cut first. Before any person image
 goes to a hosted model, the team must decide it is allowed.
@@ -354,7 +367,7 @@ happens during robot integration.
 
 ## Next order
 
-1. A2: diagnose the flicker and motion gate rejections from A1 (laptop only; A1, A3 to A8 are done).
+1. A2 is complete with weak evidence and no labelled evaluation gain; see the audit above. Eric can send the E0 and R1 drafts now (still unsent).
 2. First Pi camera clip over SSH, then the E1 recordings with Camille and Matthew.
 3. R3 Node.js bridge, if Camille agrees to hand it over.
 4. With Cayden: Maincloud roles, then the full flow on dashboard and glasses.
