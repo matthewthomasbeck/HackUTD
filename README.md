@@ -17,6 +17,35 @@ Every find becomes a survivor with a critical score, on a live dashboard shared 
 7. **Guide.** The rescuer's glasses show "1 critical within 0.3 mi", then an arrow and distance.
 8. **Sent in second.** The ground rover (mecanum wheels, built and calibrated in this repo) can be sent to a find afterwards for a close look where the drone cannot reach.
 
+## Tracks
+
+### State Farm: Intelligent Catastrophe Response
+
+"The Worst Day, at Scale": when a disaster hits many people at once, find the most urgent needs, coordinate help, and make sure no one is overlooked.
+Rubble Search covers the three stages in one workflow: the drone **discovers** survivors, the critical score **assesses** who needs help first, and the shared board **coordinates** rescuers.
+"No one overlooked" is enforced by the database, not by the AI: every survivor stays on the board until a person resolves them, a dropped rescuer releases their assignment at once, and a watchdog assigns the nearest rescuer if no agent does.
+The dashboard headline is "Critical survivors unattended over 60 s: 0".
+
+### NVIDIA: Nemotron Beyond a Chatbot
+
+Three Nemotron agents plan multi-step work and call tools; none of them is a chatbot:
+
+- **Orchestrator**: ranks survivors, proposes the nearest free rescuer, and plans the drone's next search area.
+- **Auditor**: independently checks every proposal (wrong rescuer, unfair load) and gives a verdict with a reason.
+- **Comms agent**: briefs rescuers on their glasses and answers their questions.
+
+The agents talk only through a shared task board in SpacetimeDB (`agent_task`), so every hand-off is logged and replayable, and no agent can fly the drone or resolve a survivor.
+See `docs/AGENT_WORKFLOW.md`.
+
+### SpacetimeDB: Real-Time Rescue Coordination
+
+SpacetimeDB is the whole backend, with no separate web server or API layer, published on Maincloud as `assess-0hw81`:
+
+- **One live board**: survivors, search areas, the drone, missions, assignments, briefings, and the agents' tasks, streamed to every dashboard and pair of glasses through subscriptions.
+- **Rules in reducers**: the survivor state machine, roles, and the rule that no one is labelled dead.
+- **Timers in schedule tables**: assignment leases, heartbeats, two-level escalation, and the agent watchdog all run inside the database.
+- **Instant disconnect handling**: `client_disconnected` releases a dropped rescuer's assignment, so the survivor goes back in the queue.
+
 ## What is live and what is simulated
 
 The judged demo is hard-coded (team decision, 2026-11-08): only SpacetimeDB runs live.
