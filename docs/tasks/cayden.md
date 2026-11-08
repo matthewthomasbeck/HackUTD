@@ -52,7 +52,7 @@ Items marked UNCONFIRMED are not verified by a spec or a test; check them once a
   The agents, perception, the real robot, and the real G2 hardware are not live in the judged demo; they are tested separately (agents 109 tests, 8 scenarios, and the Brev validation in `docs/notes/2026-11-08-brev-validation.md`; perception 753 tests).
   The sim has a new command `search <house>` (short `sr`) and a new timeline `timelines/demo.json`; `npm run sim -- timeline demo` was verified live on a local server (found at 0:14 with no fallback).
   The run of show is `docs/specs/demo.md`, "Judged demo (hard-coded, 2026-11-08)".
-  The sim crew is minimal (`demo-site.json`, 2026-11-08): two robot dogs (`sim-dog`, `sim-dog-2`), Cayden plus R1 (sim) and R2 (sim), and `extra_sim_rescuers` 0, so the `scale 300` and `stress` runs would need extra helper rescuers.
+  The sim crew is minimal (`demo-site.json`, 2026-11-08): two robot dogs (`sim-dog`, `sim-dog-2`), Cayden plus R1 (sim), and `extra_sim_rescuers` 0, so the `scale 300` and `stress` runs would need extra helper rescuers.
 
 ### Known mismatches between specs (resolve in C4, announce the result)
 

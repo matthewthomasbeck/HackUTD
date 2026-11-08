@@ -36,8 +36,11 @@ test('keeps the demo houses the story depends on', () => {
   for (const survivor of config.hidden_survivors) {
     const target = house(survivor.house);
     assert.ok(target, `${survivor.house} exists`);
-    const half = config.cell_size_m / 2;
-    assert.ok(Math.abs(survivor.east_m - target.east_m) <= half && Math.abs(survivor.north_m - target.north_m) <= half, `${survivor.house} survivor is inside its cell`);
+    // The module puts a find in the nearest cell whose center is within cell_size_m (cellForPoint), so a person in
+    // the front yard still belongs to their house as long as no other house's cell is nearer.
+    const away = (item: { east_m: number; north_m: number }) => Math.hypot(survivor.east_m - item.east_m, survivor.north_m - item.north_m);
+    assert.ok(away(target) <= config.cell_size_m, `${survivor.house} survivor is within its cell's reach`);
+    for (const other of config.houses) if (other !== target) assert.ok(away(other) > away(target), `${survivor.house} survivor is nearer its own house than ${other.label}`);
   }
 });
 

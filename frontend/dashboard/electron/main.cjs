@@ -186,6 +186,8 @@ function createSplashWindow() {
 }
 
 app.whenReady().then(() => {
+  // The packaged app gets its Dock icon from the bundle; the development app (Electron.app) needs it set here.
+  if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(path.join(__dirname, 'icon.png'));
   settings = { ...DEFAULTS, ...readSaved(), ...readFlags(process.argv) };
   buildMenu();
   createSplashWindow();

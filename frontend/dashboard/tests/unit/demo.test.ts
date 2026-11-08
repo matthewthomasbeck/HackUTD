@@ -41,6 +41,10 @@ function world(options: { survivorAlready?: boolean; dogOnline?: boolean; cayden
       calls.push(`accept ${assignmentId}`);
       board.assignments[0]!.status = { tag: 'Active' };
     },
+    release: async (assignmentId: bigint) => {
+      calls.push(`release ${assignmentId}`);
+      for (const row of board.assignments) if (row.id === assignmentId) row.status = { tag: 'Released' };
+    },
     waitFor: async <T,>(check: () => T | undefined, _timeoutMs: number, failure: string) => {
       let value = check();
       if (value === undefined && pendingReset) { pendingReset = false; Object.assign(cayden, START); value = check(); }
@@ -72,6 +76,17 @@ describe('Play demo', () => {
     await runDemo(deps);
     expect(calls).toEqual(['glasses reset', 'glasses start']);
     expect(steps).toEqual(['connecting', 'assigning', 'walking', 'arrived']);
+  });
+
+  it('releases a backstop proposal for someone else before assigning Cayden to house 3', async () => {
+    const { board, deps, calls } = world({ survivorAlready: true });
+    board.assignments.push({ id: 9n, survivorId: 44n, rescuerIdentity: board.participants[0]!.identity, status: { tag: 'Proposed' } });
+    deps.propose = async (survivorId: bigint, rescuer: { name: string }) => {
+      calls.push(`propose ${survivorId} ${rescuer.name}`);
+      board.assignments.unshift({ id: 1n, survivorId, rescuerIdentity: board.participants[0]!.identity, status: { tag: 'Proposed' } });
+    };
+    await runDemo(deps);
+    expect(calls).toEqual(['glasses reset', 'release 9', 'propose 5 Cayden', 'accept 1', 'glasses start']);
   });
 
   it('says what to start when the sim robot is offline', async () => {
