@@ -4,8 +4,8 @@
 // module (src/fake/module.ts) with MockLLM on a virtual clock, so they need no SpacetimeDB, no
 // simulator, and no NVIDIA key; against the fake module every write goes to the fake module, which
 // is the DRY_RUN shadow, so no real reducer runs.
-// --live is the path for the published module plus backend/sim in demo mode; it is not built yet
-// (no bindings or simulator exist), and exits with a clear message.
+// --live is reserved for the published module plus backend/sim in demo mode; that scenario
+// harness is not implemented yet, even though the bindings and simulator sources now exist.
 // --real (our addition) keeps the fake module but calls the real NVIDIA models in real time, so it
 // needs NVIDIA_API_KEY and spends requests. Only the scenarios whose outcome comes from the model run
 // by default; race, comms_fallback, all_down and budget depend on MockLLM failure policies.
@@ -43,8 +43,8 @@ async function main(): Promise<number> {
 
   if (live) {
     console.error(
-      "scenario --live needs the published module, the generated bindings in backend/spacetimedb-bindings/, " +
-        "and the simulator in backend/sim/. None exist yet. Run without --live to use the in-process fake module.",
+      "scenario --live is not implemented yet. The module, bindings and simulator sources exist; " +
+        "use smoke:stdb for local adapter acceptance, or run without --live for the in-process scenarios.",
     );
     return 2;
   }

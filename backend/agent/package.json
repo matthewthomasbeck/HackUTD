@@ -11,6 +11,7 @@
     "start": "tsx src/index.ts",
     "dry": "DRY_RUN=1 tsx src/index.ts",
     "smoke:llm": "tsx scripts/smoke-llm.ts",
+    "smoke:stdb": "tsx scripts/smoke-stdb.ts",
     "smoke:vision": "tsx scripts/smoke-vision.ts",
     "scenario": "tsx scripts/scenario.ts",
     "test": "vitest run",

@@ -59,6 +59,19 @@ Confirm the submission time and judging time, then write clock times into this t
 
 ### Checkpoint status (2026-11-08)
 
+Eric's completed-item audit is recorded in
+`notes/2026-11-08-eric-completed-task-audit.md`. R1 step 6 is reopened for
+blocking logging; full G8 identity handling and intermittent real-model chain
+failures remain open. Brev is the intended model deployment.
+
+Eric's local transition checks now close E3 8b/10b and E6 6/8b:
+three agent identities, task/action round trips, perception writes/readback,
+and actual helper subscriptions passed against an isolated local module.
+Its 68 module smoke checks also passed. This does not close checkpoint 2;
+the full combined run still needs to be recorded. Evidence:
+`notes/2026-11-08-eric-transition-validation.md`.
+
+
 - Checkpoint 1: the module half is done.
   The module is published locally and on Maincloud as `assess-0hw81`, with bindings in `backend/spacetimedb-bindings/` and 62 passing smoke checks.
   The robot half is open: the robot program foundation is in `raspberrypi/robot/` (task R1), but the bridge to SpacetimeDB and the Pico firmware are not pushed, so no bridge heartbeat has reached the module yet.

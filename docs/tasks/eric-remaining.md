@@ -1,6 +1,6 @@
 # Eric: unfinished work and dependencies
 
-Updated 2026-11-08 from branch `eric`. This is the practical handoff for
+Updated 2026-11-08 after pulling `main` at `3635d22`. This is the practical handoff for
 [Eric's full checklist](eric.md), not a change to MVP scope or assignments.
 The owner names below follow the existing task files. An artifact missing from
 this checkout may already exist on a teammate's branch; request its location
@@ -10,10 +10,10 @@ and published interface before rebuilding it.
 
 - Primary perception service: media uploads, durable breathing jobs, PIC/ROI
   analysis, person/pose code, scoring, re-scans, watcher, HTTP database client,
-  optional speech and terrain modules. Fresh local suite: 750 tests passed.
+  optional speech and terrain modules. Completed-item audit: 761 primary tests passed, no skips.
 - Primary agent runner: shared runner, tools/guards, task board, budgets,
   orchestrator, auditor, comms, templates and model routing. Fresh local suite:
-  87 tests passed and TypeScript check passed.
+  99 primary tests and 30 separate reference tests passed; TypeScript check passed.
 - Both Nemotron models on Brev passed tool calls, tool-result round trips,
   reasoning-off and JSON actions. Recorded native and JSON chains each passed
   three consecutive runs; priority, seeded auditor disagreement and watchdog
@@ -28,6 +28,15 @@ Evidence: [Brev validation](../notes/2026-11-08-brev-validation.md),
 These test counts describe separate implementations, not one combined
 end-to-end system.
 
+## Completed-item audit
+
+[All 75 checked claims were audited](../notes/2026-11-08-eric-completed-task-audit.md).
+The audit fixed offline CLI scoring and known-name leaks in later model turns.
+It reopened R1 step 6 for blocking main-loop logging and separated full G8
+identity policy from the tested guards in E6. A later real native Brev chain
+failed despite an initial passing streak, so E7 repeatability remains open.
+Brev is intentional and its endpoints/models passed fresh smoke tests.
+
 ## Which implementation to use
 
 The primary app is `backend/perception/` plus `backend/agent/`.
@@ -39,6 +48,16 @@ the primary runner includes the newer Brev routing and real-model fixes.
 In particular, reference public-data results do not establish primary-pipeline
 accuracy. Port the inputs/harness through the primary offline analysis API and
 save a separate report before claiming E1/E3 primary benchmark completion.
+
+## Transition items completed after pulling main
+
+[Local transition validation](../notes/2026-11-08-eric-transition-validation.md)
+closed E3 steps 8b and 10b and E6 steps 6 and 8b. The actual module accepted
+all three agent identities, task/action round trips, proposals, review,
+briefing and simulated acknowledgement. Perception writes/readback and the
+helper's live subscription passed; a captured SQL fixture is now regression-tested.
+The module's 68 smoke checks passed, including actual schedule-table failures.
+These local checks do not establish Maincloud roles or the complete demo flow.
 
 ## What Eric can finish without waiting
 
@@ -58,19 +77,18 @@ orchestrator, breathing pipeline and score ahead of optional enhancements.
 
 ## Upstream availability checked during this update
 
-Fetched `origin/main` at `93b49a7`. It already contains
+Pulled `origin/main` at `3635d22`. It already contains
 `backend/spacetimedb/`, `backend/spacetimedb-bindings/`, `backend/sim/`,
 `backend/glasses-service/`, `frontend/dashboard/` and `frontend/glasses/`.
 Cayden's workstream branch also contains these components. These sources have now been merged into Eric's integration checkout to resolve
-the PR conflicts. The next step is checking the adapters and live interfaces,
-not waiting for a first implementation. Source availability
-does not confirm a running database, service roles or a working end-to-end flow.
+the PR conflicts. Local adapter/helper interfaces and demo roles have now passed against a running
+isolated module. Maincloud roles and the complete end-to-end flow remain unverified.
 
 ## What Eric is waiting on
 
 | Dependency | Existing owner/task | Specific handoff needed | What it unblocks |
 | --- | --- | --- | --- |
-| SpacetimeDB deployment and binding integration; source already on main | Cayden, C1; Eric integrates | Verify the integrated upstream code, confirm database URI/name and local/Maincloud deployment, check reducer arguments/enums/options/timestamps | Perception live smoke; agent/helper build; actual subscriptions and reducers |
+| SpacetimeDB deployment and binding integration; source already on main | Cayden, C1; Eric integrates | Local adapters, helper and wire formats verified; confirm Maincloud deployment and service roles | Perception live smoke; agent/helper build; actual subscriptions and reducers |
 | Service identities and demo configuration | Cayden, C1/C4, with Eric | Demo mode or granted perception/orchestrator/auditor/comms roles; confirmed demo lease/watchdog timings | Registration, permitted writes and meaningful live watchdog tests |
 | Simulator and demo site; source already on main | Cayden, C3; Eric integrates | Run upstream simulator and seed active run, robot, survivors, rescuers, person reports and fixed coordinates | Integrated flow without robot hardware; score ageing and failure demonstrations |
 | Dashboard and Agents panel; source already on main | Cayden, C2; Eric integrates | Confirm subscriber/media compatibility with Eric's outputs and verify task/action/chain display | Visible scores/person images, shared live board, acknowledgement timing and replay |
@@ -85,8 +103,9 @@ started their work. Do not change assignments or shared contracts implicitly.
 
 ## Live acceptance that has not happened yet
 
-- [ ] Connect all three agent identities and the perception identity to the real module.
-- [ ] Capture actual SQL/reducer fixtures and verify adapter/helper wire formats.
+- [x] Connect all three agent identities and the perception identity to the actual local module (2026-11-08).
+- [ ] Confirm the identities/roles on the shared Maincloud deployment.
+- [x] Capture actual SQL fixtures and verify adapter/helper wire formats and reducer calls (isolated local module, 2026-11-08).
 - [ ] Run simulator detection -> primary breathing -> score -> proposal -> audit -> briefing -> glasses acknowledgement with one chain ID.
 - [ ] Show the results on the dashboard and a second subscribed screen.
 - [ ] Stop/disconnect actual workers and glasses; verify the database's real schedule tables, leases, escalation and watchdog. The fake-module tests are not this test.
@@ -132,9 +151,14 @@ that hardware path, but it is enough to keep implementation moving now.
 
 ## Next order
 
-1. Verify Eric's adapters against the upstream module/bindings/simulator/dashboard/glasses sources now merged into this checkout. Confirm Cayden's deployed server/roles and Camille's bridge upload interface.
+Before describing the checked work as fully compliant, address R1's blocking
+logger, the G8 identity-policy conflict, and E7's intermittent native-chain
+failure. These are findings against existing requirements, not new features.
+
+
+1. Local adapter/helper acceptance is complete. Confirm Maincloud service roles and Camille's bridge upload interface, and bring up the simulator/dashboard/glasses together.
 2. While waiting, port the public benchmark to primary perception, generate its lock, and finish primary score/ROI results.
-3. With a running module, run `scripts/smoke_stdb.py`, build the subscription helper, register service roles, and verify each wire assumption.
+3. Reuse the passing local `smoke:stdb` and `scripts/smoke_stdb.py` checks during integration; separately verify Maincloud roles. Do not rerun the mutating smoke on shared data.
 4. Prove the full simulator-to-dashboard/glasses flow and real database failure handling.
 5. Join the robot capture path and rehearse the MVP.
 6. Finish voice questions and terrain only after the core path; leave E10 until ahead.

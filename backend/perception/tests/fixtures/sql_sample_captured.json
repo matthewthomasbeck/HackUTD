@@ -1,0 +1,940 @@
+{
+ "_note": "captured by smoke_stdb.py from http://127.0.0.1:3918",
+ "survivor": [
+  {
+   "schema": {
+    "elements": [
+     {
+      "name": {
+       "some": "id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "site_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "cell_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "first_detection_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "lat"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "lon"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "location_note"
+      },
+      "algebraic_type": {
+       "String": []
+      }
+     },
+     {
+      "name": {
+       "some": "house_label"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "String": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "breathing"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "detected"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "not_detected"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "unknown"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "breathing_rate_bpm"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "F64": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "breathing_confidence"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "visibility_pct"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "F64": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "critical_level"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "immediate"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "delayed"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "minor"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "unknown"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "critical_score"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "score_confidence"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "score_reasons"
+      },
+      "algebraic_type": {
+       "Array": {
+        "String": []
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "status"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "unassigned"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "assigned"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "en_route"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "reached"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "resolved"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "resolution"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "Sum": {
+            "variants": [
+             {
+              "name": {
+               "some": "rescued"
+              },
+              "algebraic_type": {
+               "Product": {
+                "elements": []
+               }
+              }
+             },
+             {
+              "name": {
+               "some": "handed_off"
+              },
+              "algebraic_type": {
+               "Product": {
+                "elements": []
+               }
+              }
+             },
+             {
+              "name": {
+               "some": "false_alarm"
+              },
+              "algebraic_type": {
+               "Product": {
+                "elements": []
+               }
+              }
+             },
+             {
+              "name": {
+               "some": "duplicate"
+              },
+              "algebraic_type": {
+               "Product": {
+                "elements": []
+               }
+              }
+             }
+            ]
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "resolved_by"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "String": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "possible_duplicate_of"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "breathing_display_url"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "String": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "escalated_at"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": [
+             {
+              "name": {
+               "some": "__timestamp_micros_since_unix_epoch__"
+              },
+              "algebraic_type": {
+               "I64": []
+              }
+             }
+            ]
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "created_at"
+      },
+      "algebraic_type": {
+       "Product": {
+        "elements": [
+         {
+          "name": {
+           "some": "__timestamp_micros_since_unix_epoch__"
+          },
+          "algebraic_type": {
+           "I64": []
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "updated_at"
+      },
+      "algebraic_type": {
+       "Product": {
+        "elements": [
+         {
+          "name": {
+           "some": "__timestamp_micros_since_unix_epoch__"
+          },
+          "algebraic_type": {
+           "I64": []
+          }
+         }
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "rows": [
+    [
+     1,
+     1,
+     0,
+     1,
+     32.99,
+     -96.75,
+     "simulated adapter fixture",
+     [
+      1,
+      []
+     ],
+     [
+      2,
+      []
+     ],
+     [
+      1,
+      []
+     ],
+     0.0,
+     [
+      1,
+      []
+     ],
+     [
+      3,
+      []
+     ],
+     0.0,
+     0.0,
+     [],
+     [
+      0,
+      []
+     ],
+     [
+      1,
+      []
+     ],
+     [
+      1,
+      []
+     ],
+     0,
+     [
+      1,
+      []
+     ],
+     [
+      1,
+      []
+     ],
+     [
+      1794123529706142
+     ],
+     [
+      1794123529706142
+     ]
+    ]
+   ],
+   "total_duration_micros": 68,
+   "stats": {
+    "rows_inserted": 0,
+    "rows_deleted": 0,
+    "rows_updated": 0
+   }
+  }
+ ],
+ "detection": [
+  {
+   "schema": {
+    "elements": [
+     {
+      "name": {
+       "some": "id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "run_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "chain_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "robot_id"
+      },
+      "algebraic_type": {
+       "String": []
+      }
+     },
+     {
+      "name": {
+       "some": "mission_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "source"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "thermal"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         },
+         {
+          "name": {
+           "some": "camera"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "survivor_id"
+      },
+      "algebraic_type": {
+       "U64": []
+      }
+     },
+     {
+      "name": {
+       "some": "client_ref"
+      },
+      "algebraic_type": {
+       "String": []
+      }
+     },
+     {
+      "name": {
+       "some": "lat"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "lon"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "gps_fix"
+      },
+      "algebraic_type": {
+       "Bool": []
+      }
+     },
+     {
+      "name": {
+       "some": "location_note"
+      },
+      "algebraic_type": {
+       "String": []
+      }
+     },
+     {
+      "name": {
+       "some": "max_temp_c"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "F64": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "thermal_confidence"
+      },
+      "algebraic_type": {
+       "F64": []
+      }
+     },
+     {
+      "name": {
+       "some": "thermal_image_url"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "String": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "camera_image_url"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "String": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "breathing_clip_url"
+      },
+      "algebraic_type": {
+       "Sum": {
+        "variants": [
+         {
+          "name": {
+           "some": "some"
+          },
+          "algebraic_type": {
+           "String": []
+          }
+         },
+         {
+          "name": {
+           "some": "none"
+          },
+          "algebraic_type": {
+           "Product": {
+            "elements": []
+           }
+          }
+         }
+        ]
+       }
+      }
+     },
+     {
+      "name": {
+       "some": "created_at"
+      },
+      "algebraic_type": {
+       "Product": {
+        "elements": [
+         {
+          "name": {
+           "some": "__timestamp_micros_since_unix_epoch__"
+          },
+          "algebraic_type": {
+           "I64": []
+          }
+         }
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "rows": [
+    [
+     1,
+     1,
+     9,
+     "simdog",
+     0,
+     [
+      0,
+      []
+     ],
+     1,
+     "adapter-smoke",
+     32.99,
+     -96.75,
+     false,
+     "simulated adapter fixture",
+     [
+      0,
+      36.0
+     ],
+     0.9,
+     [
+      1,
+      []
+     ],
+     [
+      1,
+      []
+     ],
+     [
+      1,
+      []
+     ],
+     [
+      1794123529706142
+     ]
+    ]
+   ],
+   "total_duration_micros": 23,
+   "stats": {
+    "rows_inserted": 0,
+    "rows_deleted": 0,
+    "rows_updated": 0
+   }
+  }
+ ]
+}

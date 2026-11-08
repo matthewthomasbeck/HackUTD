@@ -1,0 +1,368 @@
+{
+  "date": "2026-11-08",
+  "implementation": "codex-reference only",
+  "runs": 140,
+  "errors": 0,
+  "limitations": [
+    "Four reference windows from one subject; alignment assumption unchanged.",
+    "Unlabelled MPSC inputs excluded from accuracy metrics.",
+    "These are not primary-pipeline or robot-camera accuracy results."
+  ],
+  "summary": {
+    "lightweight": {
+      "runs": 35,
+      "reference_n": 4,
+      "reference_mae_bpm": 12.82,
+      "reference_within_3_bpm": 0
+    },
+    "ours": {
+      "runs": 35,
+      "reference_n": 4,
+      "reference_mae_bpm": 2.293,
+      "reference_within_3_bpm": 3
+    },
+    "respyre_dof": {
+      "runs": 35,
+      "reference_n": 4,
+      "reference_mae_bpm": 9.31,
+      "reference_within_3_bpm": 1
+    },
+    "respyre_of": {
+      "runs": 35,
+      "reference_n": 4,
+      "reference_mae_bpm": 12.55,
+      "reference_within_3_bpm": 1
+    }
+  },
+  "reference_results": [
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 14.39,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "lightweight",
+      "rate_bpm": 3.01,
+      "peak_count_bpm": 24.0,
+      "crossing_bpm": 22.5,
+      "feedback_bpm": 13.5,
+      "decision": "unconditional_estimate",
+      "confidence": null,
+      "runtime_s": 1.2198837079922669,
+      "absolute_error_bpm": 11.38,
+      "file": "M14_resting_030s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 18.68,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "lightweight",
+      "rate_bpm": 3.01,
+      "peak_count_bpm": 21.0,
+      "crossing_bpm": 25.5,
+      "feedback_bpm": 13.5,
+      "decision": "unconditional_estimate",
+      "confidence": null,
+      "runtime_s": 1.3298557910020463,
+      "absolute_error_bpm": 15.67,
+      "file": "M14_resting_060s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 19.12,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "lightweight",
+      "rate_bpm": 3.01,
+      "peak_count_bpm": 21.0,
+      "crossing_bpm": 21.0,
+      "feedback_bpm": 21.0,
+      "decision": "unconditional_estimate",
+      "confidence": null,
+      "runtime_s": 1.220813874999294,
+      "absolute_error_bpm": 16.11,
+      "file": "M14_resting_090s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 17.14,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "lightweight",
+      "rate_bpm": 9.02,
+      "peak_count_bpm": 18.0,
+      "crossing_bpm": 22.5,
+      "feedback_bpm": 19.5,
+      "decision": "unconditional_estimate",
+      "confidence": null,
+      "runtime_s": 1.2255667079880368,
+      "absolute_error_bpm": 8.120000000000001,
+      "file": "M14_resting_120s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 14.39,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "ours",
+      "rate_bpm": 14.2,
+      "decision": "detected",
+      "confidence": 0.8,
+      "reasons": [],
+      "runtime_s": 3.2692971659998875,
+      "absolute_error_bpm": 0.19000000000000128,
+      "file": "M14_resting_030s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 18.68,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "ours",
+      "rate_bpm": 18.7,
+      "decision": "detected",
+      "confidence": 0.8,
+      "reasons": [],
+      "runtime_s": 3.4785698750056326,
+      "absolute_error_bpm": 0.019999999999999574,
+      "file": "M14_resting_060s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 19.12,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "ours",
+      "rate_bpm": 11.3,
+      "decision": "detected",
+      "confidence": 0.26,
+      "reasons": [],
+      "runtime_s": 3.3381021250097547,
+      "absolute_error_bpm": 7.82,
+      "file": "M14_resting_090s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 17.14,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "ours",
+      "rate_bpm": 16.0,
+      "decision": "detected",
+      "confidence": 0.8,
+      "reasons": [],
+      "runtime_s": 3.275642833003076,
+      "absolute_error_bpm": 1.1400000000000006,
+      "file": "M14_resting_120s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 14.39,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "respyre_dof",
+      "rate_bpm": 10.11,
+      "decision": "waveform_with_harness_fft",
+      "confidence": null,
+      "runtime_s": 0.858810750010889,
+      "upstream_extractor_s": 0.010914087295532227,
+      "absolute_error_bpm": 4.280000000000001,
+      "file": "M14_resting_030s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 18.68,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "respyre_dof",
+      "rate_bpm": 19.34,
+      "decision": "waveform_with_harness_fft",
+      "confidence": null,
+      "runtime_s": 1.1051291250041686,
+      "upstream_extractor_s": 0.018177032470703125,
+      "absolute_error_bpm": 0.6600000000000001,
+      "file": "M14_resting_060s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 19.12,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "respyre_dof",
+      "rate_bpm": 7.03,
+      "decision": "waveform_with_harness_fft",
+      "confidence": null,
+      "runtime_s": 0.8853920839901548,
+      "upstream_extractor_s": 0.011547088623046875,
+      "absolute_error_bpm": 12.09,
+      "file": "M14_resting_090s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 17.14,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "respyre_dof",
+      "rate_bpm": 37.35,
+      "decision": "waveform_with_harness_fft",
+      "confidence": null,
+      "runtime_s": 0.8635280000162311,
+      "upstream_extractor_s": 0.011178016662597656,
+      "absolute_error_bpm": 20.21,
+      "file": "M14_resting_120s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 14.39,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "respyre_of",
+      "rate_bpm": 29.0,
+      "decision": "waveform_with_harness_fft",
+      "confidence": null,
+      "runtime_s": 1.5281399999803398,
+      "upstream_extractor_s": 0.6679818630218506,
+      "absolute_error_bpm": 14.61,
+      "file": "M14_resting_030s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 18.68,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "respyre_of",
+      "rate_bpm": 37.35,
+      "decision": "waveform_with_harness_fft",
+      "confidence": null,
+      "runtime_s": 1.561843041999964,
+      "upstream_extractor_s": 0.6750609874725342,
+      "absolute_error_bpm": 18.67,
+      "file": "M14_resting_060s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 19.12,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "respyre_of",
+      "rate_bpm": 18.9,
+      "decision": "waveform_with_harness_fft",
+      "confidence": null,
+      "runtime_s": 1.5472986670210958,
+      "upstream_extractor_s": 0.6712319850921631,
+      "absolute_error_bpm": 0.22000000000000242,
+      "file": "M14_resting_090s.mp4"
+    },
+    {
+      "dataset": "VRWi",
+      "split": "evaluation_only",
+      "truth_bpm": 17.14,
+      "roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "group": "reference",
+      "method": "respyre_of",
+      "rate_bpm": 33.84,
+      "decision": "waveform_with_harness_fft",
+      "confidence": null,
+      "runtime_s": 1.5295045000093523,
+      "upstream_extractor_s": 0.6690459251403809,
+      "absolute_error_bpm": 16.700000000000003,
+      "file": "M14_resting_120s.mp4"
+    }
+  ],
+  "raw_run_sha256": "97de640f6cf5622109b6fc5aa5a3c39e6de8e2c8f72790d14bafeaa4cb58320b"
+}

@@ -16,7 +16,6 @@ Options:
 from __future__ import annotations
 
 import argparse
-import inspect
 import json
 import sys
 from pathlib import Path
@@ -26,6 +25,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from perception import breathing  # noqa: E402
+from perception.config import load_config  # noqa: E402
 
 
 def parse_roi(text: str):
@@ -49,7 +49,7 @@ def parse_value(text: str):
     return text
 
 
-def try_score(result: dict):
+def try_score(result: dict, cfg: dict | None = None):
     """Call perception.score.compute_score if it exists. Returns (score dict or None, note or None)."""
     try:
         from perception.score import compute_score
@@ -57,24 +57,13 @@ def try_score(result: dict):
         return None, f"perception.score not available ({type(exc).__name__}); score skipped"
     # Map the result to the score inputs of perception.md section 7. t (waiting minutes) is 0 and
     # d (thermal confidence) is unknown offline, so the score's own default for a missing d applies.
-    names = {
-        "b": result["breathing"], "breathing": result["breathing"],
-        "rr": result["rate_bpm"], "rate_bpm": result["rate_bpm"],
-        "q": result["breathing_confidence"], "breathing_confidence": result["breathing_confidence"],
-        "visibility_pct": result["visibility_pct"],
-        "v": None if result["visibility_pct"] is None else result["visibility_pct"] / 100.0,
-        "t": 0.0, "wait_min": 0.0, "waiting_min": 0.0,
-        "result": result, "breathing_result": result,
-    }
     try:
-        params = inspect.signature(compute_score).parameters
-        kwargs = {k: names[k] for k in params if k in names}
-        missing = [k for k, p in params.items()
-                   if k not in kwargs and p.default is inspect.Parameter.empty
-                   and p.kind in (p.POSITIONAL_OR_KEYWORD, p.KEYWORD_ONLY)]
-        if missing:
-            return None, f"compute_score needs {missing}; score skipped"
-        return compute_score(**kwargs), None
+        return compute_score(
+            breathing=result["breathing"], rate_bpm=result["rate_bpm"],
+            breathing_conf=result["breathing_confidence"], visibility_pct=result["visibility_pct"],
+            minutes_waiting=0.0, thermal_conf=None, earlier_kept=False, cfg=cfg,
+            reason=(result.get("reasons") or [None])[0],
+        ), None
     except Exception as exc:
         return None, f"compute_score failed ({type(exc).__name__}: {exc}); score skipped"
 
@@ -91,7 +80,8 @@ def main(argv=None) -> int:
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE")
     args = ap.parse_args(argv)
 
-    cfg = {}
+    service_cfg = load_config()
+    cfg = dict(service_cfg["breathing"])
     for item in args.set:
         if "=" not in item:
             ap.error(f"--set needs KEY=VALUE, got {item}")
@@ -110,11 +100,12 @@ def main(argv=None) -> int:
         result.pop("params", None)
 
     if args.score:
-        score, note = try_score(result)
+        score, note = try_score(result, service_cfg["score"])
         if score is not None:
             result["score"] = score
         if note:
             print(note, file=sys.stderr)
+            return 1
 
     print(json.dumps(result, indent=2, default=str))
     if out_dir:
