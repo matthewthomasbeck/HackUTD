@@ -120,7 +120,7 @@
   --border-w-strong: 2px;
   --shadow-card: 0 1px 2px rgb(17 24 39 / 0.06), 0 4px 12px rgb(17 24 39 / 0.08);
 
-  /* Assess look (approved 2026-11-08 in .lavish/ui-revamp.html): HackUTD Zero Day colors in the top bar and accents,
+  /* UnderDog look (approved 2026-11-08 in .lavish/ui-revamp.html): HackUTD Zero Day colors in the top bar and accents,
      a light paper-and-ink map, floating cards. Status colors above are unchanged. */
   --brand: #7828FF;
   --brand-ink: #5B17D6;
@@ -164,9 +164,9 @@
   --logo-glow: rgb(255 160 60 / 0.35); /* the dog logo's warm halo */
   --on-night-fill-strong: rgb(255 255 255 / 0.12);
   --scrim: rgb(10 7 24 / 0.55);
-  --font-assess-ui: "Satoshi", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-assess-display: "Chakra Petch", "Satoshi", system-ui, sans-serif; /* free stand-in for HackUTD's Elevon (trial license) */
-  --font-assess-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-underdog-ui: "Satoshi", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-underdog-display: "Chakra Petch", "Satoshi", system-ui, sans-serif; /* free stand-in for HackUTD's Elevon (trial license) */
+  --font-underdog-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 [data-theme="dark"] {

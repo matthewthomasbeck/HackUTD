@@ -1,7 +1,7 @@
 # Spec: coordinator dashboard (live view, agents, replay)
 
 Status: PROPOSED (2026-11-07), follows `docs/specs/CONTRACTS.md` version 8.1.
-Updated 2026-11-08: the Assess design is built (approved in review, mockup at `.lavish/ui-revamp.html`), and the dashboard ships as a desktop app (Electron); see "UI direction: Assess", "Desktop app", and "Layout".
+Updated 2026-11-08: the UnderDog design is built (approved in review, mockup at `.lavish/ui-revamp.html`), and the dashboard ships as a desktop app (Electron); see "UI direction: UnderDog", "Desktop app", and "Layout".
 Folder in the team repo: `frontend/dashboard/`.
 Read `docs/specs/CONTRACTS.md` first, including "Recording and replay", then `docs/AGENT_WORKFLOW.md` and `docs/PROJECT.md`.
 Every table, column, enum value, reducer, and role name in this file comes from the contract.
@@ -37,7 +37,7 @@ It has four views that share one set of components:
 - Replay: the state of a chosen run at time T, rebuilt from `event_log`, `agent_action`, and `detection`, played at 1x, 4x, or 16x.
   Replay shows survivors, assignments, agents, and robot state changes, not smooth movement trails, because positions are not recorded (see "Transport bar and replay").
 
-## UI direction: Assess
+## UI direction: UnderDog
 
 Approved by Cayden on 2026-11-08 after four review rounds (the mockup and its versions are in `.lavish/`).
 References, for approach only (no copied code or assets): Standard Response (Cal Hacks 13.0, the map as the whole screen with floating cards), Stochastic (agent tints, hand-off strip, shape plus word for every status), and the HackUTD Zero Day site (colors and the Satoshi font).
@@ -47,7 +47,7 @@ References, for approach only (no copied code or assets): Standard Response (Cal
 - Two pages only: Dashboard and Agents.
 - Night-purple top bar (HackUTD Zero Day colors), light map and cards underneath, so the projector does not wash out the data.
 - Every mark has a word: level pills, a map key card, and name tags on every rescuer, robot, and survivor.
-- The mascot is a small cartoon tornado, one per agent, each with its agent's tint and one prop; the app logo is the dog with the visor (`public/brand/assess-dog.png`).
+- The mascot is a small cartoon tornado, one per agent, each with its agent's tint and one prop; the app logo is the dog with the visor (`public/brand/underdog-logo.png`).
 - No simulator wording on screen: rescuers read R1 and R2, robots read Dog 1 and Dog 2 (`crewName` and `robotName` in `src/view/derive.ts`).
 
 ### Light theme, with a dark option
@@ -111,8 +111,11 @@ The dashboard appears after the GIF and logo hold finish and the map is ready, w
 On a demo_mode site, the top bar has a Play demo button next to Record run.
 It runs the scripted house 3 rescue through the real path, so the board, the glasses panel, the G2 or Even simulator, and the replay all see the same rows:
 
-1. It opens Cayden's glasses in a panel above the dock (`GlassesPanel.tsx`): the glasses fallback page with `primary=1`, so it counts as Cayden's glasses and keeps his glasses session and database connection up.
-   During a run, the close button only hides the panel, because closing that connection would release his assignment.
+1. It opens Cayden's glasses in a small terminal-style window (`GlassesPanel.tsx`): the glasses fallback page with `primary=1`, so it counts as Cayden's glasses and keeps his glasses session and database connection up.
+   The window opens above the dock; drag its title bar to move it anywhere below the top bar, and drag its corner to resize it (the display keeps the G2's 2:1 shape).
+   Its title bar buttons close it (red), fold it to the title bar (yellow, or double-click the title bar), and put it back in the default place and size (green).
+   Its place and size are remembered in this browser (`localStorage`, key `underdog:glasses-window`).
+   Folding and closing during a run only hide the display, because unloading it would drop his connection and release his assignment.
 2. It resets the glasses service's demo walker (`POST /demo/cayden/reset`), which puts Cayden at the start on Worthing St.
 3. If house 3 has no open survivor, it queues a search of house 3 for `sim-dog` (`create_mission`) and waits for the simulator's robot to report the hidden person.
 4. It proposes Cayden (`propose_assignment`), then accepts as Cayden through the glasses service (`POST /rescuer/cayden/action`, the same accept a ring tap sends).
@@ -130,7 +133,7 @@ Commands (from `frontend/dashboard/`):
 npm run app                      # desktop app with hot reload (Vite dev server + Electron)
 npm run app -- --db=local --local-uri=ws://127.0.0.1:3000
 npm run app:start                # build, then open the built app in Electron
-npm run app:pack                 # build Assess.app in release/mac-arm64/ (unsigned)
+npm run app:pack                 # build UnderDog.app in release/mac-arm64/ (unsigned)
 npm run app:dmg                  # build a .dmg installer in release/
 npm run demo                     # everything Play demo needs, on the local server
 ```
@@ -138,8 +141,8 @@ npm run demo                     # everything Play demo needs, on the local serv
 Run-time settings, in order of precedence:
 
 1. Command-line flags: `--db=cloud|local`, `--local-uri=ws://HOST:3000`, `--glasses-page=URL`, `--glasses-ws=URL`, `--screen=A`.
-   For the packaged app: `open -n Assess.app --args --db=local --local-uri=ws://127.0.0.1:3000`.
-2. The settings file `assess-settings.json` in the app's user data folder, written by the Server menu ("Open settings file…" shows it).
+   For the packaged app: `open -n UnderDog.app --args --db=local --local-uri=ws://127.0.0.1:3000`.
+2. The settings file `underdog-settings.json` in the app's user data folder, written by the Server menu ("Open settings file…" shows it).
 3. Defaults: Maincloud (`VITE_STDB_URI` and `VITE_STDB_DATABASE`, baked in at build time from `.env`), local server `ws://127.0.0.1:3000`.
 
 - Server menu: "Maincloud (judging)" and "Local server (address)" switch the database at run time and reload, so a venue Wi-Fi failure needs no rebuild.
@@ -147,7 +150,7 @@ Run-time settings, in order of precedence:
 - Glasses heads-up in Camera View: set `--glasses-page` and `--glasses-ws` (or `VITE_GLASSES_PAGE_URL` and `VITE_GLASSES_WS_URL` at build time).
 - Security: `contextIsolation` on, `nodeIntegration` off, `sandbox` on; the page has no Node access, links open in the default browser, and the window never navigates away from the dashboard.
 - Build uses `base: './'` in `vite.config.ts`, so assets load from `file://`.
-- Packaging: the app is unsigned (no Apple Developer ID); on first open, right-click Assess.app and choose Open.
+- Packaging: the app is unsigned (no Apple Developer ID); on first open, right-click UnderDog.app and choose Open.
   The bundle is about 310 MB, almost all of it the Electron runtime; `release/` is git-ignored.
 - The app icon is `electron/icon.png` (1024 px, the dog logo on the night purple); it is not under `build/` because the repo ignores every `build/` folder.
 
@@ -167,7 +170,7 @@ frontend/dashboard/
   public/
     site/block.geojson     the 72 buildings of the Worthing St block (OpenStreetMap, ODbL), with row labels
     site/context.geojson   the neighborhood around it: 522 buildings, roads, parks, water
-    brand/assess-dog.png   the logo
+    brand/underdog-logo.png   the logo
   src/
     main.tsx               URL params, connection, providers, fonts
     App.tsx                the two pages, actions (reducer calls), map controls, Camera View
@@ -193,7 +196,7 @@ frontend/dashboard/
       Mascot.tsx           the tornado mascot
       TransportBar.tsx     replay controls
     styles/
-      assess.css           imports ../../../design-tokens/tokens.css; every color and font is a token
+      underdog.css           imports ../../../design-tokens/tokens.css; every color and font is a token
   tests/
     unit/*.test.ts
 ```
@@ -319,7 +322,7 @@ The dashboard never calls robot, agent, auditor, perception, or sim reducers (`p
 
 ```
 +---------------------------------------------------------------------------------------------+
-| BAR: dog logo ASSESS | Worthing St block | Dashboard | Agents |      System (fold) | Record run |
+| BAR: dog logo UnderDog | Worthing St block | Dashboard | Agents |      System (fold) | Record run |
 +---------------------------------------------------------------------------------------------+
 | +-------------------+                                                  +------------------+ |
 | | WHO NEEDS HELP    |                                                  | 0 critical       | |

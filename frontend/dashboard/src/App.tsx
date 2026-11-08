@@ -1,4 +1,4 @@
-// Assess, the coordinator dashboard: a full-bleed map of the Worthing St block with floating cards
+// UnderDog, the coordinator dashboard: a full-bleed map of the Worthing St block with floating cards
 // (who needs help first; the database headline; rescuers and robot; houses) and an Agents page.
 // All data comes live from SpacetimeDB through useBoard(); see src/view/derive.ts for what each card shows.
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -29,7 +29,7 @@ import {
 } from './view/derive';
 
 const DEMO_HOUSE = { lat: 32.9968745, lon: -96.7704708 }; // 7716 Worthing St, until the site row arrives
-// The floating card columns (see .fcol in assess.css, narrower under 1500 px), so the map frames the block between them.
+// The floating card columns (see .fcol in underdog.css, narrower under 1500 px), so the map frames the block between them.
 // Where Camera View finds the glasses heads-up: the glasses fallback page and the glasses service socket.
 // Set VITE_GLASSES_PAGE_URL and VITE_GLASSES_WS_URL, or ?glassesPage= and ?glassesWs= on the dashboard URL.
 function glassesSocketUrl(): string {
@@ -103,9 +103,9 @@ export default function App({ config }: { config: DashboardConfig }) {
   // Tell the launch animation (src/splash.ts) the dashboard can be shown: the map has loaded, or failed with a notice.
   useEffect(() => {
     if (!site && !siteError) return;
-    (window as { assessReady?: boolean }).assessReady = true;
-    window.dispatchEvent(new Event('assess:ready'));
-    window.assessDesktop?.dashboardReady();
+    (window as { underdogReady?: boolean }).underdogReady = true;
+    window.dispatchEvent(new Event('underdog:ready'));
+    window.underdogDesktop?.dashboardReady();
   }, [site, siteError]);
   useEffect(() => {
     const onResize = () => setInsets(insetsFor(window.innerWidth));
