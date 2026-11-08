@@ -6,23 +6,22 @@ Living in **San Antonio, Texas**, severe weather and tornado warnings have made 
 
 This led us to the central question behind **State Farm's Intelligent Catastrophe Response Challenge**: How can we use AI and technology to identify those with the most urgent needs, coordinate assistance, and ensure nobody is overlooked?
 
-Rubble is slow and dangerous to cross on foot or on wheels, but easy to fly over. So we built a search-and-rescue system around a **drone that goes in first** and a **ground rover sent in second**: the drone surveys the disaster area from above and spots potential survivors, the rover takes a close look, and everything feeds a shared, real-time platform that coordinates the rescue.
+Rubble is slow and dangerous to cross on foot or on wheels, but easy to fly over. So we built a search-and-rescue system around **drone scouting**: a drone surveys the disaster area from above, spots potential survivors, and feeds a shared, real-time platform that coordinates the rescue.
 
 ## What it does
 
-Our project combines a **DJI Mini 4 Pro search drone, a ground rover, AI-assisted rescue coordination, and real-time communication** to help emergency teams locate and prioritize survivors following natural disasters.
+Our project combines **drone scouting with a DJI Mini 4 Pro, AI-assisted rescue coordination, and real-time communication** to help emergency teams locate and prioritize survivors following natural disasters.
 
 - **Surveys hazardous environments from above**: A DJI Mini 4 Pro flies over the disaster area and streams live video to a laptop, so responders know where to look before they go in.
-- **Identifies potential survivors**: Computer vision on the drone's video marks people seen from above.
-- **Confirms on the ground**: A ground rover is sent in second to each marked spot. Its thermal camera confirms a warm, person-sized shape, choosing the closest one with its lidar, and it stops about a meter away.
-- **Analyzes signs of life**: The rover holds still and records about 20 seconds of video, and Eulerian video magnification helps detect subtle movement such as breathing. A hovering drone shakes too much for this, so the close look happens on the ground.
+- **Identifies potential survivors**: Computer vision on the drone's video marks people seen from above, and where they are.
+- **Analyzes signs of life**: When a closer look is possible, about 20 seconds of steady video and Eulerian video magnification help detect subtle movement such as breathing.
 - **Prioritizes urgent cases**: A severity-assessment workflow scores each discovery, so rescuers can focus on the people who may need immediate attention. The system never labels anyone as dead; "no signs of life detected" stays at the top of the list.
 - **Coordinates rescue operations**: A multi-agent architecture using NVIDIA Nemotron organizes rescue tasks, reviews proposed actions, and communicates important updates.
-- **Synchronizes information in real time**: SpacetimeDB keeps survivor discoveries, drone and rover activity, and rescue assignments in one shared, live system.
+- **Synchronizes information in real time**: SpacetimeDB keeps survivor discoveries, drone activity, and rescue assignments in one shared, live system.
 - **Visualizes disaster response**: A centralized dashboard lets coordinators watch the search and manage rescue operations.
 - **Guides responders**: A smart-glasses interface shows how many critical survivors are nearby and points the way to the next one, directly in the responder's field of view.
 
-Our hackathon demonstration uses a simulated disaster scenario connected to a live SpacetimeDB backend. As the simulated drone and rover discover a survivor, the information is synchronized with the dashboard and the responder's glasses view, demonstrating how emergency teams could coordinate through one shared system.
+Our hackathon demonstration uses a simulated disaster scenario connected to a live SpacetimeDB backend. As the simulated drone discovers a survivor, the information is synchronized with the dashboard and the responder's glasses view, demonstrating how emergency teams could coordinate through one shared system.
 
 ## How we built it
 
@@ -30,7 +29,7 @@ Our hackathon demonstration uses a simulated disaster scenario connected to a li
 
 We structured our project around the challenge of coordinating emergency assistance during large-scale disasters. Our system focuses on three connected stages: **discovering survivors, assessing urgency, and coordinating a response**.
 
-The drone and rover discover survivors, the severity assessment decides who needs help first, and a shared board coordinates rescuers. "Nobody is overlooked" is enforced by the database itself, not left to the AI: every survivor stays on the board until a person resolves them, a responder who drops offline has their assignment released immediately, and a watchdog assigns the nearest rescuer if no one else does. The dashboard's headline tracks it directly: "Critical survivors unattended over 60 s: 0".
+The drone discovers survivors, the severity assessment decides who needs help first, and a shared board coordinates rescuers. "Nobody is overlooked" is enforced by the database itself, not left to the AI: every survivor stays on the board until a person resolves them, a responder who drops offline has their assignment released immediately, and a watchdog assigns the nearest rescuer if no one else does. The dashboard's headline tracks it directly: "Critical survivors unattended over 60 s: 0".
 
 ### NVIDIA: Nemotron Beyond a Chatbot
 
@@ -38,11 +37,11 @@ We designed a multi-agent architecture around NVIDIA Nemotron to explore how AI 
 
 Our architecture separates responsibilities across three specialized agents:
 
-- **Orchestrator**: ranks survivors, proposes the nearest available rescuer, and plans where the drone looks next and where the rover goes.
+- **Orchestrator**: ranks survivors, proposes the nearest available rescuer, and plans where the drone scouts next.
 - **Auditor**: reviews proposed actions and assessments to provide an additional layer of oversight.
 - **Communications Agent**: briefs rescuers on their glasses and answers their questions.
 
-The agents work with structured rescue information and support multi-step workflows instead of chatting. They coordinate only through a shared task board in SpacetimeDB, so every hand-off is logged and can be replayed. No agent can fly the drone, drive the rover, or close out a survivor; those stay with people.
+The agents work with structured rescue information and support multi-step workflows instead of chatting. They coordinate only through a shared task board in SpacetimeDB, so every hand-off is logged and can be replayed. No agent can fly the drone or close out a survivor; those stay with people.
 
 ### SpacetimeDB: Real-Time Rescue Coordination
 
@@ -50,7 +49,7 @@ We used **SpacetimeDB as the central backend** connecting every part of our proj
 
 Our SpacetimeDB module was built and deployed to Maincloud, with generated TypeScript bindings used across the application.
 
-- **Centralizes rescue data**: stores survivors, search areas, drone and rover activity, rescue assignments, briefings, and the agents' task board.
+- **Centralizes rescue data**: stores survivors, search areas, drone activity, rescue assignments, briefings, and the agents' task board.
 - **Synchronizes connected interfaces**: streams database changes to the coordinator dashboard and responder views through live subscriptions.
 - **Runs the rules and timers**: reducers enforce the survivor workflow, and schedule tables run every timer (assignment leases, heartbeats, escalation, and the agent watchdog) inside the database.
 - **Supports multiple responders**: every coordinator and responder sees the same live view as the information changes.
@@ -58,19 +57,19 @@ Our SpacetimeDB module was built and deployed to Maincloud, with generated TypeS
 
 This allowed us to focus on the rescue workflow without building a separate synchronization system for every interface.
 
-### Drone and Rover Hardware
+### Drone Scouting and Hardware
 
 The drone is a **DJI Mini 4 Pro**. It weighs 249 g, has a regular camera but no thermal camera, and has no payload port, so it cannot carry extra sensors. We use it for what it does well: covering a wide area quickly. DJI Fly streams its video over RTMP to a laptop, where the same computer vision code we use for the rover's camera can run on it. DJI's Mobile SDK v5 also supports the Mini 4 Pro (Android, with the RC-N2 controller), which could later put the drone's live GPS position on the dashboard map.
 
-The ground rover carries the heavy sensing, built on a **Raspberry Pi 4B, Raspberry Pi Pico, and C++**. The Pico reads the sensors (a thermal camera, a 360-degree lidar, a single-point lidar, and an IMU) and streams them to the Raspberry Pi. The Pi drives four mecanum wheels, finds warm, person-sized shapes with explainable rules, picks the closest one with the lidar, drives up to it, and reports to SpacetimeDB through a Node.js bridge. It can also be driven remotely, and a state machine with safety logic stops it on its own if a sensor or the connection fails.
+For close checks, we also built a ground rover on a **Raspberry Pi 4B, Raspberry Pi Pico, and C++**. The Pico reads the sensors (a thermal camera, a 360-degree lidar, a single-point lidar, and an IMU) and streams them to the Raspberry Pi. The Pi drives four mecanum wheels, finds warm, person-sized shapes with explainable rules, picks the closest one with the lidar, drives up to it, and reports to SpacetimeDB through a Node.js bridge. It can also be driven remotely, and a state machine with safety logic stops it on its own if a sensor or the connection fails.
 
-We first built the rover as a walking robot dog. When its leg servos overheated during testing, we put it on wheels and added the drone to search first. For the hackathon demonstration, we used a simulated drone and rover to represent the search, survivor discovery, and sensor results, while developing and testing the hardware separately.
+For the hackathon demonstration, we used a simulated drone to represent the search, survivor discovery, and sensor results, while developing and testing the hardware separately.
 
 ## Challenges we ran into
 
 One of our biggest challenges was adjusting to a project that was so heavily focused on hardware. We had to familiarize ourselves with different sensors, microcontrollers, and the many moving parts involved in a robotic system. Understanding how each component worked individually was already a learning curve, and figuring out how they would communicate added another level of complexity.
 
-Our hardware plans also changed during the weekend. We started with a walking robot, and when its leg servos overheated, we had to decide quickly what to keep. Because every part of the system talks through the same database, we could add the drone and change the robot to wheels without rebuilding the dashboard, the agents, or the glasses.
+Our hardware plans also changed during the weekend. When our ground robot's servos overheated during testing, we moved to drone scouting, which suits rubble better. Because every part of the system talks through the same database, we could change the search vehicle without rebuilding the dashboard, the agents, or the glasses.
 
 Managing the scope of our project was another challenge. With so many possibilities for robotics, computer vision, and AI, it was easy to get caught up in adding new features. We had to continually revisit our original idea and make sure each component contributed to our goal of improving disaster response.
 
@@ -98,8 +97,8 @@ We also learned the importance of keeping a project focused, especially during a
 
 ## What's next
 
-We plan to connect the drone's live video and position to the dashboard, and bring the rover's thermal detection, perception system, and AI agents into the live rescue workflow.
+We plan to connect the drone's live video and position to the dashboard, and bring the perception system and AI agents into the live rescue workflow.
 
-Future improvements include a thermal drone for searching at night, having the drone hand each find straight to the rover, improving survivor detection, expanding smart-glasses functionality, and evaluating the system in more realistic disaster simulations.
+Future improvements include a thermal drone for searching at night, sending the ground rover to drone finds for close checks, improving survivor detection, expanding smart-glasses functionality, and evaluating the system in more realistic disaster simulations.
 
 Our goal is to create a platform that gives first responders more information, improves coordination between rescue teams, and helps communities respond more effectively when disasters occur.
