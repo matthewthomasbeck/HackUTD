@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Assess</title>
+    <title>UnderDog</title>
     <!--
       Desktop launch animation, in its own frameless, transparent window (electron/main.cjs), so only the dog shows
       over the desktop. It steps through all 12 frames of assets/backflip.png (the backflip from Loading.gif with the
@@ -61,7 +61,7 @@
 
       function finish() {
         document.body.classList.add('finished');
-        window.setTimeout(() => window.assessDesktop?.splashAnimationFinished(), LOGO_HOLD_MS);
+        window.setTimeout(() => window.underdogDesktop?.splashAnimationFinished(), LOGO_HOLD_MS);
       }
 
       // Frames follow the clock, so a late timer skips ahead instead of slowing the flip down.

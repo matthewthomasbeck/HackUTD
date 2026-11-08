@@ -1,10 +1,10 @@
 // Launch animation. index.html shows the dog in the middle of a night-purple screen, and CSS plays the backflip
 // (12 frames in src/assets/backflip.png). When the flip has landed and the dashboard is ready (App fires
-// "assess:ready" once the map has loaded), the dog shrinks and flies onto the top-left logo while the splash
+// "underdog:ready" once the map has loaded), the dog shrinks and flies onto the top-left logo while the splash
 // fades, so the logo the coordinator sees is the same dog. If the dashboard is not ready yet, the dog waits
 // with a small bob instead of revealing a half-drawn screen.
 
-const FLIP_END_MS = 420 + 1200; // start delay + flip, matching .splash-dog in assess.css
+const FLIP_END_MS = 420 + 1200; // start delay + flip, matching .splash-dog in underdog.css
 const MAX_WAIT_MS = 8000; // never hold the dashboard back longer than this
 // Where the dog's body sits in its image, as fractions: the last sprite frame (358 px) and the logo (192 px).
 const FRAME_DOG = { centerX: 188.5 / 358, centerY: 203 / 358, width: 211 / 358 };
@@ -18,8 +18,8 @@ export function runSplash(): void {
 
   const flipped = new Promise<void>((resolve) => window.setTimeout(resolve, reduced ? 250 : FLIP_END_MS));
   const ready = new Promise<void>((resolve) => {
-    if ((window as { assessReady?: boolean }).assessReady) resolve();
-    else window.addEventListener('assess:ready', () => resolve(), { once: true });
+    if ((window as { underdogReady?: boolean }).underdogReady) resolve();
+    else window.addEventListener('underdog:ready', () => resolve(), { once: true });
   });
   const timeout = new Promise<void>((resolve) => window.setTimeout(resolve, MAX_WAIT_MS));
 

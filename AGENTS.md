@@ -33,7 +33,7 @@ Run the robot bridge checks with `cd raspberrypi/bridge && npm test && npx tsc -
 Run the glasses service checks with `cd backend/glasses-service && npm test && npx tsc --noEmit`.
 Run the glasses plugin checks with `cd frontend/glasses && npm test && npm run build`.
 Run the dashboard checks with `cd frontend/dashboard && npm test && npm run build`.
-The dashboard is a desktop app: `cd frontend/dashboard && npm run app` (hot reload), `npm run app:pack` (Assess.app); see `docs/specs/dashboard.md`, "Desktop app".
+The dashboard is a desktop app: `cd frontend/dashboard && npm run app` (hot reload), `npm run app:pack` (UnderDog.app); see `docs/specs/dashboard.md`, "Desktop app".
 `cd frontend/dashboard && npm run demo` starts everything on the local server for the app's Play demo button (house 3 find, Cayden assigned, accepted, and walked there, shown on the board and his glasses at once); `cd frontend/glasses && npm run sim` adds the Even simulator.
 Run the agent checks with `cd backend/agent && npm test && npx tsc --noEmit`.
 Run the perception checks with `cd backend/perception && python -m pytest`.

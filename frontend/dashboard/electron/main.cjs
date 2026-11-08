@@ -1,11 +1,11 @@
-// Assess desktop app: the coordinator dashboard in its own window (Electron).
+// UnderDog desktop app: the coordinator dashboard in its own window (Electron).
 // The page is the same Vite build as the web dashboard. This file only opens the window, passes the run-time
 // settings as URL parameters (the dashboard reads them in src/stdb/connection.ts and src/App.tsx), and adds a
 // Server menu to switch between Maincloud and a local SpacetimeDB server without rebuilding (venue Wi-Fi down).
 //
 // Settings, in order of precedence:
 //   1. Command-line flags: --db=cloud|local --local-uri=ws://HOST:3000 --glasses-page=URL --glasses-ws=URL --screen=A
-//   2. The saved file <userData>/assess-settings.json (written by the Server menu)
+//   2. The saved file <userData>/underdog-settings.json (written by the Server menu)
 //   3. Defaults: Maincloud (the address baked in at build time from .env), local server ws://127.0.0.1:3000
 const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const fs = require('node:fs');
@@ -13,7 +13,7 @@ const path = require('node:path');
 
 const DEFAULTS = { db: 'cloud', localUri: 'ws://127.0.0.1:3000', glassesPage: '', glassesWs: '', screen: 'A' };
 const FLAG_NAMES = { db: 'db', localUri: 'local-uri', glassesPage: 'glasses-page', glassesWs: 'glasses-ws', screen: 'screen' };
-const settingsFile = () => path.join(app.getPath('userData'), 'assess-settings.json');
+const settingsFile = () => path.join(app.getPath('userData'), 'underdog-settings.json');
 
 function readSaved() {
   try { return JSON.parse(fs.readFileSync(settingsFile(), 'utf8')); } catch { return {}; }
@@ -56,14 +56,14 @@ function revealDashboard() {
   setTimeout(() => { if (!finishingSplash.isDestroyed()) finishingSplash.destroy(); }, SPLASH_FADE_MS);
 }
 
-ipcMain.on('assess:dashboard-ready', (event) => {
+ipcMain.on('underdog:dashboard-ready', (event) => {
   if (window && event.sender === window.webContents) {
     dashboardReady = true;
     revealDashboard();
   }
 });
 
-ipcMain.on('assess:splash-animation-finished', (event) => {
+ipcMain.on('underdog:splash-animation-finished', (event) => {
   if (splashWindow && event.sender === splashWindow.webContents) {
     splashAnimationFinished = true;
     revealDashboard();
@@ -80,10 +80,10 @@ function query() {
 }
 
 function load() {
-  const devUrl = process.env.ASSESS_DEV_URL;
+  const devUrl = process.env.UNDERDOG_DEV_URL;
   if (devUrl) window.loadURL(`${devUrl}?${query()}`);
   else window.loadFile(path.join(__dirname, '..', 'dist', 'index.html'), { search: query() });
-  window.setTitle(settings.db === 'local' ? `Assess · local server ${settings.localUri}` : 'Assess');
+  window.setTitle(settings.db === 'local' ? `UnderDog · local server ${settings.localUri}` : 'UnderDog');
 }
 
 function switchServer(db) {
@@ -119,7 +119,7 @@ function createWindow() {
     height: 960,
     minWidth: 1200,
     minHeight: 760,
-    title: 'Assess',
+    title: 'UnderDog',
     backgroundColor: '#0A0718', // --night, the launch animation's backdrop, so the window does not flash before it paints
     show: false,
     icon: path.join(__dirname, 'icon.png'),
@@ -131,7 +131,7 @@ function createWindow() {
     return { action: 'deny' };
   });
   window.webContents.on('will-navigate', (event, url) => {
-    const devUrl = process.env.ASSESS_DEV_URL;
+    const devUrl = process.env.UNDERDOG_DEV_URL;
     if (!(devUrl && url.startsWith(devUrl)) && !url.startsWith('file:')) event.preventDefault();
   });
   window.on('closed', () => { window = null; });

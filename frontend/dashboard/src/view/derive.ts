@@ -1,4 +1,4 @@
-// Turns the live board (SpacetimeDB rows) into what the Assess screens show. Pure functions, so the screens stay
+// Turns the live board (SpacetimeDB rows) into what the UnderDog screens show. Pure functions, so the screens stay
 // thin and this logic is unit-tested without a browser or a database.
 import type { BoardState } from '../data/BoardData';
 import { listAgents } from '../model/agents';

@@ -3,8 +3,24 @@ import type { ContainerMsg } from './protocol.js';
 export type LayoutName='map'|'arrow'|'arrived'|'idle'|'ack'|'released'|'ask';
 export interface LayoutData { [key:string]: string | undefined }
 const frame=(id:number,kind:'text'|'image',name:string,x:number,y:number,w:number,h:number,z:number,content?:string):ContainerMsg => kind==='text'
-  ? {kind,id,name,x,y,w,h,z,content:toAscii(content ?? ''),text_color:id===8?2:4,padding:2,...(id===1?{capture:true}:{})}
+  ? {kind,id,name,x,y,w,h,z,content:id===1?toAscii(content ?? ''):fitText(toAscii(content ?? ''),w,h,2),text_color:id===8?2:4,padding:2,...(id===1?{capture:true}:{})}
   : {kind,id,name,x,y,w,h,z};
+// G2 font metrics, the same numbers as frontend/glasses/src/fallback/text.ts (CHAR_W, LINE_H, GLYPH_H).
+const CHAR_W=13, LINE_H=27, GLYPH_H=22;
+// Text that would run past its container (a long briefing in a two-line box) keeps the lines that fit and ends in "...",
+// instead of showing a half-cut last line. Text that fits is returned unchanged.
+export function fitText(content:string,w:number,h:number,padding=0):string {
+  const perLine=Math.max(1,Math.floor((w-2*padding)/CHAR_W)); const capacity=Math.max(1,Math.floor((h-2*padding+LINE_H-GLYPH_H)/LINE_H));
+  const lines:string[]=[];
+  for(const para of content.split('\n')){let line='';for(const word of para.split(' ').filter(Boolean)){let rest=word;while(rest.length>perLine){if(line){lines.push(line);line='';}lines.push(rest.slice(0,perLine));rest=rest.slice(perLine);}if(!line)line=rest;else if(line.length+1+rest.length<=perLine)line+=` ${rest}`;else{lines.push(line);line=rest;}}lines.push(line);}
+  while(lines.length&&lines[lines.length-1]==='')lines.pop();
+  if(lines.length<=capacity)return content;
+  const kept=lines.slice(0,capacity); const last=kept[capacity-1]!;
+  // Cut at a word boundary, so "survivor 13" never shows as the misleading "survivor 1...".
+  let cut=last; while(cut.length+3>perLine&&cut.includes(' '))cut=cut.slice(0,cut.lastIndexOf(' ')).trimEnd();
+  kept[capacity-1]=`${cut.length+3<=perLine?cut:cut.slice(0,Math.max(0,perLine-3))}...`;
+  return kept.join('\n');
+}
 export function toAscii(value:string):string {
   return value.replace(/°/g,' deg').replace(/[·•]/g,'-').replace(/©/g,'(c)').replace(/[–—−]/g,'-').replace(/[“”]/g,'"').replace(/[‘’]/g,"'").replace(/[^\x20-\x7E\n]/g,'');
 }

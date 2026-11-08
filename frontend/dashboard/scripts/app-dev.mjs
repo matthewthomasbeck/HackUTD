@@ -10,5 +10,5 @@ const url = server.resolvedUrls?.local[0];
 if (!url) throw new Error('Vite did not report a local URL');
 
 const electron = createRequire(import.meta.url)('electron'); // the path to the Electron binary
-const child = spawn(electron, ['.', ...process.argv.slice(2)], { stdio: 'inherit', env: { ...process.env, ASSESS_DEV_URL: url.replace(/\/$/, '/') } });
+const child = spawn(electron, ['.', ...process.argv.slice(2)], { stdio: 'inherit', env: { ...process.env, UNDERDOG_DEV_URL: url.replace(/\/$/, '/') } });
 child.on('exit', async (code) => { await server.close(); process.exit(code ?? 0); });

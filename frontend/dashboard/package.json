@@ -30,11 +30,11 @@
     "vitest": "^2.1.8"
   },
   "main": "electron/main.cjs",
-  "productName": "Assess",
-  "description": "Assess coordinator dashboard (desktop app)",
+  "productName": "UnderDog",
+  "description": "UnderDog coordinator dashboard (desktop app)",
   "build": {
-    "appId": "com.hackutd.assess",
-    "productName": "Assess",
+    "appId": "com.hackutd.underdog",
+    "productName": "UnderDog",
     "directories": {
       "output": "release",
       "buildResources": "electron"
