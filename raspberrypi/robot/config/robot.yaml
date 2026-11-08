@@ -1,0 +1,108 @@
+# Robot config for the real Pi (docs/specs/robot.md section 15).
+# Installed at /etc/robot/robot.yaml. Every "# TBD" value is a placeholder; ask before locking it.
+# Who decides each TBD value: docs/specs/robot.md section 15.1.
+
+robot: { robot_id: dog1, name: "Dog 1" }
+loop: { rate_hz: 50, overrun_factor: 2.0, overrun_ticks: 5 }          # TBD: measure tick time on the Pi
+init: { device_timeout_ms: 3000 }                                      # TBD
+fault: { max_retries: 3 }                                              # TBD
+shutdown: { timeout_ms: 2000 }
+movement: { rate_hz: 100, command_timeout_ms: 100 }                    # TBD: movement thread rate, dead-man timeout
+vision: { rate_hz: 30, model_path: "", labels_path: "", min_score: 0.5 }   # TBD: Edge TPU .tflite model and labels
+workers: { stall_ms: 500 }                                             # TBD: a thread silent this long is stuck
+devices:
+  required: [pico, thermal, dc_driver_a, dc_driver_b]                  # TBD team decision
+  optional: [maestro_a, maestro_b, camera, coral, imu, ads1115, lidar_single, ld19, gps, light]
+maestro_a: { mock: false, path: /dev/servo45, baud: 0 }                # baud TBD
+maestro_b: { mock: false, path: /dev/servo25, baud: 0 }                # baud TBD
+dc_driver_a: { mock: false, path: /dev/dcmotorA, protocol: tbd, baud: 0 }   # model, protocol, baud TBD
+dc_driver_b: { mock: false, path: /dev/dcmotorB, protocol: tbd, baud: 0 }   # model, protocol, baud TBD
+pico: { mock: false, path: /dev/pico, heartbeat_hz: 20, link_timeout_ms: 250, max_crc_errors_per_s: 5 }   # rates TBD, tune on hardware
+stale_ms: { imu: 200, thermal: 2000, lidar_single: 500, ld19: 1000, camera: 500, gps: 3000 }               # TBD: measure real rates
+camera: { mock: false, width: 640, height: 480, clip_fps: 30 }         # TBD: measure on the Pi
+coral: { mock: false }                                            # Edge TPU with the vision model
+gps: { mock: false, host: localhost, port: 2947 }
+light: { impl: mock, maestro_channel: -1, use_for_clip: true, warmup_ms: 500 }   # TBD hardware: mock | maestro_digital | manual
+motion:
+  impl: drive_only                  # mock | drive_only | legged
+  drive_only:
+    hold_stance: true               # hold legs at legs.stance_height_m if the Maestros are up
+  mecanum:
+    wheel_radius_m: 0.0             # TBD
+    half_track_lx_m: 0.0            # TBD, half the left-right spacing at default stance
+    half_base_ly_m: 0.0             # TBD, half the front-back spacing at default stance
+    wheel_order: [1, 2, 3, 4]       # TBD: physical wheel for paper index 1..4
+    invert: [false, false, false, false]
+    max_wheel_rad_s: 0.0            # TBD
+legs:
+  impl: mock                        # mock | two_link
+  stance_height_m: 0.0              # TBD
+  l1_m: 0.0                         # TBD
+  l2_m: 0.0                         # TBD
+  channels: []                      # TBD: per leg, list of [maestro, channel]
+servos: { max_rate_us_per_s: 0 }    # per-channel min_us, max_us, zero_us, direction TBD
+limits: { max_lin_mps: 0.2, max_ang_dps: 45, max_lin_accel: 0.5, max_ang_accel: 90, reject_factor: 5 }   # TBD: floor test
+safe_stop: { servo_action: hold }                                      # TBD: hold | release
+estop: { sense: none }                                                 # TBD: Pico input id once a sense line is wired
+thermal:
+  width: 32                         # TBD: thermal model
+  height: 24                        # TBD
+  fov_h_deg: 55                     # TBD
+  yaw_offset_deg: 0
+  delta_c: 4.0
+  min_c: 25.0
+  max_c: 45.0
+  min_blob_px: 3
+  max_blob_frac: 0.5
+  person_width_m: 0.25
+  size_tolerance: 0.5
+  persist_frames: 3
+  persist_window: 5
+  persist_px: 2
+  confirm_s: 3
+  confirm_min_frames: 3
+  contrast_full_c: 6
+  render_scale: 10
+  mask: []                                                  # list of [col0, row0, col1, row1]
+terrain:
+  impl: rules                       # rules | mock
+  front_sector_deg: 60
+  lidar_single_mode: forward        # forward | down, TBD mounting
+  ground_range_m: 0.0               # TBD, only for mode down
+  tilt_lpf_alpha: 0.2
+  use_force: false                  # FSR force sensors, meaning TBD, never ground contact
+  force_rules: []                   # TBD once Matthew says what each sensor measures
+  missing_input_penalty: 0.2
+  blocked_m: 0.25
+  clear_m: 0.6
+  gap_drop_m: 0.05
+  max_pitch_deg: 20
+  max_roll_deg: 20
+  step_rise_m: 0.04
+  max_step_m: 0.0                   # TBD from Matthew
+  bump_window_s: 1.0
+  bump_gyro_dps: 30
+  debris_range_var: 0.01
+  base_confidence: { flat: 0.6, debris: 0.5, step: 0.6, gap: 0.6, blocked: 0.8, unknown: 0.2 }
+  agree_bonus: 0.2
+  hold_ticks: 5
+  slow_scale: 0.5
+  report_max_hz: 1
+  report_keepalive_s: 5
+  camera_hint: { enabled: false, frame_every_s: 1.0, max_age_ms: 1500, weight: 0.3 }
+scan: { seconds_per_cell: 10, mode: rotate, rotate_wz_dps: 20, dedupe_deg: 15, dedupe_m: 1.0, min_view_m: 0.5, min_fresh_frac: 0.9, min_clear_frac: 0.7 }
+inspect: { standoff_m: 1.0, approach_timeout_s: 10, settle_s: 2, still_gyro_dps: 2.0 }
+breathing: { clip_s: 20 }                                   # validation: >= 15
+nav: { match_radius_m: 5, min_clearance_m: 0.30, blocked_timeout_s: 5 }
+hold: { max_s: 0, inspect_candidates: false }
+missions: { auto_start: true, max_cells: 20, target_margin_m: 50, max_target_distance_m: 600, search_without_path: true, on_bridge_loss: finish_step_then_hold }   # auto_start, on_bridge_loss TBD team
+site: { demo_mode_default: true, center_lat: 0.0, center_lon: 0.0, radius_m: 483 }
+location: { force_demo: false }
+home: { lat: 0.0, lon: 0.0 }                                # TBD demo coordinates
+heading: { initial_deg: 0, gps_min_speed_mps: 0.5 }
+odometry: { scale: 1.0 }                                    # TBD: drive 2 m and measure
+paths_file: /etc/robot/demo_paths.yaml
+bridge: { socket: /run/robot/bridge.sock, heartbeat_hz: 1, position_hz: 1, outbox: /var/lib/robot/outbox.jsonl }
+control: { socket: /run/robot/control.sock }
+media_dir: /var/lib/robot/media
+recorder: { dir: /var/lib/robot/logs, max_gb: 8, decimate: 1 }  # max_gb TBD: SD card size

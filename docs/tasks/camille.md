@@ -95,6 +95,9 @@ Priority from `docs/MVP.md`: the find and breathing check (thermal detection, `i
 
 ### R0. Build setup
 
+Owner of the C++ part (`raspberrypi/robot/` CMake, config, logger): Eric (2026-11-07), because R1 needs it.
+The bridge and Pico skeletons stay with Camille.
+
 Estimate with AI: 1 h.
 
 Goal: one command builds and runs the robot program on a laptop with every device mocked, and the bridge and Pico projects build.
@@ -185,6 +188,8 @@ Pitfalls:
 
 ### R1. State machine, safety gate, main loop
 
+Owner: Eric (taken over from Camille on 2026-11-07).
+
 Estimate with AI: 2 h.
 
 Goal: the states BOOT, INIT, READY, ACTIVE, SAFE_STOP, FAULT, SHUTDOWN, with the loop order observe, step, behavior, safety gate, send, log, plus the local control socket and `robotctl`.
@@ -219,14 +224,14 @@ Run:
 ```
 
 Checklist:
-- [ ] 1. Write `LatestSlot<T>` (mutex, value, steady-clock write time, `age(now)`), `Clock` with `FakeClock`, and a `WorldSnapshot` struct with the fields robot.md 4.3 needs.
-- [ ] 2. Write the state and event enums and the pure `step(state, snapshot, events)` returning next state, reason, and `latched`, with the transition table from robot.md section 5.
-- [ ] 3. Write one test per transition row, plus the latch, reset, retry, and SIGTERM tests below.
-- [ ] 4. Write `MotionCommand` and the pure `SafetyGate::filter(state, snapshot, output)` with the rules from robot.md 10.1 (terrain rules can be a stub until R7).
-- [ ] 5. Write the safety gate tests below.
-- [ ] 6. Write the main loop in `main.cpp`: fixed rate with `sleep_until`, the six steps in order, overrun detection, and a 1 Hz summary log line.
-- [ ] 7. Write the control server (non-blocking Unix socket, NDJSON commands `start`, `stop`, `estop`, `reset`, `status`) and `robotctl`.
-- [ ] 8. Handle SIGTERM and SIGINT: raise the `sigterm` event, stop motion, then SHUTDOWN within `shutdown.timeout_ms`.
+- [x] 1. Write `LatestSlot<T>` (mutex, value, steady-clock write time, `age(now)`), `Clock` with `FakeClock`, and a `WorldSnapshot` struct with the fields robot.md 4.3 needs.
+- [x] 2. Write the state and event enums and the pure `step(state, snapshot, events)` returning next state, reason, and `latched`, with the transition table from robot.md section 5.
+- [x] 3. Write one test per transition row, plus the latch, reset, retry, and SIGTERM tests below.
+- [x] 4. Write `MotionCommand` and the pure `SafetyGate::filter(state, snapshot, output)` with the rules from robot.md 10.1 (terrain rules can be a stub until R7).
+- [x] 5. Write the safety gate tests below.
+- [x] 6. Write the main loop in `main.cpp`: fixed rate with `sleep_until`, the six steps in order, overrun detection, and a 1 Hz summary log line.
+- [x] 7. Write the control server (non-blocking Unix socket, NDJSON commands `start`, `stop`, `estop`, `reset`, `status`) and `robotctl`.
+- [x] 8. Handle SIGTERM and SIGINT: raise the `sigterm` event, stop motion, then SHUTDOWN within `shutdown.timeout_ms`.
 - [ ] 9. Run the scripted check below on mocks and paste the log into the PR.
 
 Tests (GoogleTest, `FakeClock`, no hardware):

@@ -19,8 +19,9 @@ Its older files (produced water, leak detection, inspection robots, images) were
 `docs/PROJECT.md` has the proposed platform, glasses view, and the accounts and keys list.
 `docs/IDEAS.md` and `docs/notes/` are the history of the ideation phase (the grid outage idea led until this pivot), so do not treat them as current decisions.
 
-No code exists yet, so there are no build, lint, or test commands.
-Each component's build and run commands are in its spec in `docs/specs/`; add them here once the first code lands.
+The first code is the robot main program in `raspberrypi/robot/` (C++17, CMake): the state machine, safety gate, main loop, control socket, and mocks (task R1).
+Build and test it with `cmake -B build && cmake --build build -j && ctest --test-dir build --output-on-failure` inside `raspberrypi/robot/`, and run it on a laptop with `./build/robot --config config/robot.laptop.yaml`; `raspberrypi/README.md` has the dependencies and the `robotctl` commands.
+Other components' build and run commands are in their specs in `docs/specs/`; add them here once their code lands.
 
 This is the team repo, https://github.com/matthewthomasbeck/HackUTD (public, branch `main`).
 The planning docs live in `docs/`, next to the code folders.
