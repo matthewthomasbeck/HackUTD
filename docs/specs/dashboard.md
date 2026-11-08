@@ -675,6 +675,8 @@ Action log (`AgentLog.tsx`), inside the Agents panel:
 ### Tab: robot health (`RobotHealth.tsx`)
 
 One card per `robot` row: name, state (`FAULT` and `SAFE_STOP` in the critical style), ONLINE or OFFLINE, heartbeat age, battery, GPS fix or "indoor offset `<n>` m", current mission, and the latest terrain class and action.
+Decision 2026-11-08 (Cayden): the dashboard does not show the robot's terrain; it stays on the `robot` row and in `event_log`, and `robotctl status` shows it on the robot.
+The terrain class and action on the card are therefore not built.
 `device_status` rows: device, `OK` / `DEGRADED` / `FAILED` as text with a check, half circle, or cross icon, and `detail`.
 Any `FAILED` device or offline robot also turns the Robot search card red with "dog1 OFFLINE" or "dog1 thermal FAILED".
 
@@ -841,7 +843,7 @@ The glasses (priority 4) have no dashboard step beyond the briefings to each res
 | 3 | Missions, assignments with release causes, timers | 1.0 |
 | 4 | Agents panel: agent status, task board, action log, chain per survivor; audit flags tab | 1.75 |
 | 5 | Survivor list and detail with media, resolve dialog, duplicate pair | 1.75 |
-| 6 | Map: tiles, attribution, offline mode, cells with partial, survivors, robot with its latest terrain, rescuers, legend | 1.75 |
+| 6 | Map: tiles, attribution, offline mode, cells with partial, survivors, robot (no terrain marker, see the robot card decision), rescuers, legend | 1.75 |
 | 7 | Pipeline canvas | 0.75 |
 | 8 | Buildings panel and person report form, events, briefing banner, robot health | 1.0 |
 | 9 | Transport bar live mode, start and end run, sync cue and sync test | 0.5 |

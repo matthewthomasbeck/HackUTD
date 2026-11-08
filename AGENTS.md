@@ -41,6 +41,7 @@ Run the perception checks with `cd backend/perception && python -m pytest`.
 How to run each part is in `backend/README.md` and `frontend/README.md`; integration commands remain in the specs in `docs/specs/`.
 The robot main program is in `raspberrypi/robot/` (C++17, CMake): the state machine, safety gate, threads (main, movement, vision), control socket, and mocks (task R1).
 Build and test it with `cmake -B build && cmake --build build -j && ctest --test-dir build --output-on-failure` inside `raspberrypi/robot/`, and run it on a laptop with `./build/robot --config config/robot.laptop.yaml`; `raspberrypi/README.md` has the dependencies and the `robotctl` commands.
+Terrain recognition (task R7, `src/terrain/`) runs every tick and the safety gate applies it; `robotctl mock terrain <class>` drives it on a laptop, and its status (built on mocks only, camera advice off) is in `docs/notes/2026-11-08-terrain-integration.md`.
 
 Primary perception and agents are in `backend/perception/` and `backend/agent/`.
 Run `.venv/bin/python -m pytest -q` from `backend/perception/`.

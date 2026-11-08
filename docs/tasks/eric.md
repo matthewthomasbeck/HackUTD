@@ -914,6 +914,9 @@ curl -F file=@frame.jpg -F robot_id=dog1 -F rule_class=flat http://localhost:808
 
 Checklist:
 
+Status 2026-11-08 (Cayden, branch `cayden/terrain`): the transport is built and checked on mocks (the robot saves frames, the bridge posts them and forwards `terrain_hint`), and `create_app` now passes `[terrain]` from `config.toml` to the module (it was ignored before).
+Steps 1, 5b, 6, and 7 are still open: there are no labelled frames, so there is no evaluation, and the advice stays off. See `docs/notes/2026-11-08-terrain-integration.md`.
+
 - [ ] 1. Record frames over each mock rubble type in full and dim light, at least 50 per class (by hand or from the bridge).
 - [x] 2. `terrain.py` zero-shot CLIP baseline with one prompt per class (perception.md 9), `unknown` below 0.5.
 - [x] 3. `POST /terrain` (skip frames older than 5 s, store with `kind=terrain`, at most 1 per second per robot) and `GET /terrain/latest`.

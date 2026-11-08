@@ -171,6 +171,43 @@ bool is_important(const std::string& type) {
   return type == "detection" || type == "cell" || type == "mission_progress" || type == "device";
 }
 
+bool is_important_message(const json& message) {
+  const std::string type = read_string(message, "type");
+  return is_important(type) || (type == "terrain" && read_string(message, "action") == "stop");
+}
+
+std::optional<std::chrono::system_clock::time_point> parse_iso8601_utc(const std::string& s) {
+  int y = 0, mo = 0, d = 0, h = 0, mi = 0, sec = 0, used = 0;
+  if (std::sscanf(s.c_str(), "%4d-%2d-%2dT%2d:%2d:%2d%n", &y, &mo, &d, &h, &mi, &sec, &used) != 6 || used != 19) {
+    return std::nullopt;
+  }
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59 || sec > 60) return std::nullopt;
+  std::size_t i = 19;
+  long long micros = 0;
+  if (i < s.size() && s[i] == '.') {
+    long long scale = 100000;
+    ++i;
+    const std::size_t digits_from = i;
+    for (; i < s.size() && s[i] >= '0' && s[i] <= '9'; ++i) {
+      micros += (s[i] - '0') * scale;
+      scale /= 10;
+    }
+    if (i == digits_from) return std::nullopt;
+  }
+  const std::string zone = s.substr(i);
+  if (zone != "Z" && zone != "+00:00") return std::nullopt;
+  std::tm tm{};
+  tm.tm_year = y - 1900;
+  tm.tm_mon = mo - 1;
+  tm.tm_mday = d;
+  tm.tm_hour = h;
+  tm.tm_min = mi;
+  tm.tm_sec = sec;
+  const std::time_t secs = timegm(&tm);
+  return std::chrono::system_clock::time_point(std::chrono::seconds(secs)) +
+         std::chrono::duration_cast<std::chrono::system_clock::duration>(std::chrono::microseconds(micros));
+}
+
 ParseStatus parse_inbound(const std::string& line, InboundMessage* out, std::string* why) {
   const json j = json::parse(line, nullptr, false);
   if (j.is_discarded() || !j.is_object()) {

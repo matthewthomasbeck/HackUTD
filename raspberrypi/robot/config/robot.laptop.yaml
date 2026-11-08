@@ -91,6 +91,7 @@ terrain:
   missing_input_penalty: 0.2
   blocked_m: 0.25
   clear_m: 0.6
+  steer_span_deg: 180               # side bins searched for a way around a block, centered ahead, TBD
   gap_drop_m: 0.05
   max_pitch_deg: 20
   max_roll_deg: 20
@@ -105,6 +106,8 @@ terrain:
   slow_scale: 0.5
   report_max_hz: 1
   report_keepalive_s: 5
+  mock_sequence: []                 # impl mock only: a scripted class list, e.g. [flat, debris, blocked]
+  mock_step_s: 2                    # impl mock only: seconds per mock_sequence entry
   camera_hint: { enabled: false, frame_every_s: 1.0, max_age_ms: 1500, weight: 0.3 }
 scan: { seconds_per_cell: 10, mode: rotate, rotate_wz_dps: 20, dedupe_deg: 15, dedupe_m: 1.0, min_view_m: 0.5, min_fresh_frac: 0.9, min_clear_frac: 0.7 }
 inspect: { standoff_m: 1.0, approach_timeout_s: 10, settle_s: 2, still_gyro_dps: 2.0 }
