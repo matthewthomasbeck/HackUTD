@@ -123,3 +123,19 @@ describe("runtime heartbeat policy (agent.md 8.1)", () => {
     h.stop();
   });
 });
+
+describe("orchestrator packet reads payload ids as decimal strings", () => {
+  it("shows a posted brief for a pending proposal", async () => {
+    const { orchestratorPacket } = await import("../src/agents/orchestrator.ts");
+    const { World } = await import("../src/world.ts");
+    const { h } = fakeWorld();
+    const sid = survivorAt(h, 3);
+    h.module.proposeAssignment(h.identity("orchestrator"), sid, RESCUER.A, "IMMEDIATE");
+    const a = h.store.rows("assignment").at(-1)!;
+    // Ids as the module and payloadJson write them.
+    h.module.postAgentTask(h.identity("orchestrator"), "comms_agent", "brief_rescuer", JSON.stringify({ chain_id: "0", assignment_id: String(a.id), survivor_id: String(sid), rescuer_identity: RESCUER.A, why: "w" }), "critical", "brief", 0);
+    const ctx = ctxFor(h, "orchestrator");
+    const packet = orchestratorPacket(new World(h.store, h.clock), ctx.input, ctx);
+    expect(packet).toContain(`assignment #${a.id}, by orchestrator, brief posted`);
+  });
+});
