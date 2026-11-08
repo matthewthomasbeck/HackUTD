@@ -68,15 +68,15 @@ These roles may change.
 | --- | --- | --- | --- |
 | Pololu Maestro A | UART | Pi | Drives 45kg servos. The legs use 12 (Cayden, 2026-11-07); the Maestro model and channel count are TBD |
 | Pololu Maestro B | UART | Pi | Drives 25kg servos (quantity TBD). They are not used in the legs (Cayden, 2026-11-07); what they drive is TBD |
-| Dual DC motor driver A | UART (TBC) | Pi | Motors 1 and 2. Model TBD. Interface may be PWM + direction instead of UART |
-| Dual DC motor driver B | UART (TBC) | Pi | Motors 3 and 4 |
+| Dual DC motor driver A (left DCMC) | GPIO PWM | Pi | Dual H-bridge module, no UART. FL and BL wheels. Two PWM inputs per motor (IN1/IN2) from `pigpiod`. Bench-tested wiring and code: Vending_Machine_Robot-Hardware and C_Hardware_Testing (Camille, 2026-11-08). Board marking TBD |
+| Dual DC motor driver B (right DCMC) | GPIO PWM | Pi | Same module. BR and FR wheels |
 | Pico | USB serial | Pi | Shows up as `/dev/ttyACM*`; use its `/dev/serial/by-id` path |
 | Camera (regular, not NoIR) | CSI ribbon (TBC) | Pi | Corrected 2026-11-07: a regular camera, with no IR illuminators, so it needs visible light. Model TBD. Capture through the libcamera C++ API |
 | Coral USB Edge TPU | USB 3 | Pi | The team has a Coral (Eric, 2026-11-08), used by the vision thread. NCS2 is dropped. Verify the Edge TPU C++ runtime (libedgetpu plus TensorFlow Lite) on Debian 12 first |
-| IMU | I2C | Pico | Model and address TBD |
-| Thermal camera | I2C | Pico | Model and address TBD. This is the heat sensor |
-| ADS1115 ADC | I2C | Pico | Default address 0x48. Reads 4 FSRs (force sensors) on A0 to A3 through divider resistors. They are not foot pads (Cayden, 2026-11-07); where they are mounted and what force they measure is TBD |
-| Single-point LiDAR | UART | Pico | Model TBD (TF-Luna/TFmini style), 115200 default |
+| IMU | I2C | Pico | MPU6050 at 0x68 on the bench (Camille, 2026-11-08), team to confirm it is the robot's IMU |
+| Thermal camera | I2C | Pico | MLX90640 at 0x33, 32x24, run at 8 Hz on the bench (Camille, 2026-11-08). This is the heat sensor |
+| ADS1115 ADC | I2C | Pico | Address 0x48 with ADDR tied to GND. A floating ADDR pin drifted between 0x48 and 0x4B on the bench. Reads 4 FSRs (force sensors) on A0 to A3 through divider resistors. They are not foot pads (Cayden, 2026-11-07); where they are mounted and what force they measure is TBD |
+| Single-point LiDAR | UART | Pico | Benewake TF-Luna on the bench, 115200, 9-byte frames at 100 Hz (Camille, 2026-11-08) |
 | LD19 360 degree LiDAR | UART | Pico | 230400 baud, streams packets. Verify the packet format against the datasheet |
 | GPS module | USB (PROPOSED) | Pi | Added 2026-11-07 (Cayden: the robot has GPS). Proposed: Matthew's module through a USB-to-TTL adapter (or a USB GPS dongle), read with `gpsd`, so no UART is needed. Fallback: a receive-only PIO software UART on a free Pico pin. Model and baud rate TBD. Position only, about 2.5 m in open sky, no fix indoors or under rubble (`docs/research/platform.md`) |
 
@@ -114,17 +114,21 @@ Ask Matthew before writing motion code.
 
 ### Pi 4B UARTs
 
+Updated 2026-11-08 (Camille): the DC drivers are GPIO PWM H-bridges, not UART devices (see "Pi 4B GPIO" below), so they no longer need UARTs.
+UART3 is dropped because its RX pin, GPIO5, is the BR wheel's IN1.
+The Vending_Machine_Robot-Hardware config flags the same conflict.
+
 | UART | TX / RX GPIO | Physical pins | Device |
 | --- | --- | --- | --- |
-| UART3 | GPIO4 / GPIO5 | 7 / 29 | Maestro A (45kg) |
+| UART4 | GPIO8 / GPIO9 | 24 / 21 | Maestro A (45kg) |
 | UART5 | GPIO12 / GPIO13 | 32 / 33 | Maestro B (25kg) |
-| UART4 | GPIO8 / GPIO9 | 24 / 21 | DC driver A |
-| UART0 | GPIO14 / GPIO15 | 8 / 10 | DC driver B |
+| UART0 | GPIO14 / GPIO15 | 8 / 10 | Spare (the pan/tilt Maestro used it on the bench) |
 
 Rules for the Pi UARTs:
 
 - Skip UART2: its pins (27/28) are reserved for HAT ID EEPROMs.
 - Skip UART1, the mini UART: its baud rate drifts with the CPU clock.
+- Skip UART3: GPIO4/GPIO5 overlap the DC motor pins.
 - UART4 shares pins with SPI0, so no SPI devices.
 
 `/boot/firmware/config.txt`:
@@ -132,10 +136,39 @@ Rules for the Pi UARTs:
 ```
 enable_uart=1
 dtoverlay=disable-bt
-dtoverlay=uart3
 dtoverlay=uart4
 dtoverlay=uart5
 ```
+
+Remove any `dtoverlay=uart3` line left from earlier wiring (the old Pi-side TF-Luna used it).
+While it is set, GPIO5 belongs to UART3 and the BR wheel cannot be driven.
+
+### Pi 4B GPIO: DC motor drivers (bench-tested, Camille, 2026-11-08)
+
+Same wiring as Vending_Machine_Robot-Hardware `utilities/config.py` `MOTOR_CONFIG` and C_Hardware_Testing `src/hardware/MotorConfig.hpp`.
+Each motor uses two PWM inputs: PWM on IN1 with IN2 low turns it one way, PWM on IN2 with IN1 low turns it the other, both low stops it.
+PWM comes from `pigpiod` at 1000 Hz, duty 0 to 255.
+
+| Driver | Channel | Wheel | IN1 GPIO (physical) | IN2 GPIO (physical) |
+| --- | --- | --- | --- | --- |
+| Left DCMC (A) | A | FL | GPIO17 (11) | GPIO27 (13) |
+| Left DCMC (A) | B | BL | GPIO22 (15) | GPIO23 (16) |
+| Right DCMC (B) | A | BR | GPIO5 (29) | GPIO6 (31) |
+| Right DCMC (B) | B | FR | GPIO20 (38) | GPIO21 (40) |
+
+- The right driver's channels are crossed against the left: channel A is the back wheel.
+  `motion.mecanum.wheel_order` must map this.
+- Forward is counterclockwise for FL and BL and clockwise for FR and BR (VMR `forward()`).
+  Strafe left is FL back, FR forward, BL forward, BR back.
+  Rotate left is FL back, FR forward, BL back, BR forward.
+  These match the standard mecanum mix.
+  VMR's own `drive()` mixer has the strafe and rotate signs flipped against these functions, so do not copy its signs.
+- The motors need `pigpiod` running (`sudo systemctl enable --now pigpiod`) and a build linked against `pigpiod_if2`.
+  Without them the drivers silently send no PWM.
+  C_Hardware_Testing `scripts/check_dcmc.sh` checks this, plus the pins and overlays, and can pulse each wheel.
+- Low duty may not overcome the gearmotors' friction: VMR runs its approach at full intensity.
+  Measure the smallest duty that starts each wheel on the floor.
+- No `/dev` node: these drivers are configured by GPIO number, not by a udev name.
 
 Also:
 
@@ -143,16 +176,24 @@ Also:
 - Turn off the serial login console in `raspi-config`.
 - Give each UART a stable name with udev rules keyed to `KERNELS=="fe20xxxx.serial"`.
   Verify each address with `udevadm info -a -n /dev/ttyAMAx`.
-- Config refers only to `/dev/servo45`, `/dev/servo25`, `/dev/dcmotorA`, `/dev/dcmotorB`, `/dev/pico`.
+- Config refers only to `/dev/servo45`, `/dev/servo25`, `/dev/pico` for serial devices, and to GPIO numbers for the DC drivers.
 
 ### Pico
 
+Updated 2026-11-08 (Camille): this is the wiring the Pico firmware in `pico/` was bench-tested with (firmware 0.8, `pico/src/config.hpp`).
+It replaces the earlier proposal, which had the single-point LiDAR on GP4/GP5, the thermal camera on GP8/GP9, and the IMU and ADS1115 on GP2/GP3.
+
 | Bus | Pins (GP / physical) | Device |
 | --- | --- | --- |
-| UART0 | GP0 TX, GP1 RX / 1, 2 | LD19 |
-| UART1 | GP4 TX, GP5 RX / 6, 7 | Single-point LiDAR |
-| I2C0 | GP8 SDA, GP9 SCL / 11, 12 | Thermal camera (own bus so big frame reads never block the IMU) |
-| I2C1 | GP2 SDA, GP3 SCL / 4, 5 | IMU + ADS1115 (shared) |
+| UART0 | GP1 RX / 2 (no TX) | LD19, 230400. CTL/PWM pin to GND for the internal ~10 Hz scan |
+| UART1 | GP9 RX / 12 (no TX) | TF-Luna, 115200. Its pin 5 left open for UART mode |
+| I2C0 | GP4 SDA, GP5 SCL / 6, 7 | IMU + ADS1115 (shared), 100 kHz |
+| I2C1 | GP14 SDA, GP15 SCL / 19, 20 | Thermal camera on its own bus, 400 kHz |
+
+- The Pico only listens to both LiDARs; it never transmits to them.
+- The two LiDARs ended up on each other's planned pins; the firmware's `LIDARPROBE` command shows which pin carries which LiDAR.
+- The thermal camera was first on GP2/GP3, right next to the IMU bus, and its traffic kept knocking that bus over, so it moved to GP14/GP15.
+- Power on the bench: IMU, ADS1115 and thermal from 3V3 (pin 36), both LiDARs from 5 V VBUS (pin 40), all grounds shared.
 
 ## Electrical rules
 
@@ -163,6 +204,8 @@ Also:
   Maestros ship in USB serial mode.
   Switch them to UART mode in Maestro Control Center.
 - Common ground across the battery, every rail, the Pi, the Pico, and all devices.
+  The DC motor drivers' logic ground must be tied to a Pi ground, or their inputs float and the wheels do nothing.
+- The DC motors run from their own battery into the drivers' motor supply input, not from the Pi.
 - E-stop placement.
   The physical e-stop cuts actuator power only.
   The Pi and Pico stay up.
@@ -302,7 +345,10 @@ In this plan the Pi drives the actuators directly, so nothing independent stops 
 Layer these protections:
 
 - Device timeouts.
-  Turn on the serial timeout in the Maestros and DC drivers, if supported (TBD per model).
+  Turn on the serial timeout in the Maestros, if supported (TBD per model).
+  The DC drivers are plain H-bridges with no timeout, and `pigpiod` keeps the last PWM duty after the robot program exits or crashes.
+  So the movement thread's dead-man only works while the program runs.
+  Add a systemd `ExecStopPost=` step that sets all 8 motor GPIOs to duty 0 (for example with `pigs pwm <gpio> 0`), and set them to 0 at startup too.
 - systemd watchdog.
   Set `WatchdogSec=`, and call `sd_notify("WATCHDOG=1")` from the main loop only.
 - OS watchdog.
@@ -362,8 +408,12 @@ protocol/
 - Confirm with the organizers that a project can enter 3 sponsor tracks.
 - Where Nemotron runs, and which robot actions the agent can call as tools.
 - What the servos move, and whether the DC motors are the drivetrain.
-- DC driver model and interface (UART or PWM + direction).
-- IMU and thermal camera models and addresses.
+- DC driver board marking (interface answered 2026-11-08: GPIO PWM H-bridges, see "Pi 4B GPIO" above).
+- Confirm the bench IMU (MPU6050) and thermal camera (MLX90640) are the ones on the robot.
+- The IMU and ADS1115 drop off the Pico's I2C0 within seconds while the thermal camera streams, even on separate buses (bench, 2026-11-08).
+  The IMU reports odd temperatures after each recovery, which points to the IMU board browning out.
+  Next test: power the IMU differently.
+- The Pico firmware sends text lines, not the binary frames proposed above, and has no heartbeat or hardware watchdog yet (`pico/README.md`).
 - The Coral model (what it detects) and the Edge TPU runtime on Debian 12.
 - Battery and rail voltages.
 - SAFE_STOP physical behavior.

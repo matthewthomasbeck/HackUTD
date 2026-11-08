@@ -74,9 +74,9 @@ These come from the team brief in `docs/ROBOT.md`.
 The details are in `docs/ROBOT.md`.
 These are the invariants that span files and are easy to break:
 
-- The Pi drives all actuators (2 Pololu Maestros, 2 dual DC drivers over UART).
+- The Pi drives all actuators (2 Pololu Maestros over UART, 2 dual H-bridge DC drivers over GPIO PWM through `pigpiod`).
   The Pico owns all sensors (IMU, thermal camera, ADS1115 with 4 FSRs, single-point LiDAR, LD19) and streams parsed values to the Pi over USB serial.
-- Device code refers only to the stable udev names: `/dev/servo45`, `/dev/servo25`, `/dev/dcmotorA`, `/dev/dcmotorB`, `/dev/pico`.
+- Device code refers only to the stable udev names `/dev/servo45`, `/dev/servo25`, `/dev/pico`; the DC drivers have no device node and are configured by GPIO pin.
 - Every device init returns OK | DEGRADED | FAILED.
   A failed required device sends the state machine to FAULT, and a Pico firmware version mismatch counts as FAILED.
 - The Pi main loop runs at a fixed rate and never blocks on I/O.

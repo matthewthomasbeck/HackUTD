@@ -92,7 +92,7 @@ raspberrypi/
         servo_maestro.cpp     # real: Pololu Maestro compact protocol over UART
         servo_mock.cpp
         dc_driver.hpp         # IDcDriver (one per dual driver, 2 channels)
-        dc_driver_tbd.cpp     # real: protocol TBD (UART or PWM + direction), stub that returns FAILED until filled
+        dc_driver_tbd.cpp     # real: GPIO PWM H-bridge via pigpiod (docs/ROBOT.md), stub that returns FAILED until filled
         dc_driver_mock.cpp
         pico_link.hpp         # IPicoLink: start(), send(), latest-value slots for every Pico sensor
         pico_link_serial.cpp  # real: /dev/pico, reader thread, framing, CRC, heartbeat
@@ -928,7 +928,8 @@ CONTRACTS.md lists this as an option to test, not rely on: the robot could call 
 
 - systemd: `WatchdogSec=` in `robot.service`, `WATCHDOG=1` from the main loop only, after a tick completes in time.
 - OS: `RuntimeWatchdogSec=` in `/etc/systemd/system.conf` (value TBD).
-- Device timeouts: enable the Maestro and DC driver serial timeouts if the models support them (TBD per model; check Maestro Control Center serial settings).
+- Device timeouts: enable the Maestro serial timeout if the model supports it (TBD per model; check Maestro Control Center serial settings).
+  The DC drivers have none, and `pigpiod` keeps the last duty after the program dies, so `robot.service` sets all 8 motor GPIOs to duty 0 in `ExecStartPre=` and `ExecStopPost=`.
 - Pico: `watchdog_enable()` at boot, feed once per superloop; the Pico stops its own outputs (none today) if the Pi heartbeat is lost.
 
 ## 11. Raw sensor logs on the SD card
@@ -1040,9 +1041,9 @@ Implementations, picked by `motion.impl`:
 - `legged` (stretch): wheels as above plus leg moves through `ILegIK` (section 12.5), for example raising stance to clear debris or lifting one leg to step.
   Reports DEGRADED until Matthew confirms the leg geometry and servo map.
 
-DC driver: the model and interface are TBD (UART or PWM plus direction, `docs/ROBOT.md`).
+DC driver: two dual H-bridge modules driven by GPIO PWM through `pigpiod`, two PWM inputs (IN1/IN2) per motor (bench-tested 2026-11-08; pins and wheel map in `docs/ROBOT.md`, "Pi 4B GPIO").
 Wheel encoders are not in the inventory (TBD).
-`dc_driver_tbd.cpp` returns FAILED until someone fills in the protocol from the real model's datasheet.
+`dc_driver_tbd.cpp` returns FAILED until it is replaced by a pigpio driver (C_Hardware_Testing `DcmcDriver` is a working starting point).
 `dc_driver_mock.cpp` records the last command per channel for tests.
 
 Maestro: compact protocol Set Target is `0x84, channel, target & 0x7F, (target >> 7) & 0x7F`, with the target in quarter-microseconds ([Maestro serial commands](https://www.pololu.com/docs/0J40/5.e)).
@@ -1131,7 +1132,7 @@ Groups come from `docs/ROBOT.md`.
 `prestart.sh` (each step logs and exits 0 unless the config file is missing, so optional devices never block startup):
 
 - Check that `/etc/robot/robot.yaml` exists.
-- Check that `/dev/servo45`, `/dev/servo25`, `/dev/dcmotorA`, `/dev/dcmotorB`, `/dev/pico` exist and log any that are missing (the program decides required vs optional).
+- Check that `/dev/servo45`, `/dev/servo25`, `/dev/pico` exist, and that `pigpiod` is running for the DC drivers, and log any that are missing (the program decides required vs optional).
 - Clean up stale camera state: stop any leftover `rpicam-*` process that holds the camera.
 - No NCS2 or Coral reset step (both dropped for now).
 
@@ -1168,17 +1169,15 @@ Install to `/etc/tmpfiles.d/robot.conf`.
 
 ```
 # Fill each KERNELS value from: udevadm info -a -n /dev/ttyAMAx
-SUBSYSTEM=="tty", KERNELS=="fe20XXXX.serial", SYMLINK+="servo45"    # UART3, TBD
+SUBSYSTEM=="tty", KERNELS=="fe20XXXX.serial", SYMLINK+="servo45"    # UART4, TBD
 SUBSYSTEM=="tty", KERNELS=="fe20XXXX.serial", SYMLINK+="servo25"    # UART5, TBD
-SUBSYSTEM=="tty", KERNELS=="fe20XXXX.serial", SYMLINK+="dcmotorA"   # UART4, TBD
-SUBSYSTEM=="tty", KERNELS=="fe20XXXX.serial", SYMLINK+="dcmotorB"   # UART0, TBD
 # Pico: fill idVendor, idProduct, serial from: udevadm info -a -n /dev/ttyACM0
 SUBSYSTEM=="tty", ATTRS{idVendor}=="TBD", ATTRS{idProduct}=="TBD", ATTRS{serial}=="TBD", SYMLINK+="pico"
 # GPS USB adapter or dongle, TBD
 SUBSYSTEM=="tty", ATTRS{idVendor}=="TBD", ATTRS{idProduct}=="TBD", SYMLINK+="gps0"
 ```
 
-If the DC drivers turn out to use PWM plus direction, drop their UART rules and the UART4 and UART0 overlays.
+The DC drivers are GPIO PWM H-bridges (2026-11-08), so they have no udev rule; config names their GPIO pins instead.
 Point gpsd at `/dev/gps0` in `/etc/default/gpsd` (`DEVICES="/dev/gps0"`).
 
 ### 14.5 Boot config
@@ -1202,8 +1201,10 @@ devices:
   optional: [maestro_a, maestro_b, camera, imu, ads1115, lidar_single, ld19, gps, light]
 maestro_a: { mock: false, path: /dev/servo45, baud: 0 }    # baud TBD
 maestro_b: { mock: false, path: /dev/servo25, baud: 0 }    # baud TBD
-dc_driver_a: { mock: false, path: /dev/dcmotorA, protocol: tbd, baud: 0 }
-dc_driver_b: { mock: false, path: /dev/dcmotorB, protocol: tbd, baud: 0 }
+# GPIO PWM H-bridges via pigpiod (docs/ROBOT.md, "Pi 4B GPIO"). channel 0 = A, 1 = B; pins are [IN1, IN2].
+# PROPOSED keys: config.cpp still reads path and baud until the pigpio driver lands.
+dc_driver_a: { mock: false, pwm_hz: 1000, ch0_pins: [17, 27], ch1_pins: [22, 23] }   # left: FL, BL
+dc_driver_b: { mock: false, pwm_hz: 1000, ch0_pins: [5, 6], ch1_pins: [20, 21] }     # right: BR, FR
 pico: { mock: false, path: /dev/pico, heartbeat_hz: 20, link_timeout_ms: 250, max_crc_errors_per_s: 5 }
 stale_ms: { imu: 200, thermal: 2000, lidar_single: 500, ld19: 1000, camera: 500, gps: 3000 }
 camera: { mock: false, width: 640, height: 480, clip_fps: 30 }
@@ -1318,7 +1319,7 @@ paths:
 | --- | --- | --- | --- |
 | `devices.required` | pico, thermal, DC drivers | Team | Depends on the drive-only plan |
 | Maestro baud rates, channel map, servo limits | 0, none | Matthew | Maestro Control Center |
-| DC driver model, protocol, baud | `tbd` | Matthew | Datasheet |
+| DC driver board marking, minimum starting duty per wheel | GPIO PWM, pins from the bench | Matthew, Camille | Board marking, floor test |
 | `motion.mecanum.*` (wheel radius, spacing, wheel order, invert, max speed) | 0, identity | Matthew | Measure, then the floor check in section 12.4 |
 | Leg geometry, servo count per leg, channel map, servo limits (`legs.*`, `servos.*`) | 0, mock | Matthew | Matthew describes the legs |
 | IMU model, address, axes | none | Matthew | Part marking, I2C scan |
@@ -1389,7 +1390,7 @@ paths:
 ### 16.3 Hardware bring-up (one device at a time, `robot_diag`)
 
 1. Pi: flash Debian 12, apply `config.txt.snippet`, disable `hciuart` and the serial console, create the `robot` user and groups, install packages.
-2. udev: fill each `KERNELS` and USB id with `udevadm info -a -n`, reload rules, confirm `/dev/servo45`, `/dev/servo25`, `/dev/dcmotorA`, `/dev/dcmotorB`, `/dev/pico`, `/dev/gps0`.
+2. udev: fill each `KERNELS` and USB id with `udevadm info -a -n`, reload rules, confirm `/dev/servo45`, `/dev/servo25`, `/dev/pico`, `/dev/gps0`.
 3. Logic levels: check every TX line into the Pi and Pico is 3.3 V before connecting (`docs/ROBOT.md`).
 4. Pico: flash, `robot_diag pico` shows VERSION, heartbeats both ways, and `DEV_STATUS` for each device.
 5. Thermal: `robot_diag thermal` prints the frame as ASCII and blob stats; hand in front at 1 m shows a blob.
