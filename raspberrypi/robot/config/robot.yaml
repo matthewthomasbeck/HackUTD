@@ -13,7 +13,7 @@ workers: { stall_ms: 500 }                                             # TBD: a 
 devices:
   required: [pico, thermal, dc_driver_a, dc_driver_b]                  # TBD team decision
   optional: [maestro_a, maestro_b, camera, coral, imu, ads1115, lidar_single, ld19, gps, light]
-maestro_a: { mock: false, path: /dev/servo45, baud: 0 }                # baud TBD
+maestro_a: { mock: false, path: /dev/servo45, baud: 9600 }             # leg servos; Athena and the bench Maestro used 9600, confirm in Maestro Control Center
 maestro_b: { mock: false, path: /dev/servo25, baud: 0 }                # baud TBD
 dc_driver_a: { mock: false, pwm_hz: 1000, ch0_pins: [17, 27], ch1_pins: [22, 23], min_duty: 0.25 }   # left DCMC: ch0 FL, ch1 BL, [IN1, IN2]; min_duty TBD on the floor
 dc_driver_b: { mock: false, pwm_hz: 1000, ch0_pins: [5, 6], ch1_pins: [20, 21], min_duty: 0.25 }     # right DCMC: ch0 BR, ch1 FR (crossed vs left)
@@ -35,12 +35,26 @@ motion:
     invert: [true, true, false, false]   # left wheels drive forward on IN2 (VMR forward()); floor check pending
     max_wheel_rad_s: 0.0            # TBD
 legs:
-  impl: mock                        # mock | two_link
-  stance_height_m: 0.0              # TBD
-  l1_m: 0.0                         # TBD
-  l2_m: 0.0                         # TBD
-  channels: []                      # TBD: per leg, list of [maestro, channel]
-servos: { max_rate_us_per_s: 0 }    # per-channel min_us, max_us, zero_us, direction TBD
+  impl: mock                        # mock | two_link (two_link once every joint is calibrated)
+  l1_m: 0.110                       # hip axis to knee axis, Rubble Dog CAD (PROPOSED)
+  l2_m: 0.140                       # knee axis to the foot bolt holes, CAD (PROPOSED); TBD: to the wheel hub
+  stance_height_m: 0.0              # TBD: hub depth below the hip axis at the driving stance
+  stance_x_m: 0.0                   # hub forward of the hip axis at stance
+  knee_bend: 1                      # TBD: 1 or -1, which way the knee folds
+  joints:                           # robot_diag legcal fills these; channel -1 = not wired, us_per_rad 0 = not calibrated
+    FL_abduction:  { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    FL_hip:        { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    FL_knee:       { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    FR_abduction:  { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    FR_hip:        { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    FR_knee:       { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    BL_abduction:  { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    BL_hip:        { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    BL_knee:       { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    BR_abduction:  { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    BR_hip:        { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    BR_knee:       { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+servos: { max_rate_us_per_s: 0 }    # TBD: how fast a leg servo may move; must be > 0 for two_link
 limits: { max_lin_mps: 0.2, max_ang_dps: 45, max_lin_accel: 0.5, max_ang_accel: 90, reject_factor: 5 }   # TBD: floor test
 safe_stop: { servo_action: hold }                                      # TBD: hold | release
 estop: { sense: none }                                                 # TBD: Pico input id once a sense line is wired

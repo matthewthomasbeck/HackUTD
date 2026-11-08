@@ -162,6 +162,48 @@ Config parse(const YAML::Node& root) {
     c.dc_driver[name] = d;
   }
 
+  LegsSettings& legs = c.legs;
+  legs.impl = get_string(root, "legs.impl");
+  require(legs.impl == "mock" || legs.impl == "two_link", "legs.impl must be mock or two_link");
+  legs.l1_m = get_number(root, "legs.l1_m");
+  legs.l2_m = get_number(root, "legs.l2_m");
+  legs.stance_height_m = get_number(root, "legs.stance_height_m");
+  legs.stance_x_m = get_number(root, "legs.stance_x_m");
+  legs.knee_bend = get_int(root, "legs.knee_bend");
+  legs.max_rate_us_per_s = get_number(root, "servos.max_rate_us_per_s");
+  require(legs.knee_bend == 1 || legs.knee_bend == -1, "legs.knee_bend must be 1 or -1");
+  static const char* const leg_names[4] = {"FL", "FR", "BL", "BR"};
+  static const char* const joint_names[3] = {"abduction", "hip", "knee"};
+  std::set<std::pair<int, int>> servo_channels;
+  for (int l = 0; l < 4; ++l) {
+    for (int j = 0; j < 3; ++j) {
+      const std::string key = std::string("legs.joints.") + leg_names[l] + "_" + joint_names[j];
+      JointSettings& s = legs.joints[static_cast<std::size_t>(l)][static_cast<std::size_t>(j)];
+      s.bus = get_int(root, key + ".bus");
+      s.channel = get_int(root, key + ".channel");
+      s.zero_us = get_number(root, key + ".zero_us");
+      s.us_per_rad = get_number(root, key + ".us_per_rad");
+      s.direction = get_int(root, key + ".direction");
+      s.min_us = get_number(root, key + ".min_us");
+      s.max_us = get_number(root, key + ".max_us");
+      require(s.bus == 0 || s.bus == 1, key + ".bus must be 0 (Maestro A) or 1 (Maestro B)");
+      require(s.channel >= -1 && s.channel <= 23, key + ".channel must be -1 (not wired) or 0 to 23");
+      require(s.direction == 1 || s.direction == -1, key + ".direction must be 1 or -1");
+      require(s.us_per_rad >= 0, key + ".us_per_rad must be >= 0 (0 means not calibrated)");
+      require(s.min_us >= 500 && s.max_us <= 2500 && s.min_us <= s.max_us,
+              key + ".min_us and max_us must be within 500..2500 us, min <= max");
+      if (s.channel >= 0) {
+        require(servo_channels.insert({s.bus, s.channel}).second,
+                key + " reuses Maestro " + std::to_string(s.bus) + " channel " + std::to_string(s.channel));
+      }
+    }
+  }
+  if (legs.impl == "two_link") {
+    require(legs.l1_m > 0 && legs.l2_m > 0, "legs.l1_m and legs.l2_m must be > 0 for two_link");
+    require(legs.stance_height_m > 0, "legs.stance_height_m must be > 0 for two_link");
+    require(legs.max_rate_us_per_s > 0, "servos.max_rate_us_per_s must be > 0 for two_link, so legs never jump");
+  }
+
   MecanumSettings& m = c.mecanum;
   m.wheel_radius_m = get_number(root, "motion.mecanum.wheel_radius_m");
   m.half_track_lx_m = get_number(root, "motion.mecanum.half_track_lx_m");
