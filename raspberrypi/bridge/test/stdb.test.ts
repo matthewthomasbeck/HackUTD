@@ -7,6 +7,7 @@ const CONFIG: BridgeConfig = {
   stdbUri: 'ws://localhost:3000', stdbDatabase: 'assess-0hw81', stdbToken: 'test-token', stdbMode: 'sdk',
   robotId: 'dog1', bridgeSocket: '/tmp/x.sock', mediaUrl: 'http://media', tokenFile: '/tmp/token',
   spoolFile: '/tmp/spool.jsonl', spoolMaxBytes: 1024, mediaRetries: 1, claimIntervalMs: 2000,
+  terrainHint: false, terrainFrame: '/tmp/terrain_hint.jpg', terrainHintMaxAgeMs: 1500,
 };
 
 type Callback = (...args: unknown[]) => void;

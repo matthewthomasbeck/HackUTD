@@ -4,6 +4,7 @@
 
 import 'dotenv/config';
 import { openAsBlob } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { loadConfig } from './config.ts';
 import { LocalSocket } from './local_socket.ts';
@@ -13,6 +14,7 @@ import { MissionLink } from './missions.ts';
 import { Router } from './router.ts';
 import { Spool, type SendOutcome } from './spool.ts';
 import { StdbLink } from './stdb.ts';
+import { TerrainHintLink } from './terrain_hint.ts';
 import { currentSite, siteMessage } from './to_wire.ts';
 
 const config = loadConfig();
@@ -48,8 +50,11 @@ const stdb: StdbLink = new StdbLink(config, {
   onRobotRow: () => router.startKick(),
 }, log);
 
+let latestRuleClass: string | undefined;  // rule_class for POST /terrain
+
 const socket: LocalSocket = new LocalSocket(config.bridgeSocket, {
   onMessage: (msg) => {
+    if (msg.type === 'terrain' && typeof msg.terrain_class === 'string') latestRuleClass = msg.terrain_class;
     if (msg.type === 'heartbeat') {
       missions.onHeartbeat(msg.state);
       if (msg.robot_id !== config.robotId) log(`warning: heartbeat robot_id ${String(msg.robot_id)} is not ROBOT_ID ${config.robotId}`);
@@ -111,6 +116,33 @@ async function processMessage(msg: LocalMessage): Promise<SendOutcome> {
   return stdb.call(mapped.call);
 }
 
+const terrainHints = new TerrainHintLink(
+  {
+    mediaUrl: config.mediaUrl,
+    robotId: config.robotId,
+    framePath: config.terrainFrame,
+    minIntervalMs: 1100,  // the service takes one frame per second; a little more so timer jitter is not a 429
+    timeoutMs: 1000,
+    maxAgeMs: config.terrainHintMaxAgeMs,
+  },
+  {
+    mtimeMs: async (path) => {
+      try {
+        return (await stat(path)).mtimeMs;
+      } catch {
+        return undefined;
+      }
+    },
+    openAsBlob,
+    fetch: globalThis.fetch,
+    now: () => Date.now(),
+    sendToRobot: (message) => socket.send(message),
+    isClientConnected: () => socket.clientConnected,
+    ruleClass: () => latestRuleClass,
+    log,
+  },
+);
+
 const router: Router = new Router({ isReady: () => stdb.ready, hasRobotRow: () => stdb.hasRobotRow(), spool, process: processMessage, log });
 
 async function main(): Promise<void> {
@@ -119,10 +151,13 @@ async function main(): Promise<void> {
   stdb.start();
   const claimTimer = setInterval(() => void missions.tick(), config.claimIntervalMs);
   const replayTimer = setInterval(() => router.startKick(), 2000);
+  const terrainTimer = config.terrainHint ? setInterval(() => void terrainHints.tick(), 250) : undefined;
+  log(`terrain hint: ${config.terrainHint ? `on, frames from ${config.terrainFrame}` : 'off (TERRAIN_HINT)'}`);
   const shutdown = async (signal: string) => {
     log(`bridge: ${signal}, shutting down`);
     clearInterval(claimTimer);
     clearInterval(replayTimer);
+    if (terrainTimer) clearInterval(terrainTimer);
     stdb.stop();
     await socket.close();
     spool.close();

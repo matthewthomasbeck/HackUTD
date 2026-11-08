@@ -193,6 +193,23 @@ Laptop test with mocks:
 ```
 
 Set on the robot before trusting it (all in robot.yaml): `thermal.flip_x` (a warm hand on the right must give a positive bearing), `seek.ld19_front_deg` and `seek.ld19_clockwise` (where the LD19's 0 degrees points), and the section 7.5 range test for `thermal.delta_c`, `min_c`, `max_c`, `min_blob_px`.
+## Terrain (task R7)
+
+Every tick the robot classifies the ground ahead as `flat`, `debris`, `step`, `gap`, `blocked`, or `unknown` from the LD19, the single LiDAR, and the IMU (docs/specs/robot.md section 7b, `src/terrain/`).
+The safety gate applies the result whatever the mission behavior asks for: a stop zeroes translation (and turning, unless the robot is blocked with a clear side), and slow caps the speed at `limits.max_lin_mps * terrain.slow_scale`.
+The behaviors do not steer around obstacles yet; that is motion code and waits for the team's go-ahead.
+Every `terrain.*` threshold and the sensor mounting are TBD; `terrain.camera_hint.enabled` and `terrain.use_force` stay false.
+
+Laptop test with mocks (`robot.laptop.yaml` has `terrain.impl: mock`):
+
+```
+./build/robotctl --socket /tmp/robot/control.sock mock terrain blocked   # also flat, debris, step, gap, unknown
+./build/robotctl --socket /tmp/robot/control.sock status                 # "terrain": class, action, inputs, camera hint
+./build/robotctl --socket /tmp/robot/control.sock mock terrain off       # back to terrain.mock_sequence, else flat
+```
+
+On the robot, with the robot program stopped, `./build/robot_diag terrain 30` runs the rules on the live sensors for 30 s, prints each class change and the inputs once a second, and moves nothing.
+
 CMake finds libcamera, OpenCV, and the Edge TPU runtime (libedgetpu plus TensorFlow Lite) if installed and prints `robot backends: ...`; without them the real devices report FAILED and the mocks still work.
 
 ## How one tick works

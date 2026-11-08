@@ -166,9 +166,16 @@ TEST(SafetyGate, NanOrHugeCommandRaisesOutOfLimits) {
   EXPECT_FALSE(raised(r, EventType::command_out_of_limits));
 }
 
-TEST(SafetyGate, TerrainStopZeroesTranslationButAllowsTurning) {
+TerrainAssessment terrain(TerrainClass cls, TerrainAction action) {
+  TerrainAssessment t;
+  t.cls = cls;
+  set_action(t, action, TerrainConfig{});
+  return t;
+}
+
+TEST(SafetyGate, TerrainSteerZeroesTranslationButAllowsTurning) {
   auto w = healthy_world();
-  w.terrain = TerrainAction::Stop;
+  w.terrain = terrain(TerrainClass::blocked, TerrainAction::kSteer);
   const auto r = SafetyGate::filter(State::ACTIVE, false, w, drive(0.1, 0.1, 10), kGate,
                                     already_moving(mc(0.1, 0.1, 10)));
   EXPECT_DOUBLE_EQ(r.motion.command().vx_mps, 0);
@@ -176,9 +183,17 @@ TEST(SafetyGate, TerrainStopZeroesTranslationButAllowsTurning) {
   EXPECT_DOUBLE_EQ(r.motion.command().wz_dps, 10);
 }
 
+TEST(SafetyGate, TerrainStopZeroesTurningToo) {
+  auto w = healthy_world();
+  w.terrain = terrain(TerrainClass::gap, TerrainAction::kStop);
+  const auto r = SafetyGate::filter(State::ACTIVE, false, w, drive(0.1, 0.1, 10), kGate,
+                                    already_moving(mc(0.1, 0.1, 10)));
+  EXPECT_TRUE(r.motion.command().is_zero());
+}
+
 TEST(SafetyGate, TerrainSlowCapsSpeed) {
   auto w = healthy_world();
-  w.terrain = TerrainAction::Slow;
+  w.terrain = terrain(TerrainClass::debris, TerrainAction::kSlow);
   const auto r = SafetyGate::filter(State::ACTIVE, false, w, drive(0.2), kGate, already_moving(mc(0.1, 0, 0)));
   EXPECT_DOUBLE_EQ(r.motion.command().vx_mps, 0.1);  // 0.2 x 0.5
 }

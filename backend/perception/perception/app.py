@@ -230,7 +230,9 @@ def create_app(cfg: dict | None = None, *, stdb: StdbClient | None = None,
 
     # optional routers from other files
     for module_name in ("perception.stt", "perception.terrain"):
-        _mod, router = _optional_router(module_name)
+        mod, router = _optional_router(module_name)
+        if mod is not None and hasattr(mod, "configure"):
+            mod.configure(cfg)  # its config.toml section ([stt], [terrain]); each module picks its own
         if router is not None:
             app.include_router(router)
 

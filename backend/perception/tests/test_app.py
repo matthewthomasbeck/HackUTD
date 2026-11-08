@@ -329,3 +329,19 @@ def test_app_starts_without_optional_modules(cfg, fake_stdb, monkeypatch):
     body = c.get("/health").json()
     assert body["yolo"] == "missing" and body["stt"] == "none"
     assert c.post("/transcribe").status_code == 404
+
+
+def test_app_passes_its_config_to_the_optional_modules(cfg, fake_stdb, monkeypatch):
+    # config.toml [terrain] and [stt] must reach terrain.configure() and stt.configure(); without
+    # that, terrain_hint_enabled and terrain_write_db in the file are silently ignored.
+    seen = {}
+    for name in ("stt", "terrain"):
+        mod = types.ModuleType(f"perception.{name}")
+        mod.router = APIRouter()
+        mod.configure = lambda c, name=name: seen.__setitem__(name, c)
+        monkeypatch.setitem(sys.modules, f"perception.{name}", mod)
+    cfg["terrain"]["terrain_hint_enabled"] = True
+    from perception.app import create_app
+    create_app(cfg, stdb=fake_stdb, start_background=False)
+    assert seen["terrain"]["terrain"]["terrain_hint_enabled"] is True
+    assert seen["stt"] is seen["terrain"]

@@ -73,8 +73,16 @@ npx tsc --noEmit    # or npm run typecheck
 - Cancel is level-triggered: a mission that was forwarded (or is current) gets `{"type":"cancel","mission_id":id}` when its row stops being this robot's `leased` or `active` row for any reason except `done` or `failed` (cancelled, lease expired and requeued, proposed, reassigned to another robot, deleted). A cancel that cannot be sent (no C++ client) waits and goes out, before any mission, on the next successful send or client connect. After the cancel the robot says `READY` and the normal claim path leases a mission again; a requeued mission that is re-leased is forwarded again.
 - Reconnects: each connect starts a new generation, and callbacks from a replaced connection are ignored, so a failed first connect arms exactly one reconnect timer. Spool disk errors (for example `ENOSPC`) are logged and do not crash the bridge.
 
+## Camera terrain hint (optional, off)
+
+With `TERRAIN_HINT=on` (only together with the robot's `terrain.camera_hint.enabled: true`), the bridge posts the newest `MEDIA_DIR/terrain_hint.jpg` to `POST {MEDIA_URL}/terrain` (robot.md 9.4) with `robot_id`, `rule_class` from the robot's latest `terrain` message, and `observed_at` from the file time (the robot sets it to the capture time).
+A 200 answer for that same `observed_at` goes to the robot as one `terrain_hint` line, unchanged.
+One request at a time, at most one per 1.1 s (the service allows one per second), a 1 s timeout, and frames or answers older than `TERRAIN_HINT_MAX_AGE_MS` (1500) are dropped; errors are logged once and never retried or spooled.
+The bridge never calls `report_terrain` with a hint.
+Code and tests: `src/terrain_hint.ts`, `test/terrain_hint.test.ts`.
+
 ## Not built yet
 
 - `STDB_MODE=http` (robot.md 9.10) logs a line and uses the SDK.
-- `upload-logs` (robot.md section 11) and the optional `terrain_hint` forwarding from `POST /terrain` (robot.md 9.4).
+- `upload-logs` (robot.md section 11).
 - `npm start` runs through `tsx`, not a `dist/` build, because the bindings import `spacetimedb` from outside this folder; `robot-bridge.service` (robot.md 14.2) should run `npx tsx src/index.ts` or `npm start`.

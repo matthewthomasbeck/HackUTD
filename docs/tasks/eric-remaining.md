@@ -338,6 +338,7 @@ goes to a hosted model, the team must decide it is allowed.
 - [ ] Upload from the Pi over the team network and process an actual inspect clip.
 - [ ] Run glasses voice question, transcription, agent answer and display, and time it.
 - [ ] Enable terrain advice only after held-out evaluation and conservative fusion checks pass.
+  2026-11-08: the robot rules (R7), the hint transport, and the conservative fusion on the robot are built and pass on mocks (`docs/notes/2026-11-08-terrain-integration.md`); the labelled data and the held-out evaluation are still missing, so the advice stays off.
 - [ ] Try the documented fallbacks in rehearsal and repeat the model smoke before judging.
 
 ## Public data instead of new recordings

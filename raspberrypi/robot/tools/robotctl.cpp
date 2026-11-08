@@ -5,6 +5,7 @@
 //   robotctl stop | estop | reset
 //   robotctl start seek_thermal     find a warm shape and drive up to it
 //   robotctl mock thermal_blob off|COLUMN   (laptop mocks: a fake warm body at column 0..31)
+//   robotctl mock terrain off|CLASS   (terrain.impl: mock; CLASS is flat, debris, step, gap, blocked, unknown)
 //   robotctl mock pico_link lost|ok
 //   robotctl mock estop_sense on|off
 //   robotctl mock stale DEVICE on|off
@@ -35,7 +36,7 @@ namespace {
 int usage() {
   std::fprintf(stderr,
                "usage: robotctl [--socket PATH] status | start [KIND] | stop | estop | reset\n"
-               "       robotctl mock pico_link lost|ok | mock estop_sense on|off\n"
+               "       robotctl mock pico_link lost|ok | mock estop_sense on|off | mock terrain off|CLASS\n"
                "       robotctl mock stale DEVICE on|off | mock init DEVICE OK|DEGRADED|FAILED\n"
                "       robotctl test_detection [MISSION_ID]   (test hook: one fake detection)\n");
   return 2;

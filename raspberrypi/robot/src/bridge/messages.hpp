@@ -25,6 +25,8 @@ namespace robot {
 
 // ISO 8601 UTC with milliseconds and a Z, for example "2026-11-08T14:03:12.345Z".
 std::string iso8601_utc(std::chrono::system_clock::time_point t);
+// The reverse: "YYYY-MM-DDTHH:MM:SS[.fff...](Z|+00:00)". Empty for anything else.
+std::optional<std::chrono::system_clock::time_point> parse_iso8601_utc(const std::string& s);
 
 struct PositionFields {
   double lat = 0;
@@ -89,6 +91,8 @@ class MessageBuilder {
 
 // True for messages that must not be lost (they go to the important queue and the outbox).
 bool is_important(const std::string& type);
+// The same for a whole message: also a terrain message whose action is stop (robot.md 7b.6).
+bool is_important_message(const nlohmann::json& message);
 
 // ---- Bridge to robot ----
 

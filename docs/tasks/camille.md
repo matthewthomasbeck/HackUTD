@@ -711,14 +711,17 @@ Files to create: `src/terrain/terrain.hpp`, `terrain_rules.cpp`, `terrain_mock.c
 Config keys: every `terrain.*` key in robot.md section 15, including `terrain.impl`, `terrain.use_force: false`, and `terrain.camera_hint.enabled: false`.
 
 Checklist:
-- [ ] 1. Write the `TerrainClass`, `TerrainAction` (C++ `kContinue`, wire `continue`), and `TerrainAssessment` types and the `ITerrainAssessor` interface from robot.md 7b.1.
-- [ ] 2. Write rules 1 to 3 (blocked with steer or stop, gap, tilt limit) in order, first match wins.
-- [ ] 3. Write rules 4 to 7 (step, debris, flat, unknown), the confidence math, missing-input penalties, and hysteresis that delays class changes but never a stop.
-- [ ] 4. Hook terrain into the safety gate: `safety_stop` zeroes translation (rotation allowed only for blocked with a clear side), `slow` caps speed.
-- [ ] 5. Write `terrain_reporter`: send on change, at most `terrain.report_max_hz`, keep-alive while moving, `important` queue only for `stop`.
-- [ ] 6. Write the terrain hint slot (disabled by default) that can only make the action more cautious and never clears a safety stop.
-- [ ] 7. Write the tests below and the `terrain` mock commands.
-- [ ] 8. On the mock rubble with Eric and Matthew: drive slowly at a box, a 3 to 5 cm step, a gap, and loose debris; check `robot_diag terrain`; tune from the raw logs.
+Status 2026-11-08: steps 1 to 7 are written and pass on a laptop with mocks (Cayden, branch `cayden/terrain`, built on `camille/real-drivers`); nothing is accepted on hardware yet.
+Evidence and the open items are in `docs/notes/2026-11-08-terrain-integration.md`.
+
+- [x] 1. Write the `TerrainClass`, `TerrainAction` (C++ `kContinue`, wire `continue`), and `TerrainAssessment` types and the `ITerrainAssessor` interface from robot.md 7b.1. Code and unit tests only.
+- [x] 2. Write rules 1 to 3 (blocked with steer or stop, gap, tilt limit) in order, first match wins. Code and unit tests only; every threshold is still a placeholder.
+- [x] 3. Write rules 4 to 7 (step, debris, flat, unknown), the confidence math, missing-input penalties, and hysteresis that delays class changes but never a stop. Code and unit tests only; the LD19 low-obstacle part of rule 4 waits for the LD19 mounting height.
+- [x] 4. Hook terrain into the safety gate: `safety_stop` zeroes translation (rotation allowed only for blocked with a clear side), `slow` caps speed. Unit tests and the laptop run; the behaviors do not read `snapshot.terrain` yet, because that is motion code and needs the team's go-ahead.
+- [x] 5. Write `terrain_reporter`: send on change, at most `terrain.report_max_hz`, keep-alive while moving, `important` queue only for `stop`. Local integration: one `terrain` event per class change on a local module.
+- [x] 6. Write the terrain hint slot (disabled by default) that can only make the action more cautious and never clears a safety stop. Local integration with the perception service and the bridge on mocks; the camera model itself is not evaluated (E9).
+- [x] 7. Write the tests below and the `terrain` mock commands (`robotctl mock terrain <class>`, `robot_diag terrain`).
+- [ ] 8. On the mock rubble with Eric and Matthew: drive slowly at a box, a 3 to 5 cm step, a gap, and loose debris; check `robot_diag terrain`; tune from the raw logs. Needs the mounting answers (LD19 direction and height, single LiDAR mode and `ground_range_m`, `max_step_m`) and a working human e-stop.
 
 Tests:
 - `Terrain.BlockedWithClearSideSteers`, `Terrain.BlockedWithNoClearSideStops`.

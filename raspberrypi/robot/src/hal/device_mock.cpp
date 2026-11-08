@@ -60,6 +60,16 @@ void MockControls::set_thermal_blob(int column) {
   thermal_blob_ = column;
 }
 
+void MockControls::set_terrain(const std::string& terrain_class) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  terrain_ = terrain_class;
+}
+
+std::string MockControls::terrain() const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return terrain_;
+}
+
 int MockControls::thermal_blob() const {
   std::lock_guard<std::mutex> lock(mutex_);
   return thermal_blob_;

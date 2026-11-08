@@ -10,7 +10,8 @@
 //     line for the next poll.
 //   - Outgoing lines wait in two bounded queues, sent in the order they were queued:
 //       telemetry  heartbeat, position, terrain: capacity 64, the oldest is dropped when full
-//       important  detection, cell, mission_progress, device: capacity 256, oldest dropped with an error log
+//       important  detection, cell, mission_progress, device, and terrain with action stop:
+//                  capacity 256, oldest dropped with an error log
 //     Telemetry is current state: it is not queued while disconnected, and the queue is cleared
 //     when the link drops, because the main loop sends a fresh heartbeat and position on connect.
 //   - While the bridge is gone, important lines are appended to the outbox file instead
@@ -65,7 +66,7 @@ class BridgeClient {
   BridgeClient(const BridgeClient&) = delete;
   BridgeClient& operator=(const BridgeClient&) = delete;
 
-  // Queues one message; the queue comes from its "type" (is_important). Never blocks.
+  // Queues one message; the queue comes from is_important_message(). Never blocks.
   void send(const nlohmann::json& message);
 
   // Once per tick: connect when due, read, write. Returns the bridge messages that arrived.

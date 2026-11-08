@@ -61,13 +61,19 @@ GateResult SafetyGate::filter(State state, bool latched, const WorldSnapshot& wo
   } else {
     MotionCommand cmd = wanted;
 
-    // 2. Terrain (task R7 fills world.terrain): a stop zeroes translation, slow caps the speed.
+    // 2. Terrain (robot.md 7b.4), applied here as well as in the behavior, so a behavior bug cannot
+    //    ignore it: a safety stop zeroes translation, and rotation too unless the terrain allows
+    //    turning in place (blocked with a clear side); slow caps the speed.
     double lin_limit = cfg.max_lin_mps;
-    if (world.terrain == TerrainAction::Stop && (cmd.vx_mps != 0 || cmd.vy_mps != 0)) {
+    const bool terrain_stop = world.terrain && world.terrain->safety_stop;
+    if (terrain_stop) {
+      if (cmd.vx_mps != 0 || cmd.vy_mps != 0 || (!world.terrain->allow_rotation && cmd.wz_dps != 0)) {
+        ++mem.interventions["terrain_stop"];
+      }
       cmd.vx_mps = 0;
       cmd.vy_mps = 0;
-      ++mem.interventions["terrain_stop"];
-    } else if (world.terrain == TerrainAction::Slow) {
+      if (!world.terrain->allow_rotation) cmd.wz_dps = 0;
+    } else if (world.terrain && world.terrain->action == TerrainAction::kSlow) {
       lin_limit *= cfg.terrain_slow_scale;
     }
 
@@ -92,15 +98,15 @@ GateResult SafetyGate::filter(State state, bool latched, const WorldSnapshot& wo
     }
 
     // 4. Acceleration limit: change each axis by at most accel x tick from the last sent command.
-    //    A terrain stop is a stop, so translation drops to zero at once instead of ramping.
+    //    A terrain stop is a stop, so what it zeroes drops to zero at once instead of ramping.
     const MotionCommand before_ramp = cmd;
     const double dv = cfg.max_lin_accel * cfg.tick_s;
     const double dw = cfg.max_ang_accel * cfg.tick_s;
-    if (world.terrain != TerrainAction::Stop && !mem.leg_lifted) {
+    if (!terrain_stop && !mem.leg_lifted) {
       cmd.vx_mps = rate_limit(mem.last_sent.vx_mps, cmd.vx_mps, dv);
       cmd.vy_mps = rate_limit(mem.last_sent.vy_mps, cmd.vy_mps, dv);
     }
-    cmd.wz_dps = rate_limit(mem.last_sent.wz_dps, cmd.wz_dps, dw);
+    if (!terrain_stop || world.terrain->allow_rotation) cmd.wz_dps = rate_limit(mem.last_sent.wz_dps, cmd.wz_dps, dw);
     if (cmd.vx_mps != before_ramp.vx_mps || cmd.vy_mps != before_ramp.vy_mps || cmd.wz_dps != before_ramp.wz_dps) {
       ++mem.interventions["accel_limit"];
     }
