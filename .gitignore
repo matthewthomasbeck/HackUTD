@@ -7,3 +7,8 @@
 __pycache__/
 .venv/
 node_modules/
+dist/
+.tokens/
+**/.tokens/
+spacetime.json
+spacetime.local.json
