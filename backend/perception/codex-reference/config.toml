@@ -1,0 +1,62 @@
+# Initial thresholds from the spec, not tuned against reference measurements.
+[breathing]
+default_fps = 30
+min_fps = 10
+min_duration_s = 15
+max_duration_s = 30
+yolo_model = "yolo26n-pose.pt"
+yolo_conf = 0.25
+kp_conf = 0.5
+yolo_frames = 5
+person_confirm_conf = 0.5
+chest_width_factor = 1.1
+center_roi_frac = 0.4
+min_roi_px = 40
+roi_max_w = 160
+roi_max_h = 120
+grid = 8
+clip_dark_mean_min = 40
+clip_noise_max = 6
+sat_frac_max = 0.2
+dark_mean_min = 8
+tex_min = 4
+band_lo_hz = 0.1
+band_hi_hz = 1.0
+filter_order = 2
+nfft = 4096
+peak_halfwidth_hz = 0.05
+c_min = 0.15
+c_good = 0.5
+c_detect = 0.35
+snr_detect_db = 6
+half_tol_bpm = 6
+flow_tol_bpm = 4
+bg_ratio_max = 0.5
+flicker_c_max = 0.5
+k_not_detected = 0.75
+flicker_min_std = 0.5
+bg_flow_min_px = 0.1
+bg_flow_concentration_min = 0.35
+
+[score]
+rr_high = 30
+rr_low = 10
+v_buried = 0.3
+b_absent = 1.0
+b_abnormal = 0.9
+b_normal = 0.3
+w_breath = 0.5
+w_buried = 0.3
+w_wait = 0.2
+wait_full_min = 30
+absent_conf_cap = 0.3
+rescore_interval_s = 60
+rescore_min_delta = 2.0
+rescore_conf_delta = 0.05
+
+[terrain]
+enabled = false
+evaluated = false
+terrain_min_conf = 0.5
+terrain_max_age_s = 5
+terrain_write_db = false

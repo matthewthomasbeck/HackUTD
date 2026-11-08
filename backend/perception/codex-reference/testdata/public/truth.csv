@@ -1,0 +1,17 @@
+file,condition,truth_bpm,chest_visible,who,lighting,coverage,camera,notes,split,label_source
+clips/s1_front_030s.mp4,public_rgb,,,s1,,,,Reference belt labels not distributed; exclude from accuracy metrics.,tune,unlabelled
+clips/s1_front_060s.mp4,public_rgb,,,s1,,,,Reference belt labels not distributed; exclude from accuracy metrics.,tune,unlabelled
+clips/s1_front_090s.mp4,public_rgb,,,s1,,,,Reference belt labels not distributed; exclude from accuracy metrics.,tune,unlabelled
+clips/s1_front_120s.mp4,public_rgb,,,s1,,,,Reference belt labels not distributed; exclude from accuracy metrics.,tune,unlabelled
+clips/s1_lying_030s.mp4,public_rgb,,,s1,,,,Reference belt labels not distributed; exclude from accuracy metrics.,tune,unlabelled
+clips/s1_lying_060s.mp4,public_rgb,,,s1,,,,Reference belt labels not distributed; exclude from accuracy metrics.,tune,unlabelled
+clips/s1_lying_090s.mp4,public_rgb,,,s1,,,,Reference belt labels not distributed; exclude from accuracy metrics.,tune,unlabelled
+clips/s1_lying_120s.mp4,public_rgb,,,s1,,,,Reference belt labels not distributed; exclude from accuracy metrics.,tune,unlabelled
+clips/s2_front_030s.mp4,public_rgb,,,s2,,,,Reference belt labels not distributed; exclude from accuracy metrics.,held_out,unlabelled
+clips/s2_front_060s.mp4,public_rgb,,,s2,,,,Reference belt labels not distributed; exclude from accuracy metrics.,held_out,unlabelled
+clips/s2_front_090s.mp4,public_rgb,,,s2,,,,Reference belt labels not distributed; exclude from accuracy metrics.,held_out,unlabelled
+clips/s2_front_120s.mp4,public_rgb,,,s2,,,,Reference belt labels not distributed; exclude from accuracy metrics.,held_out,unlabelled
+clips/s2_lying_030s.mp4,public_rgb,,,s2,,,,Reference belt labels not distributed; exclude from accuracy metrics.,held_out,unlabelled
+clips/s2_lying_060s.mp4,public_rgb,,,s2,,,,Reference belt labels not distributed; exclude from accuracy metrics.,held_out,unlabelled
+clips/s2_lying_090s.mp4,public_rgb,,,s2,,,,Reference belt labels not distributed; exclude from accuracy metrics.,held_out,unlabelled
+clips/s2_lying_120s.mp4,public_rgb,,,s2,,,,Reference belt labels not distributed; exclude from accuracy metrics.,held_out,unlabelled

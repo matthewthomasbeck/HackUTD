@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+numpy
+scipy
+opencv-python
+httpx
+matplotlib
+soundfile
+pytest

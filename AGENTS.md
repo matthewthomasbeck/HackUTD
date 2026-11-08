@@ -19,8 +19,15 @@ Its older files (produced water, leak detection, inspection robots, images) were
 `docs/PROJECT.md` has the proposed platform, glasses view, and the accounts and keys list.
 `docs/IDEAS.md` and `docs/notes/` are the history of the ideation phase (the grid outage idea led until this pivot), so do not treat them as current decisions.
 
-No code exists yet, so there are no build, lint, or test commands.
-Each component's build and run commands are in its spec in `docs/specs/`; add them here once the first code lands.
+Reference implementation moved alongside Eric's existing implementation.
+Code now exists in `backend/perception/codex-reference/` and `backend/agent/codex-reference/` (2026-11-08).
+From `backend/perception/codex-reference/`: `.venv/bin/python -m pytest -q` (33 tests).
+From `backend/agent/codex-reference/`: `npm test`, `npm run typecheck`, and `npm run scenario -- chain`.
+Public input preparation from the repo root:
+`backend/perception/codex-reference/.venv/bin/python backend/perception/codex-reference/scripts/prepare_public_clips.py`.
+Setup/run commands and integration limitations are in each component's README.
+The SpacetimeDB module/bindings, dashboard, robot and glasses are not implemented
+by this work; local tests and fake-DB scenarios do not prove live integration.
 
 This is the team repo, https://github.com/matthewthomasbeck/HackUTD (public, branch `main`).
 The planning docs live in `docs/`, next to the code folders.

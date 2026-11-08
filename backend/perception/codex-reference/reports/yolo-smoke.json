@@ -1,0 +1,28 @@
+{
+  "source": "backend/perception/codex-reference/testdata/public/clips/s1_front_030s.mp4",
+  "frame_time_s": 5,
+  "model_status": "loaded",
+  "person_confirmed": true,
+  "person_conf": 0.883998453617096,
+  "person_box": [
+    45.682373046875,
+    9.38189697265625,
+    565.78857421875,
+    361.0992431640625
+  ],
+  "roi_source": "pose",
+  "roi": [
+    100,
+    103,
+    436,
+    273
+  ],
+  "visibility_pct": 11.76470588235294,
+  "blank_person_confirmed": false,
+  "blank_person_conf": 0.0,
+  "weights_sha256": {
+    "yolo26n-pose.pt": "eb3bb8268828aeaf515cec23a4bfafd793944a86fe9af94ba7823609c14522a9"
+  },
+  "elapsed_s": 1.08,
+  "passed": true
+}

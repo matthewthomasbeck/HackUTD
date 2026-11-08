@@ -1,0 +1,7 @@
+# Optional model backends. Core media and operator-ROI analysis work without these.
+ultralytics
+faster-whisper
+nvidia-riva-client
+transformers
+torch
+scikit-learn

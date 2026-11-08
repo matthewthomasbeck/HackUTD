@@ -5,6 +5,43 @@ Specs: `docs/specs/perception.md`, `docs/specs/agent.md`, `docs/AGENT_WORKFLOW.m
 Overview and checkpoints: `docs/TASKS.md`.
 Total with AI: about 15 h (each task 1 to 2 h with coding agents; hardware tasks are bench time, not typing).
 
+## Codex reference implementation progress (2026-11-08)
+
+This section describes the separately tested Codex reference implementation,
+not the existing primary code or its newer model smoke results. Eric authorized parallel implementation and public data instead of recording a
+new development dataset. The code is now in `backend/perception/codex-reference/` and
+`backend/agent/codex-reference/`. This status table overrides the older recording-first wording;
+unchecked integration steps below are not claimed as done.
+
+| Task | Implemented and verified | Still needed for original end-to-end acceptance |
+| --- | --- | --- |
+| E0 | Native and JSON smoke-test scripts, parser, model configuration | NVIDIA key/Brev endpoint smoke and actual support/latency results; current smoke explicitly skips without a key |
+| E1 | 16 MPSC-RR windows, 15 synthetic cases, 4 VRWi windows with independent dual-belt reference checks; 140 method/input runs | Broader scene coverage and robot-camera compatibility; public data does not establish dim-light rescue performance |
+| E2 | FastAPI media upload, storage/index, seeking, durable jobs, size/type checks, actual analysis job test | Camille's bridge upload over team network |
+| E3 | Signed PIC/PCA, optical-flow cross-check, quality gates, offline CLI, debug artifacts, optional display EVM | Real robot capture and live database/dashboard path |
+| E4 | Scoring, confidence caps, re-scan protection, meaningful re-score updates; reducer ordering tested with fake DB | Live reducers/dashboard and five-minute waiting demonstration |
+| E5 | Real YOLO26 person/pose smoke on public torso frame, blank-frame rejection, images and visibility | Full scene/pose coverage and dashboard display |
+| E6 | Shared runner, tool schemas/guards, budgets, task leases, logging, dry-run shadow, live adapter | Published module, generated bindings, roles, actual subscription/reducer verification |
+| E7 | In-memory chain, rules auditor/comms, priority/race/disagreement scenarios | Hosted Nemotron chain, actual database watchdog kill test, glasses/dashboard acknowledgement |
+| E8 | Local Whisper on public speech and silence, HTTP endpoint, comms answer path | Rescuer questions/glasses loop, venue-noise coverage, hosted Riva; measured smoke used tiny.en, not default small.en |
+| E9 | Optional CLIP baseline, independent-label tooling, run-separated probe training/evaluation, conservative fusion | Labelled five-class benchmark and measured evaluation; operational hints remain disabled |
+| E10 | Sitrep task path and feature flag; vision smoke placeholder explains upload decision | Vision tool implementation/model test and approved cloud image path; actual sitrep delivery |
+
+Verification: 33 perception tests, 30 agent tests, TypeScript check, and local
+chain/priority/race/auditor-disagreement scenarios passed. No live NVIDIA or
+SpacetimeDB result is implied. See `docs/research/breathing-repos.md` for the
+comparison and `backend/perception/codex-reference/testdata/public/comparison-results.json`
+for all measured runs. Local speech and YOLO evidence is in
+`backend/perception/codex-reference/reports/`.
+
+Example: a 20 s public/synthetic clip goes through upload -> durable analysis
+job -> chest ROI -> signed PIC and motion/lighting gates -> breathing result ->
+`report_breathing` -> critical score -> `set_critical_score`. The service test
+executes actual video analysis and verifies the two writes through a fake DB.
+The separate agent fixture then demonstrates proposal -> auditor review ->
+comms briefing with one chain ID. The live link between these paths remains
+unverified until Cayden's module and bindings exist.
+
 ## How to use this file
 
 Work top to bottom inside each part, but do "Start here" first.

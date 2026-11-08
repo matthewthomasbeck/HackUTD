@@ -1,0 +1,6 @@
+.env
+.venv/
+data/
+testdata/public/raw/
+testdata/public/clips/
+testdata/real/*.mp4
