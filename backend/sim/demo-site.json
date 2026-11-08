@@ -1,6 +1,6 @@
 {
   "site": {
-    "name": "Demo: tornado damage, Richardson TX (simulated)",
+    "name": "Demo: tornado, Richardson TX (simulated)",
     "center_lat": 32.9857,
     "center_lon": -96.7502,
     "radius_m": 483,
