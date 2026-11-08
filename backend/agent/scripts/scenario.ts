@@ -4,8 +4,7 @@
 // module (src/fake/module.ts) with MockLLM on a virtual clock, so they need no SpacetimeDB, no
 // simulator, and no NVIDIA key; against the fake module every write goes to the fake module, which
 // is the DRY_RUN shadow, so no real reducer runs.
-// --live is reserved for the published module plus backend/sim in demo mode; that scenario
-// harness is not implemented yet, even though the bindings and simulator sources now exist.
+// --live uses an empty disposable local module plus backend/sim and actual worker processes.
 // --real (our addition) keeps the fake module but calls the real NVIDIA models in real time, so it
 // needs NVIDIA_API_KEY and spends requests. Only the scenarios whose outcome comes from the model run
 // by default; race, comms_fallback, all_down and budget depend on MockLLM failure policies.
@@ -42,11 +41,13 @@ async function main(): Promise<number> {
   const pick = names.length === 0 || names.includes("all") ? all : names;
 
   if (live) {
-    console.error(
-      "scenario --live is not implemented yet. The module, bindings and simulator sources exist; " +
-        "use smoke:stdb for local adapter acceptance, or run without --live for the in-process scenarios.",
-    );
-    return 2;
+    if (real) throw new Error("--live uses mock models only; do not combine with --real");
+    if (process.env.DRY_RUN && !["0", "1"].includes(process.env.DRY_RUN))
+      throw new Error("--live accepts DRY_RUN=0 or 1 only; DRY_RUN=log is not supported by this acceptance harness");
+    if (names.length !== 1 || names[0] === "all") throw new Error("--live requires one scenario name and a fresh disposable database");
+    const { runLiveScenario } = await import("./live-scenario.ts");
+    await runLiveScenario(names[0], process.env.DRY_RUN === "1", verbose);
+    return 0;
   }
   const unknown = pick.filter((n) => !SCENARIOS[n]);
   if (unknown.length) {

@@ -60,9 +60,15 @@ Confirm the submission time and judging time, then write clock times into this t
 ### Checkpoint status (2026-11-08)
 
 Eric's completed-item audit is recorded in
-`notes/2026-11-08-eric-completed-task-audit.md`. R1 step 6 is reopened for
-blocking logging; full G8 identity handling and intermittent real-model chain
-failures remain open. Brev is the intended model deployment.
+`notes/2026-11-08-eric-completed-task-audit.md`. R1 step 6's blocking logger and
+G8 callsign handling were fixed on 2026-11-08 (`tasks/eric-remaining.md`).
+Intermittent real-model chain failures remain open. Brev is the intended model deployment.
+
+Local validation on `eric-cv-benchmark`, 2026-11-08: 136 primary agent tests and
+typecheck, 770 primary perception tests, and 88 robot tests passed. The isolated robot
+executable check also verified hold, latched e-stop, rejected restart, reset and clean
+SIGINT shutdown (`notes/2026-11-08-r1-scripted-mock-check.md`). These are branch
+snapshots, not proof of live hardware integration; rerun after merging further changes.
 
 Eric's local transition checks now close E3 8b/10b and E6 6/8b:
 three agent identities, task/action round trips, perception writes/readback,
@@ -78,7 +84,8 @@ the full combined run still needs to be recorded. Evidence:
 - Checkpoint 2: the whole flow with no robot runs in the simulator, but it is not marked passed.
   The sim robot finds survivors, and the dashboard and the glasses service show changes live.
   With Eric's agents merged locally (`integration/eric-agents`) and `LLM_MODE=mock`, the orchestrator proposed, the auditor reviewed, and the comms agent briefed against the live module.
-  Still open: perception scoring a sim detection in the same run, a real Nemotron key, and one recorded run with its run id.
+  A4 now also records a reproducible local simulator/module/runtime chain and a separate no-write shadow run on `eric-cv-benchmark` (`notes/2026-11-08-live-agent-scenarios.md`).
+  Still open: primary perception scoring a sim detection in the same run, real-model integration, and combined dashboard/glasses acceptance with the recorded run.
 - Checkpoints 3 to 5: not started; they need the real robot, the real G2, and rehearsals.
 
 ### Judged demo plan (decision 2026-11-08)

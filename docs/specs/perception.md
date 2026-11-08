@@ -277,7 +277,7 @@ YOLO pose details (Ultralytics, https://docs.ultralytics.com/tasks/pose/ and htt
 
 Chest ROI from keypoints (`pose`), needs both shoulders, or one shoulder plus one hip:
 
-- Torso axis from the shoulder midpoint `S` to the hip midpoint `H` (if hips are missing, `H = S + 1.2 * shoulder_width` along the box's long axis, toward the box center).
+- Torso axis from the shoulder midpoint `S` to the hip midpoint `H` (if hips are missing, `H = S + 1.2 * shoulder_width` perpendicular to the shoulder line, away from the face if a face keypoint is visible, else toward the box center; not the box's long axis, because a torso that fills a wide frame gives a wide box although the person is upright, found in the A3 review of the MPSC-RR front clips on 2026-11-08).
 - ROI = the rectangle aligned to the image axes that covers the segment from `S` to `S + 0.6 * (H - S)`, widened to `chest_width_factor` (1.1) times the shoulder width.
   This works for a person standing, sitting, or lying, because it follows the keypoints, not the box shape.
 

@@ -93,6 +93,73 @@ then our PIC extractor and the external optical-flow baseline. Compare each
 result to an independent reference. Agreement between two algorithms alone is
 not a ground-truth label.
 
+## Primary pipeline on the same inputs (2026-11-08, task A1)
+
+The table above measures the `codex-reference/` code. These rows measure the
+primary pipeline (`perception.breathing.analyze`, the code the service and
+`scripts/analyze_clip.py` run), on the same 15 synthetic, 4 VRWi and 16 MPSC-RR
+windows. Full rows, scores and reasons are in
+[`primary-results.json`](../../backend/perception/testdata/public/primary-results.json).
+Two modes: "reference" gives the same inputs as the reference run (operator
+ROI for synthetic and VRWi, center ROI for MPSC-RR, YOLO off); "service" gives
+no operator ROI and YOLO pose on, as the service does with an uploaded clip.
+No threshold was tuned on these windows.
+
+| Primary, mode | Source | Windows | Detected | Abstained | Mean absolute error | Within 3/min | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| primary, reference | synthetic | 15 | 8 | 6 | 0.01/min (7 clean rates) | 7/7 | every case met its expected outcome (15/15) |
+| primary, service | synthetic | 15 | 8 | 7 | 0.01/min | 7/7 | no person in synthetic clips, so center ROI and confidence capped at 0.4 |
+| primary, reference | VRWi | 4 | 3 | 1 | 3.06/min (3 rates) | 2/4 | 060s 18.7 (0.80); 090s 11.1 (0.27, wrong, low confidence); 120s 16.0 (0.40); 030s abstained, "lighting or exposure changed" |
+| primary, service | VRWi | 4 | 3 | 1 | 0.67/min (3 rates) | 3/4 | pose ROI on the chest in all 4; confidence 0.25 to 0.40; 090s abstained, "lighting or exposure changed" |
+| primary, reference | MPSC-RR | 16 | 4 | 12 | not reported (no labels) | not reported | abstentions: 8 "lighting or exposure changed", 4 "camera or scene moved" |
+| primary, service | MPSC-RR | 16 | 4 | 12 | not reported (no labels) | not reported | abstentions: 7 "lighting or exposure changed", 5 "camera or scene moved" |
+
+Findings:
+
+- The primary pipeline differs from the reference on VRWi 030s: the reference
+  gave 14.2 (0.80); the primary rejects it with the flicker gate in reference mode
+  but gives 13.7 (0.40) in service mode. Most MPSC-RR rejections are the same two
+  gates. Whether these are false rejections is task A2 (development and held-out
+  split before any threshold change).
+- The VRWi 090s case stays wrong with low confidence, as in the reference run.
+  Do not report only the confident subset.
+- Service mode never gave confidence above 0.5 on these windows, so on its own
+  it would not mark anyone confidently breathing from a public clip.
+
+Chest ROI review (task A3, service mode, every `roi.jpg` opened):
+
+| Clips | ROI source | Review |
+| --- | --- | --- |
+| VRWi 030s to 120s (seated, face blurred) | pose | on chest, 4/4 |
+| MPSC-RR s1 and s2 front (torso fills the frame, head cut off) | pose | on chest, 8/8 after the fix below; before it, the box covered only the left half of the torso |
+| MPSC-RR s1 lying (4), s2 lying 030s and 120s | center (no person found) | off chest (on the sofa above the person) |
+| MPSC-RR s2 lying 060s and 090s | box | off chest (on the sofa above the person) |
+| synthetic | center (no person) | not applicable, no person in the clip |
+
+Fix from the review: with both shoulders visible and the hips hidden, the torso
+axis used the person box's long axis. A torso that fills a wide frame gives a
+wide box, so the chest box ran sideways from the shoulder midpoint. The axis is
+now perpendicular to the shoulder line, away from the face (else toward the box
+center) (`perception/roi.py`, `tests/test_roi.py`, `perception.md` step 2). The
+lying clips are filmed from above with the head out of frame and the chest at
+the bottom edge; YOLO finds no usable pose there. Box chest factors were not
+changed for six clips from two subjects in one framing. An operator chest box
+remains the fallback for such views.
+
+Every row has a critical score with reasons. Every abstention, dark and noisy
+case scored with confidence at most 0.3 and the reason "needs human triage".
+The public sets have no covered-person clip, so the covered case is still
+untested on real footage.
+
+Reproduce from `backend/perception/` with the primary `.venv` (downloads about
+1.3 GB into git-ignored folders):
+
+```bash
+.venv/bin/python codex-reference/scripts/prepare_public_clips.py
+.venv/bin/python codex-reference/scripts/prepare_reference_clips.py
+.venv/bin/python scripts/benchmark_public.py --score --debug-dir data/derived/benchmark
+```
+
 ## Public-data findings
 
 - [MPSC-RR](https://huggingface.co/datasets/justchugh/MPSC-RR) is linked from

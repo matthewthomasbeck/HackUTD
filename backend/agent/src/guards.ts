@@ -66,11 +66,19 @@ const IDENTITY_HEX = /\b[0-9a-fA-F]{64}\b/g;
 /** G8 for everything sent to a model: names as above, and each person's identity hex becomes the
  * rescuer's callsign (or the person's role). Hex that is not a participant (an agent) is left. */
 export function redactForModel(text: string, w: World): string {
-  return redactNames(text, w).replace(IDENTITY_HEX, (hex) => {
+  const identities = redactNames(text, w).replace(IDENTITY_HEX, (hex) => {
     const p = w.participant(hex);
     if (!p) return hex;
     return p.role === "rescuer" ? w.callsign(p.identity) : p.role;
   });
+  // Voice questions and location notes can contain contact details outside the
+  // participant table. Keep those out of every outbound turn too (G8).
+  return identities
+    .replace(/\b[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[email removed]")
+    .replace(/(?<![\w.])(?:\d{3}\.\d{3}\.\d{4}|\+?\d[\d ()-]*\d)(?!\w)/g, value => {
+      const digits = value.replace(/\D/g, "").length;
+      return digits >= 10 && digits <= 15 ? "[phone removed]" : value;
+    });
 }
 
 /** The way back: a model names rescuers by callsign, so map rescuer_identity and audience to the
@@ -305,6 +313,13 @@ export function guardSendBriefing(ctx: CycleCtx, a: Args): string | null {
   const task = ctx.input.task;
   const payload = task ? parsePayload<Record<string, any>>(task.payload_json) ?? {} : {};
   const isAnswer = task?.kind === "answer_rescuer";
+  if (isAnswer) {
+    if (typeof payload.rescuer_identity !== "string" || payload.rescuer_identity.toLowerCase() !== audience)
+      return "write only to the rescuer named in the task";
+    if ((a.survivor_id ?? payload.survivor_id ?? 0) !== (payload.survivor_id ?? 0))
+      return "answer only about the survivor named in the task";
+    if (ctx.state.briefingsSent > 0) return "send only one answer per question";
+  }
   if (!["all", "coordinators", "commander"].includes(audience)) {
     if (!/^[0-9a-f]{64}$/.test(audience)) return "audience must be all, coordinators, commander, or a rescuer identity hex";
     const r = w.rescuer(audience);

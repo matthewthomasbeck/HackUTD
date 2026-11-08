@@ -157,9 +157,34 @@ Only `src/stdb/` touches the generated bindings, through a dynamic import, so `n
 ## Still needs
 
 - Local adapter acceptance passed on 2026-11-08: all three identities registered, active run and row values decoded, tasks posted/claimed/completed with matching action logs, plus an Identity-based proposal, review, briefing, simulated acknowledgement and optional mission arguments. Run `npm run smoke:stdb` against an empty disposable local database. The script rejects remote servers and existing sites. See `docs/notes/2026-11-08-eric-transition-validation.md` for setup and evidence. Maincloud service roles still need separate verification.
-- The upstream simulator source is now merged into `backend/sim/`. Live integration remains unverified: `npm run scenario -- --live` is still reserved and exits with a message today. See `docs/tasks/eric-remaining.md`.
+- Local simulator/module/runtime acceptance now passes through `npm run scenario -- chain --live`, including the separate `DRY_RUN=1` shadow variant. This uses mock models and simulated rescuer acknowledgement, without primary breathing, dashboard or glasses acceptance. Maincloud and the full combined flow remain open. See [live scenario evidence](../../docs/notes/2026-11-08-live-agent-scenarios.md).
+
+## Disposable local scenarios
+
+Start a separate local server from the repository root:
+
+```sh
+spacetime start --in-memory --data-dir /tmp/hackutd-eric-live --listen-addr 127.0.0.1:3927 --non-interactive
+```
+
+Publish a fresh database for each scenario, also from the repository root:
+
+```sh
+spacetime publish eric-live-chain -p backend/spacetimedb --server http://127.0.0.1:3927 --yes
+cd backend/agent
+STDB_URI=http://127.0.0.1:3927 STDB_DATABASE=eric-live-chain npm run scenario -- chain --live
+```
+
+Other supported names are `kill_orchestrator`, `race`, `all_down` and `budget`.
+Use a fresh `eric-live-<name>` database each time, including for reruns. For the shadow
+chain, publish a separate fresh database and set `DRY_RUN=1`. No model key is needed:
+workers always use `MockLLM`, even if the surrounding environment selects a hosted model.
+`--real` cannot be combined with `--live`. The harness rejects remote servers,
+database names without the `eric-live-` prefix and databases that already contain a site.
+It creates temporary tokens and cleans up its own worker processes. The separately
+started local server remains under the operator's control.
 
 ## Extension points
 
-- E8, rescuer questions: `answer_rescuer` tasks are handled in `src/agents/comms.ts` with the "model down" answer template; the model path goes where the comment marks it.
+- E8, rescuer questions (A6, 2026-11-08): with `ENABLE_QUESTIONS=1` and `ENABLE_COMMS_MODEL=1`, `answer_rescuer` tasks use the comms model. Its packet includes the question, survivor level/breathing/place/location note, cell counts, and the asking rescuer's own open assignments. It omits the raw payload, rescuer name field and audio URL; the shared G8 filter replaces known participant names and identities with callsigns and masks email addresses and common phone-number formats. The prompt requests an explicit unknown answer when facts are missing. Guards restrict answers to the asker and task survivor, one answer per question, and the existing 120-character ASCII limit. Timeout, rejection, model down or `ENABLE_COMMS_MODEL=0` uses the board template. `ENABLE_QUESTIONS=0` disables both paths. `test/comms-questions.test.ts` covers native and JSON mock replies, unknown answers, privacy, wrong recipients/survivors, length, failures and flags. These are mock routing/guard tests, not proof of model factuality; Lightning validation (B2) and live glasses acceptance remain open.
 - E10, `describe_still` and `sitrep`: add the tool names to the allow lists in `src/agents/comms.ts` and `src/agents/orchestrator.ts`, their schemas in `src/tools/schemas.ts`, and implementations next to `src/tools/reads.ts`.

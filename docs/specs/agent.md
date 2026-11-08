@@ -63,6 +63,7 @@ These rules are in every system prompt, enforced by the runner's guards, and enf
   Before each model request the loop replaces every participant's identity hex with the rescuer's callsign (or the person's role), and the model-facing `rescuer_identity` and `audience` fields take a callsign.
   Before dispatch the loop maps a callsign back to the identity hex, so ajv still checks the hex pattern and the guards and reducers are unchanged.
   The callsign map is per agent process, so a callsign is resolved by the same agent that showed it.
+  Rescuer questions and board notes can contain contact details outside the participant table. Before every model request, the same filter masks email addresses and conventional 10 to 15 digit phone numbers, including common spaced, dashed and dotted forms.
 
 ## 3. Folder, dependencies, configuration
 

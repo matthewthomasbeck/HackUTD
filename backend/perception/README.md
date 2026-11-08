@@ -75,6 +75,27 @@ The `[breathing]` and `[score]` values are the spec defaults and are untuned.
 `breathing.py`, `roi.py`, `score.py`, `stt.py`, `terrain.py`, and `video.py` are written separately.
 The service imports them only when needed, so it starts without them: a breathing job fails with `breathing module not installed`, `set_critical_score` is skipped without `score.py`, and `/health` shows `yolo: missing`.
 
+## Local transcription evaluation (2026-11-08)
+
+Run `.venv/bin/python scripts/evaluate_stt.py` from this directory. Cached `small.en`
+weights are required; `--allow-model-download` permits their initial download.
+The primary `whisper_local:small.en` CPU/int8 path was evaluated on three question
+fixtures, one public eight-second speech excerpt, two-second fixture silence and
+eight-second generated silence. Each input was tested clean and at two deterministic
+noise levels, with three repeats per condition.
+
+Speech medians were 0.889 to 1.071 s, maximum 1.173 s, on an Apple M4 Pro during
+concurrent laptop testing. Model files occupy about 464 MiB. All 18 silence/noise-only
+calls returned empty text. At 0 dB white noise, `house 3` became `house food`, so this
+does not establish noisy-venue reliability. Question transcript truth and recording
+provenance are unverified; no question accuracy metric is claimed. Only `small.en`
+was measured, with no model-size comparison, hosted Riva or live glasses voice check.
+
+Full transcripts, settings, checksums and timings are in
+[`testdata/voice/stt-evaluation.json`](testdata/voice/stt-evaluation.json).
+See the [method and results](../../docs/notes/2026-11-08-local-transcription-evaluation.md)
+for per-clip timings and limitations.
+
 ## SpacetimeDB
 
 Writes go over HTTP from Python (`POST /v1/database/<db>/call/<reducer>`).
