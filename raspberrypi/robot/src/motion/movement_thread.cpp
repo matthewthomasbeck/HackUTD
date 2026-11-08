@@ -37,6 +37,7 @@ void MovementThread::step(SteadyTime now) {
     }
     was_deadman_ = true;
     stop_wheels();
+    servo_goal_ = servo_now_;  // legs freeze where they are instead of finishing a move
     status.deadman = true;
     status.stopped = true;
     status.applied_seq = latest ? latest->value.seq : 0;
@@ -49,6 +50,7 @@ void MovementThread::step(SteadyTime now) {
   const MotionCommand& cmd = latest->value.motion.command();
   drive(cmd);
   apply_legs(cmd.legs);
+  advance_servos();
   status.applied_seq = latest->value.seq;
   status.stopped = cmd.is_zero();
   status_.write(status, now);
@@ -76,12 +78,26 @@ void MovementThread::stop_wheels() {
 void MovementThread::apply_legs(const LegRequest& request) {
   if (request.move == LegRequest::Move::None || !act_.leg_ik) return;
   std::vector<ServoTarget> targets;
-  if (!act_.leg_ik->solve(request, targets)) return;  // unreachable: keep the current pose
-  // TODO(R8): interpolate from the current pose toward the targets at servos.max_rate_us_per_s
-  // over several steps, instead of jumping, and clamp each channel to its min_us/max_us.
-  for (const auto& t : targets) {
-    const auto& bus = t.bus == 0 ? act_.maestro_a : act_.maestro_b;
-    if (usable(bus)) bus->set_target_us(t.channel, t.pulse_us);
+  if (!act_.leg_ik->solve(request, targets)) return;  // unreachable or past a limit: keep the current pose
+  // The IK already rejected anything outside each servo's min_us..max_us, so goals are in range.
+  for (const auto& t : targets) servo_goal_[{t.bus, t.channel}] = t.pulse_us;
+}
+
+// Moves every leg servo toward its goal by at most servos.max_rate_us_per_s, so a new stance is
+// a smooth move over several steps instead of a jump. A servo's first target is sent as is,
+// because its real position is unknown until then (start the robot supported).
+void MovementThread::advance_servos() {
+  const double max_step = config_.servo_max_rate_us_per_s > 0 ? config_.servo_max_rate_us_per_s / config_.rate_hz : 0;
+  for (const auto& [key, goal] : servo_goal_) {
+    auto it = servo_now_.find(key);
+    double next = goal;
+    if (it != servo_now_.end() && max_step > 0) {
+      const double delta = goal - it->second;
+      next = it->second + (delta > max_step ? max_step : (delta < -max_step ? -max_step : delta));
+    }
+    if (it != servo_now_.end() && it->second == next) continue;
+    const auto& bus = key.first == 0 ? act_.maestro_a : act_.maestro_b;
+    if (usable(bus) && bus->set_target_us(key.second, next)) servo_now_[key] = next;
   }
 }
 

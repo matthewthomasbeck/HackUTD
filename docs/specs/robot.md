@@ -1076,8 +1076,8 @@ class ILegIK {
 ```
 
 - `leg_ik_mock`: records requests, returns fixed pulse widths, used in tests and laptop runs.
-- `leg_ik_2link`: planar two-link IK (law of cosines) with `legs.l1_m`, `legs.l2_m`, offsets, and directions from config.
-  It is only a guess at the leg shape; replace it once Matthew describes the real legs.
+- `leg_ik_2link` (written 2026-11-08): planar two-link IK (law of cosines) for hip and knee with `legs.l1_m`, `legs.l2_m`, `legs.knee_bend`, and one calibration per servo in `legs.joints.<LEG>_<joint>` (`zero_us`, `us_per_rad`, `direction`, `min_us`, `max_us`, from `robot_diag legcal`). Abduction holds 0 for now.
+  Angle 0 is the Rubble Dog assembly pose (femur down, tibia in line). The interface is `solve(LegRequest, targets)`; it returns false, and nothing moves, while any joint is uncalibrated.
 - Every output goes through the safety gate: clamp each channel to `servos.<ch>.min_us/max_us`, rate-limit to `servos.max_rate_us_per_s`, and reject (do not clamp) unreachable targets.
 - Behaviors ask for leg moves as commands (`LegCommand { stance_height_m; lift_leg; lift_m; }`), never pulse widths.
 - Terrain use (later): `step` with a small rise could raise stance; `debris` could raise stance and slow.

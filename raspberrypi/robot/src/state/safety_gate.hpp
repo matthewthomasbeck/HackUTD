@@ -42,6 +42,7 @@ struct GateConfig {
 // and intervention counts (logged at most once per second, never every tick).
 struct GateMemory {
   MotionCommand last_sent;
+  bool leg_lifted = false;  // a Lift was sent and no Stance since: translation stays zero
   std::map<std::string, int> interventions;
   bool ever_logged = false;
   SteadyTime last_log{};

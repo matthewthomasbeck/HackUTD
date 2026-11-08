@@ -71,8 +71,16 @@ GateResult SafetyGate::filter(State state, bool latched, const WorldSnapshot& wo
       lin_limit *= cfg.terrain_slow_scale;
     }
 
-    // TODO(R8): leg requests. Reject unreachable or out-of-limit leg goals, and zero translation
-    // while a leg is lifted (docs/specs/robot.md section 10.1). Until then legs pass unchanged.
+    // Legs (docs/specs/robot.md section 12.5): while a leg is lifted, translation is zero,
+    // because a mecanum wheel in the air changes the drive kinematics. Reachability and servo
+    // limits are checked by the IK, which rejects (never clamps) a bad goal.
+    if (cmd.legs.move == LegRequest::Move::Lift) mem.leg_lifted = true;
+    if (cmd.legs.move == LegRequest::Move::Stance) mem.leg_lifted = false;
+    if (mem.leg_lifted && (cmd.vx_mps != 0 || cmd.vy_mps != 0)) {
+      cmd.vx_mps = 0;
+      cmd.vy_mps = 0;
+      ++mem.interventions["leg_lifted"];
+    }
 
     // 3. Clamp each axis to its limit.
     const MotionCommand before_clamp = cmd;
@@ -88,7 +96,7 @@ GateResult SafetyGate::filter(State state, bool latched, const WorldSnapshot& wo
     const MotionCommand before_ramp = cmd;
     const double dv = cfg.max_lin_accel * cfg.tick_s;
     const double dw = cfg.max_ang_accel * cfg.tick_s;
-    if (world.terrain != TerrainAction::Stop) {
+    if (world.terrain != TerrainAction::Stop && !mem.leg_lifted) {
       cmd.vx_mps = rate_limit(mem.last_sent.vx_mps, cmd.vx_mps, dv);
       cmd.vy_mps = rate_limit(mem.last_sent.vy_mps, cmd.vy_mps, dv);
     }

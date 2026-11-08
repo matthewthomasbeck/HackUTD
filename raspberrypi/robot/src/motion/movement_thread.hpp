@@ -11,6 +11,7 @@
 // died), the thread stops the wheels on its own and applies safe_stop.servo_action.
 
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -41,6 +42,7 @@ struct MovementConfig {
   double command_timeout_ms = 100;  // movement.command_timeout_ms, TBD: several main ticks
   bool release_servos_on_stop = false;  // safe_stop.servo_action == release
   MecanumConfig mecanum;
+  double servo_max_rate_us_per_s = 0;   // servos.max_rate_us_per_s; 0 = jump straight to the target
 };
 
 struct Actuators {
@@ -68,6 +70,7 @@ class MovementThread : public Worker {
   void drive(const MotionCommand& command);
   void stop_wheels();
   void apply_legs(const LegRequest& request);
+  void advance_servos();
   void stop_servos();
 
   Actuators act_;
@@ -75,6 +78,9 @@ class MovementThread : public Worker {
   LatestSlot<MovementCommand> commands_;
   LatestSlot<MovementStatus> status_;
   bool was_deadman_ = true;  // stopped until the first command arrives
+  // Leg servos, keyed by (bus, channel): where each is heading and where it was last sent.
+  std::map<std::pair<int, int>, double> servo_goal_;
+  std::map<std::pair<int, int>, double> servo_now_;
 };
 
 }  // namespace robot
