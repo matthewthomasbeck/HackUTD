@@ -333,3 +333,32 @@ export function parseJson<T = Record<string, unknown>>(s: string | null | undefi
     return null;
   }
 }
+
+/**
+ * Id keys in agent_task payload_json. The module writes u64 ids there as decimal strings
+ * ("assignment_id":"12", spacetimedb.md section 8), so every payload read goes through
+ * parsePayload and every payload write through payloadJson.
+ */
+export const PAYLOAD_ID_KEYS = ["assignment_id", "survivor_id", "chain_id", "task_id", "mission_id", "cell_id", "detection_id", "briefing_id"] as const;
+
+/** Parse payload_json and turn the id keys into numbers (decimal strings or numbers in, numbers out). */
+export function parsePayload<T = Record<string, any>>(s: string | null | undefined): T | null {
+  const p = parseJson<Record<string, unknown>>(s);
+  if (!p || typeof p !== "object" || Array.isArray(p)) return p as T | null;
+  for (const k of PAYLOAD_ID_KEYS) {
+    const v = p[k];
+    if (typeof v === "string" && /^[0-9]+$/.test(v)) p[k] = Number(v);
+  }
+  return p as T;
+}
+
+/** Serialize a payload with the id keys as decimal strings, the module's convention. */
+export function payloadJson(payload: Record<string, unknown>): string {
+  const out: Record<string, unknown> = { ...payload };
+  for (const k of PAYLOAD_ID_KEYS) {
+    const v = out[k];
+    if (typeof v === "number" && Number.isInteger(v)) out[k] = String(v);
+    else if (typeof v === "bigint") out[k] = v.toString();
+  }
+  return JSON.stringify(out);
+}

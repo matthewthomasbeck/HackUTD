@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CORRECTION, runCycle } from "../src/loop.ts";
 import { dispatch } from "../src/tools/dispatch.ts";
+import { parsePayload } from "../src/world.ts";
 import { ctxFor, fakeWorld, postAndClaim, RESCUER, survivorAt } from "./helpers.ts";
 
 describe("dispatch round trip (agent.md 13 step 4)", () => {
@@ -14,7 +15,9 @@ describe("dispatch round trip (agent.md 13 step 4)", () => {
     expect(r.ok).toBe(true);
     const task = h.store.rows("agent_task").find((t) => t.kind === "brief_rescuer")!;
     expect(task.chain_id).toBe(chain);
-    expect(JSON.parse(task.payload_json)).toMatchObject({ chain_id: chain, survivor_id: sid, rescuer_identity: RESCUER.A });
+    // On the wire ids are decimal strings (the module's payload_json convention); parsePayload gives numbers back.
+    expect(JSON.parse(task.payload_json)).toMatchObject({ chain_id: String(chain), survivor_id: String(sid), rescuer_identity: RESCUER.A });
+    expect(parsePayload(task.payload_json)).toMatchObject({ chain_id: chain, survivor_id: sid, rescuer_identity: RESCUER.A });
     h.module.claimAgentTask(h.identity("comms_agent"), task.id);
     h.module.completeAgentTask(h.identity("comms_agent"), task.id, "done", JSON.stringify({ briefing_id: 1, text: "x", fallback: false }));
     expect(h.store.get("agent_task", task.id)?.status).toBe("done");

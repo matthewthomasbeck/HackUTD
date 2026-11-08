@@ -231,7 +231,8 @@ export class FakeModule {
       if (result.length > 2000) throw new Error("result_json too long");
       this.checkText(result);
       let verdict: Record<string, unknown> | null = null;
-      if (t.kind === "review" && status === "done") {
+      // HEAD checks the verdict of a review task whatever the status.
+      if (t.kind === "review") {
         verdict = JSON.parse(result);
         if (verdict!.verdict !== "agree" && verdict!.verdict !== "disagree") throw new Error("review result needs verdict agree or disagree");
         if (typeof verdict!.reason !== "string") throw new Error("review result needs a reason");
@@ -244,11 +245,12 @@ export class FakeModule {
           const payload = JSON.parse(t.payload_json);
           const f = this.db.insert("audit_flag", {
             run_id: this.runId(),
-            kind: (verdict.flag_kind as "proposal_disagree" | "load_imbalance") ?? "proposal_disagree",
+            // HEAD keeps only load_imbalance from the verdict and drops suggested_action.
+            kind: verdict.flag_kind === "load_imbalance" ? "load_imbalance" : "proposal_disagree",
             entity: "assignment",
-            entity_id: payload.assignment_id ?? 0,
+            entity_id: Number(payload.assignment_id ?? 0),
             message: String(verdict.reason),
-            suggested_action: (verdict.suggested_action as string) || null,
+            suggested_action: null,
             status: "open",
             filed_by: "auditor",
             created_at: this.now(),
@@ -312,8 +314,9 @@ export class FakeModule {
     });
     this.event("assignment_proposed", "assignment", a.id, `${name} proposed ${r.name} for #${sid}: ${reason}`);
     if (this.opts.reviewInPropose && (name === "orchestrator" || caller === MODULE)) {
-      const distance = r.lat != null && r.lon != null ? Math.round(haversineM(r.lat, r.lon, s.lat, s.lon)) : 0;
-      const payload = JSON.stringify({ assignment_id: a.id, survivor_id: sid, rescuer_identity: hex, distance_m: distance, critical_level: s.critical_level, reason });
+      // Same shape as HEAD's lib/state.ts createProposal: ids as decimal strings, distance to 0.1 m or null.
+      const distance = r.lat != null && r.lon != null ? Math.round(haversineM(r.lat, r.lon, s.lat, s.lon) * 10) / 10 : null;
+      const payload = JSON.stringify({ assignment_id: String(a.id), survivor_id: String(sid), rescuer_identity: hex, distance_m: distance, critical_level: s.critical_level, reason });
       const t = this.db.insert("agent_task", {
         run_id: this.runId(),
         chain_id: chain,
@@ -326,7 +329,7 @@ export class FakeModule {
         claimed_at: null,
         lease_expires_at: null,
         result_json: null,
-        reason: `review ${name} proposal #${a.id}`,
+        reason: `review proposal ${a.id}`,
         created_at: this.now(),
         updated_at: this.now(),
       });

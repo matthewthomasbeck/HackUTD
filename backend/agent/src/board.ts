@@ -5,6 +5,7 @@ import { Ajv } from "ajv";
 import type { Actions } from "./actions.ts";
 import { textProblem } from "./guards.ts";
 import type { AgentName, AgentTask, TaskPriority } from "./types.ts";
+import { payloadJson } from "./world.ts";
 
 export const STALE_TASK_MS = 120_000;
 export const AGENT_TASK_LEASE_MS = 30_000;
@@ -12,6 +13,7 @@ export const RESULT_MAX = 2000;
 
 const ajv = new Ajv({ allErrors: true });
 
+// Payloads are validated with numeric ids, then serialized by payloadJson with ids as decimal strings.
 const PAYLOADS: Record<string, object> = {
   brief_rescuer: {
     type: "object",
@@ -31,7 +33,7 @@ const PAYLOADS: Record<string, object> = {
       assignment_id: { type: "integer", minimum: 1 },
       survivor_id: { type: "integer", minimum: 1 },
       rescuer_identity: { type: "string" },
-      distance_m: { type: "number" },
+      distance_m: { type: ["number", "null"] },
       critical_level: { type: "string" },
       reason: { type: "string" },
     },
@@ -86,7 +88,7 @@ export class Board {
   ): Promise<void> {
     const err = this.validatePayload(kind, payload) ?? textProblem(reason);
     if (err) throw new Error(err);
-    await this.actions.postAgentTask(to, kind, JSON.stringify(payload), priority, reason, chainId);
+    await this.actions.postAgentTask(to, kind, payloadJson(payload), priority, reason, chainId);
   }
 
   async claim(taskId: number): Promise<void> {

@@ -5,7 +5,7 @@
 import type { CycleCtx } from "./agent-types.ts";
 import { sortTier } from "./priority.ts";
 import { haversineM } from "./geo.ts";
-import { parseJson, type World } from "./world.ts";
+import { parsePayload, type World } from "./world.ts";
 
 // ---------- text rules (G2, G5) ----------
 
@@ -157,7 +157,7 @@ export function guardDelegate(ctx: CycleCtx, a: Args): string | null {
       (t) =>
         t.kind === "brief_rescuer" &&
         (t.status === "open" || t.status === "claimed") &&
-        parseJson<{ assignment_id?: number }>(t.payload_json)?.assignment_id === d.assignment_id,
+        parsePayload<{ assignment_id?: number }>(t.payload_json)?.assignment_id === d.assignment_id,
     );
   if (dup) return `brief_rescuer task #${dup.id} for assignment #${d.assignment_id} is already open`;
   return null;
@@ -228,7 +228,7 @@ export function guardSendBriefing(ctx: CycleCtx, a: Args): string | null {
   if (ctx.state.briefingsSent >= MAX_BRIEFINGS_PER_CYCLE) return "at most 2 briefings per cycle";
   const audience = String(a.audience).toLowerCase();
   const task = ctx.input.task;
-  const payload = task ? parseJson<Record<string, any>>(task.payload_json) ?? {} : {};
+  const payload = task ? parsePayload<Record<string, any>>(task.payload_json) ?? {} : {};
   const isAnswer = task?.kind === "answer_rescuer";
   if (!["all", "coordinators", "commander"].includes(audience)) {
     if (!/^[0-9a-f]{64}$/.test(audience)) return "audience must be all, coordinators, commander, or a rescuer identity hex";

@@ -102,3 +102,19 @@ describe("system prompts are verbatim from agent.md 7.2 to 7.4", () => {
     for (const p of [ORCHESTRATOR_PROMPT, COMMS_PROMPT, AUDITOR_PROMPT]) expect(p.toLowerCase()).not.toMatch(/search agent|robot_agent/);
   });
 });
+
+describe("payload_json ids (module convention: u64 as decimal strings)", () => {
+  it("parses the module's review payload into numeric ids", async () => {
+    const { parsePayload } = await import("../src/world.ts");
+    // Shape written by backend/spacetimedb/src/lib/state.ts createProposal.
+    const raw = JSON.stringify({ assignment_id: "12", survivor_id: "3", rescuer_identity: "ab".repeat(32), distance_m: null, critical_level: "immediate", reason: "x" });
+    expect(parsePayload(raw)).toEqual({ assignment_id: 12, survivor_id: 3, rescuer_identity: "ab".repeat(32), distance_m: null, critical_level: "immediate", reason: "x" });
+    expect(parsePayload(JSON.stringify({ survivor_id: 5 }))).toEqual({ survivor_id: 5 });
+    expect(parsePayload("not json")).toBeNull();
+  });
+
+  it("writes ids as decimal strings", async () => {
+    const { payloadJson } = await import("../src/world.ts");
+    expect(JSON.parse(payloadJson({ assignment_id: 12, survivor_id: 3, chain_id: 0, why: "w" }))).toEqual({ assignment_id: "12", survivor_id: "3", chain_id: "0", why: "w" });
+  });
+});

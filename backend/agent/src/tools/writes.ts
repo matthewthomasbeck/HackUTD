@@ -5,7 +5,7 @@ import type { CycleCtx } from "../agent-types.ts";
 import type { Clock } from "../clock.ts";
 import { delegateAssignment } from "../guards.ts";
 import type { Assignment, BriefingKind, Change, TableName, TableRows } from "../types.ts";
-import { parseJson, type World } from "../world.ts";
+import { parsePayload, type World } from "../world.ts";
 
 type Args = Record<string, any>;
 
@@ -74,8 +74,8 @@ function scheduleReviewCheck(ctx: CycleCtx, x: Assignment): void {
   const { clock, log } = ctx.deps;
   const w = ctx.world;
   const hasReview = () =>
-    w.raw("agent_task").some((t) => t.kind === "review" && parseJson<{ assignment_id?: number }>(t.payload_json)?.assignment_id === x.id);
-  waitForRow(w, clock, "agent_task", (t) => t.kind === "review" && parseJson<{ assignment_id?: number }>(t.payload_json)?.assignment_id === x.id).then(
+    w.raw("agent_task").some((t) => t.kind === "review" && parsePayload<{ assignment_id?: number }>(t.payload_json)?.assignment_id === x.id);
+  waitForRow(w, clock, "agent_task", (t) => t.kind === "review" && parsePayload<{ assignment_id?: number }>(t.payload_json)?.assignment_id === x.id).then(
     async (found) => {
       if (found || hasReview()) return;
       const s = w.survivor(x.survivor_id);
@@ -83,7 +83,8 @@ function scheduleReviewCheck(ctx: CycleCtx, x: Assignment): void {
         assignment_id: x.id,
         survivor_id: x.survivor_id,
         rescuer_identity: x.rescuer_identity,
-        distance_m: Math.round(w.distanceM(x.rescuer_identity, x.survivor_id) ?? 0),
+        // Same shape as the module's review payload: metres to one decimal, null when unknown.
+        distance_m: ((d) => (d == null ? null : Math.round(d * 10) / 10))(w.distanceM(x.rescuer_identity, x.survivor_id)),
         critical_level: s?.critical_level ?? "unknown",
         reason: "[fallback] module posted no review within 2 s",
       };
@@ -155,7 +156,7 @@ export function briefingKind(ctx: CycleCtx): BriefingKind {
 
 export async function sendBriefing(ctx: CycleCtx, a: Args) {
   const task = ctx.input.task;
-  const payload = task ? parseJson<Record<string, any>>(task.payload_json) ?? {} : {};
+  const payload = task ? parsePayload<Record<string, any>>(task.payload_json) ?? {} : {};
   const audience = String(a.audience).toLowerCase();
   const sid: number = a.survivor_id ?? payload.survivor_id ?? ctx.input.wakes[0]?.survivorId ?? 0;
   // The module allows one briefing per 3 s per (created_by, audience); wait out the gap instead of failing.

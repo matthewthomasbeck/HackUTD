@@ -12,7 +12,7 @@ export interface ReviewPayload {
   assignment_id: number;
   survivor_id: number;
   rescuer_identity: string;
-  distance_m?: number;
+  distance_m?: number | null;
   critical_level?: string;
   reason?: string;
 }

@@ -762,6 +762,7 @@ The bridge sees the change and sends `{"type":"cancel",...}` to the robot.
 - Event `assignment_proposed` (message includes the reason).
 - Review: if the caller is the orchestrator or the module, insert an `agent_task` to `auditor`, `kind = review`, `priority` `critical` for an `immediate` survivor else `high`, `chain_id` from `survivor_chain`, `from_agent` = caller name, payload `{"assignment_id","survivor_id","rescuer_identity","distance_m","critical_level","reason"}`; event `agent_task_posted`.
   The review never blocks the assignment.
+  Ids in `payload_json` (here `assignment_id` and `survivor_id`, and in every other `agent_task` payload) are u64 values written as decimal strings, for example `"assignment_id":"12"`; `distance_m` is metres to one decimal, or `null` when the rescuer has no position.
 - The glasses learn of the proposal from the `my_assignment` view and show the acknowledge prompt; the module posts no briefing.
 
 `accept_assignment(assignment_id)`
