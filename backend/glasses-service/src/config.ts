@@ -34,7 +34,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (tileSource === 'carto-dark' && !env.CARTO_KEY?.trim()) throw new Error('CARTO_KEY is required when TILE_SOURCE=carto-dark.');
   const askMaxSeconds = Number(env.ASK_MAX_S ?? 8);
   if (!Number.isFinite(askMaxSeconds) || askMaxSeconds <= 0 || askMaxSeconds > 8) throw new Error('ASK_MAX_S must be greater than zero and no more than 8.');
-  const demoSpeedMps = Number(env.DEMO_SPEED_MPS ?? 6);
+  const demoSpeedMps = Number(env.DEMO_SPEED_MPS ?? 12);
   const demoStartBearingDeg = Number(env.DEMO_START_BEARING_DEG ?? 158);
   const demoStartDistanceM = Number(env.DEMO_START_DISTANCE_M ?? 92);
   if (!Number.isFinite(demoSpeedMps) || demoSpeedMps <= 0 || !Number.isFinite(demoStartBearingDeg) || !Number.isFinite(demoStartDistanceM) || demoStartDistanceM < 0) throw new Error('Invalid demo walker configuration.');

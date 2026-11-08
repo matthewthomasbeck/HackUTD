@@ -1,5 +1,5 @@
 {
-  "name": "rubble-glasses",
+  "name": "underdog-glasses",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -13,7 +13,8 @@
     "sim": "evenhub-simulator --automation-port 9898 http://localhost:5173",
     "qr": "evenhub qr --url http://$(ipconfig getifaddr en0):5173",
     "set-ip": "node scripts/set-ip.mjs",
-    "pack": "npm run build && evenhub pack app.json dist -o rubble.ehpk"
+    "pack": "npm run build && evenhub pack app.json dist --sdk-ver 0.0.16 -o underdog.ehpk",
+    "record-demo": "node scripts/record-demo.mjs"
   },
   "dependencies": {
     "@evenrealities/even_hub_sdk": "0.0.16"

@@ -1,8 +1,8 @@
 {
-  "package_id": "com.hackutd.rubblesearch",
+  "package_id": "com.hackutd.underdog",
   "edition": "202601",
-  "name": "Rubble Search",
-  "version": "0.1.0",
+  "name": "UnderDog",
+  "version": "0.1.1",
   "min_app_version": "2.2.10",
   "min_sdk_version": "0.0.16",
   "entrypoint": "index.html",
@@ -10,7 +10,10 @@
     {
       "name": "network",
       "desc": "Connects to the team's glasses service on the local network to get the rescue view.",
-      "whitelist": ["http://172.20.10.2:8787", "ws://172.20.10.2:8787"]
+      "whitelist": [
+        "http://100.77.67.116:8787",
+        "ws://100.77.67.116:8787"
+      ]
     },
     {
       "name": "location",
@@ -25,5 +28,7 @@
       "desc": "Records a short spoken question on the phone when the glasses microphone is unavailable."
     }
   ],
-  "supported_languages": ["en"]
+  "supported_languages": [
+    "en"
+  ]
 }
