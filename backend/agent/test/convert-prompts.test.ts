@@ -1,16 +1,62 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { AUDITOR_PROMPT, COMMS_PROMPT, ORCHESTRATOR_PROMPT } from "../src/agents/prompts.ts";
-import { camelKey, enumTag, fromBinding, reducerArgs, snakeKey } from "../src/stdb/convert.ts";
+import { camelKey, fromBinding, reducerArgs, snakeKey, toBindingTag, toContractTag, toEnum } from "../src/stdb/convert.ts";
 
 describe("stdb/convert.ts", () => {
   it("maps key spellings and enum tags", () => {
     expect(snakeKey("criticalLevel")).toBe("critical_level");
     expect(camelKey("payload_json")).toBe("payloadJson");
-    expect(enumTag("EnRoute")).toBe("en_route");
-    expect(enumTag("en_route")).toBe("en_route");
-    expect(enumTag("SAFE_STOP")).toBe("SAFE_STOP");
-    expect(enumTag("PartiallySearched")).toBe("partially_searched");
+    expect(toContractTag("EnRoute")).toBe("en_route");
+    expect(toContractTag("PartiallySearched")).toBe("partially_searched");
+  });
+
+  // Variant names from backend/spacetimedb-bindings/types.ts (generated, PascalCase).
+  const CASES: Array<[string, string, boolean]> = [
+    // [contract spelling, binding variant name, ALL_CAPS enum]
+    ["agent", "Agent", false],
+    ["auditor", "Auditor", false],
+    ["perception", "Perception", false],
+    ["orchestrator", "Orchestrator", false],
+    ["comms_agent", "CommsAgent", false],
+    ["READY", "Ready", true],
+    ["SAFE_STOP", "SafeStop", true],
+    ["ACTIVE", "Active", true],
+    ["OK", "Ok", true],
+    ["DEGRADED", "Degraded", true],
+    ["FAILED", "Failed", true],
+    ["unassigned", "Unassigned", false],
+    ["en_route", "EnRoute", false],
+    ["resolved", "Resolved", false],
+    ["not_detected", "NotDetected", false],
+    ["search_cells", "SearchCells", false],
+  ];
+
+  it("maps contract enum spellings to binding variant names", () => {
+    for (const [contract, binding] of CASES) {
+      expect(toBindingTag(contract)).toBe(binding);
+      expect(toEnum(contract)).toEqual({ tag: binding });
+    }
+  });
+
+  it("maps binding variant names back to contract spellings, round trip", () => {
+    for (const [contract, binding, upper] of CASES) {
+      expect(toContractTag(binding, upper)).toBe(contract);
+      expect(toContractTag(toBindingTag(contract), upper)).toBe(contract);
+    }
+  });
+
+  it("decodes ALL_CAPS enum columns by table", () => {
+    const robot = fromBinding({ robotId: "dog1", state: { tag: "Ready" }, terrainClass: { tag: "Flat" } }, "robot");
+    expect(robot).toEqual({ robot_id: "dog1", state: "READY", terrain_class: "flat" });
+    expect(fromBinding({ state: { tag: "SafeStop" } }, "robot")).toEqual({ state: "SAFE_STOP" });
+    expect(fromBinding({ status: { tag: "Ok" } }, "device_status")).toEqual({ status: "OK" });
+    expect(fromBinding({ status: { tag: "Degraded" } }, "device_status")).toEqual({ status: "DEGRADED" });
+    // The same binding name in a lower-case enum stays lower case.
+    expect(fromBinding({ status: { tag: "Active" } }, "assignment")).toEqual({ status: "active" });
+    expect(fromBinding({ status: { tag: "EnRoute" } }, "survivor")).toEqual({ status: "en_route" });
+    expect(fromBinding({ role: { tag: "Agent" } }, "participant")).toEqual({ role: "agent" });
+    expect(fromBinding({ toAgent: { tag: "CommsAgent" } }, "agent_task")).toEqual({ to_agent: "comms_agent" });
   });
 
   it("turns a binding row into a contract row", async () => {

@@ -27,6 +27,8 @@ export type BriefingPriority = "info" | "warning" | "critical";
 export type BriefingKind = "briefing" | "nav" | "nudge" | "answer" | "escalation";
 export type AuditFlagKind = "proposal_disagree" | "load_imbalance";
 export type AuditFlagStatus = "open" | "acted" | "dismissed";
+export type RobotState = "BOOT" | "INIT" | "READY" | "ACTIVE" | "SAFE_STOP" | "FAULT" | "SHUTDOWN";
+export type DeviceHealth = "OK" | "DEGRADED" | "FAILED";
 
 export interface Participant {
   identity: string;
@@ -88,7 +90,7 @@ export interface Robot {
   indoor_offset_m: number | null;
   heading_deg: number | null;
   battery_pct: number | null;
-  state: string;
+  state: RobotState;
   online: boolean;
   current_mission_id: number | null;
   last_heartbeat: number;
@@ -102,7 +104,7 @@ export interface DeviceStatus {
   id: number;
   robot_id: string;
   device: string;
-  status: "OK" | "DEGRADED" | "FAILED";
+  status: DeviceHealth;
   detail: string;
   updated_at: number;
 }
