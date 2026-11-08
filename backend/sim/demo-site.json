@@ -55,7 +55,7 @@
     "minor": 5
   },
   "timing": {
-    "speedup": 6,
+    "speedup": 12,
     "robot_heartbeat_ms": 1000,
     "rescuer_heartbeat_ms": 5000,
     "position_ms": 1000,

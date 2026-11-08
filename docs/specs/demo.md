@@ -110,7 +110,7 @@ The houses are about 17 m apart, so cells are 15 m.
     "minor": 5
   },
   "timing": {
-    "speedup": 6,
+    "speedup": 12,
     "robot_heartbeat_ms": 1000,
     "rescuer_heartbeat_ms": 5000,
     "position_ms": 1000,
@@ -130,7 +130,7 @@ Notes:
 - Updated 2026-11-08: the JSON above is copied from the committed `backend/sim/demo-site.json`.
   The simulated crew is minimal at Cayden's request: `fleet_size` 1 (so two robot dogs, `sim-dog` and `sim-dog-2`), rescuers Cayden (real, glasses) plus R1 (sim rescuer, key `r1`; R2 was dropped later on 2026-11-08), and `extra_sim_rescuers` 0.
   `sim-dog` (Dog 1) has its home on Rutford Ave next to 2520 Rutford Ave (`home` 56 m east, 12 m north), so the Play demo search starts at once.
-  Cayden (the glasses demo walker) starts in the parking lot south of Franklyn Jenifer Dr (92 m at bearing 158 from the center) and walks about 100 m at 4 m/s (twice a brisk walk; every sim walker is doubled too, `timing.speedup` 6), about half a minute.
+  Cayden (the glasses demo walker) starts in the parking lot south of Franklyn Jenifer Dr (92 m at bearing 158 from the center) and walks about 100 m at 8 m/s (four times a brisk walk; every sim walker is sped up the same, `timing.speedup` 12), about 15 seconds.
   `setup` prints "Robots: sim-dog, sim-dog-2" and "Rescuers: R1".
   `hidden_survivors` now starts with the house 3 person the judged demo finds (just outside the east wall of 2520 Rutford Ave under rubble, IMMEDIATE, breathing 8 per minute).
 - The center is an approximate point near UT Dallas, a placeholder.
