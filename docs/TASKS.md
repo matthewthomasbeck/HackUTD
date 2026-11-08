@@ -81,6 +81,14 @@ the full combined run still needs to be recorded. Evidence:
   Still open: perception scoring a sim detection in the same run, a real Nemotron key, and one recorded run with its run id.
 - Checkpoints 3 to 5: not started; they need the real robot, the real G2, and rehearsals.
 
+### Judged demo plan (decision 2026-11-08)
+
+- The judged demo is hard-coded: only SpacetimeDB runs live (Maincloud `assess-0hw81`), and the simulator scripts the robot (`sim-dog`), the find, the breathing result and critical score, and any rescuer actions.
+- The agents, perception, the real robot, and the real G2 hardware are not live in the judged demo; they are tested separately.
+- The dashboard and the glasses view (on the G2 or the fallback page) are real clients that render the scripted data live.
+- The story ends at the find in house 3; the run is `npm run sim -- setup`, then `npm run sim -- timeline demo` (`docs/specs/demo.md`, "Judged demo (hard-coded, 2026-11-08)").
+- So checkpoint 5's "two full rehearsals of `specs/demo.md`" now means two runs of the `demo` timeline with its fallbacks; checkpoints 3 and 4 are no longer needed for judging, and they stay open as integration work.
+
 ## What blocks what
 
 1. Cayden's SpacetimeDB module (C1) unblocks everyone; publish a skeleton with the core tables early, even before every reducer is done.

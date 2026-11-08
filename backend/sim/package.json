@@ -6,6 +6,7 @@
   "scripts": {
     "sim": "tsx src/cli.ts",
     "reset": "tsx src/reset.ts",
+    "lots": "tsx scripts/build-lots.ts",
     "test": "node --import tsx --test test/*.test.ts"
   },
   "devDependencies": {

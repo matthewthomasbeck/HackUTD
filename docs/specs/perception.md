@@ -591,6 +591,7 @@ The `under 10` rule is not part of START; it comes from a critique of START (res
 | `rescore_interval_s` | 60 |
 | `rescore_min_delta` | 2.0 score points |
 | `rescore_conf_delta` | 0.05 |
+| `new_survivor_grace_s` | 2.0 (PROPOSED key) |
 
 The weights are untuned guesses from the research; say so if a judge asks.
 
@@ -599,7 +600,10 @@ The weights are untuned guesses from the research; say so if a judge asks.
 The perception service owns this with its own timer (not the agent), because the formula and its config live here and the agent must not guess the score.
 
 - Every `rescore_interval_s` (60 s), `watcher.py` reads `survivor` and `detection` (from the helper's cache, or SQL over HTTP) and scores every survivor whose status is `unassigned`, `assigned`, or `en_route`, including survivors with no clip yet (they get `immediate`, `no breathing clip yet`, confidence at most 0.3).
-- A new survivor (from the helper's `survivor` insert event) is scored at once, not at the next tick.
+- A new survivor (from the helper's `survivor` insert event) is scored `new_survivor_grace_s` (2 s, PROPOSED key) after the insert, not at the next tick, so a writer that creates and scores a survivor in one step (the simulator) scores it first.
+- The timer adds no evidence of its own (only waiting time), so it never replaces a score another writer set: it writes only when the survivor is still `unknown` and this service has never scored it, or when the survivor row still holds the level, score, and confidence this service last wrote.
+  A finished breathing job is new evidence and always writes, and after it the timer owns the survivor's waiting-time re-score again.
+  Found in the 2026-11-08 rehearsal: during sim `scale 300` the timer rewrote every sim survivor from the row (1079 calls), and the house 3 survivor went from immediate 92 to delayed 33.6.
 - It calls `set_critical_score` only if the level changed, or the score moved by at least `rescore_min_delta`, or the confidence moved by at least `rescore_conf_delta`, or the survivor has never been scored by this service.
   This keeps `event_log` from filling with a row every minute per survivor; with the default weights the waiting term adds about 0.67 points a minute, so a waiting survivor is rewritten about every 3 minutes (inference from the formula).
 - Survivors in `reached` or `resolved` are not re-scored; their last score stays.

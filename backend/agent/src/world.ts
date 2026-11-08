@@ -30,6 +30,8 @@ import type {
 } from "./types.ts";
 
 export const RESCUER_FRESH_MS = 15_000;
+/** A rescuer whose proposal for a survivor lapsed this recently is not proposed again for it (7.2). */
+export const LAPSE_WINDOW_MS = 5 * 60_000;
 export const OPEN_MISSION: Mission["status"][] = ["proposed", "queued", "leased", "active"];
 
 export interface RescuerView {
@@ -260,6 +262,34 @@ export class World {
       return { ...r, distance_m: Math.round(haversineM(r.lat, r.lon, lat, lon)), bearing_deg: Math.round(b), compass: compass(b) };
     });
     return out.sort((a, b) => (a.distance_m ?? 1e12) - (b.distance_m ?? 1e12));
+  }
+
+  /** Rescuers whose proposal for this survivor lapsed (released, expired) in the last 5 min. */
+  lapsedFor(survivorId: number): Set<string> {
+    const now = this.now();
+    return new Set(
+      this.assignmentsFor(survivorId)
+        .filter((x) => x.status === "released" && x.release_cause === "expired" && now - x.updated_at < LAPSE_WINDOW_MS)
+        .map((x) => x.rescuer_identity),
+    );
+  }
+
+  /**
+   * The rescuers the propose_assignment guard accepts for this survivor, best first: available,
+   * not one whose proposal for it lapsed in the last 5 min unless every available rescuer did
+   * (agent.md 7.2), ranked by fewest active assignments, then nearest (free rescuers first, as the
+   * module's watchdog does). Rescuers with no position sort last.
+   */
+  candidatesFor(s: Survivor): { candidates: RescuerNear[]; lapsed: RescuerNear[] } {
+    const near = this.rescuersNear(s.lat, s.lon, true);
+    const gone = this.lapsedFor(s.id);
+    const ok = near.filter((r) => !gone.has(r.identity));
+    const lapsed = near.filter((r) => gone.has(r.identity));
+    const pool = ok.length > 0 ? ok : lapsed;
+    const candidates = [...pool].sort(
+      (a, b) => a.active_assignments - b.active_assignments || (a.distance_m ?? 1e12) - (b.distance_m ?? 1e12),
+    );
+    return { candidates, lapsed: ok.length > 0 ? lapsed : [] };
   }
 
   distanceM(identity: string, survivorId: number): number | null {

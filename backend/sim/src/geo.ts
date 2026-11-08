@@ -6,6 +6,17 @@ export interface LatLon {
 }
 
 const METERS_PER_DEGREE = 111_320;
+
+// Even-odd point-in-polygon test on meter offsets (ring of [east_m, north_m], not closed).
+export function insideRing(east_m: number, north_m: number, ring: ReadonlyArray<readonly [number, number]>): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const [xi, yi] = ring[i]!;
+    const [xj, yj] = ring[j]!;
+    if ((yi > north_m) !== (yj > north_m) && east_m < ((xj - xi) * (north_m - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
 const EARTH_RADIUS_M = 6_371_000;
 
 export function offsetToLatLon(center: LatLon, offset: Offset): LatLon {
@@ -42,5 +53,14 @@ export function walkToward(from: LatLon, to: LatLon, stepMeters: number): LatLon
   return {
     lat: from.lat + (to.lat - from.lat) * fraction,
     lon: from.lon + (to.lon - from.lon) * fraction,
+  };
+}
+
+// Inverse of offsetToLatLon, with the same local approximation.
+export function latLonToOffset(center: LatLon, point: LatLon): Offset {
+  const latitudeRadians = (center.lat * Math.PI) / 180;
+  return {
+    east_m: (point.lon - center.lon) * METERS_PER_DEGREE * Math.cos(latitudeRadians),
+    north_m: (point.lat - center.lat) * METERS_PER_DEGREE,
   };
 }

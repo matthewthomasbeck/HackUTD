@@ -104,5 +104,8 @@ Every step carries the same `chain_id`, so the dashboard can show the whole chai
 
 ## Demo beats
 
+Decision 2026-11-08: the judged demo is hard-coded, and the agents do not run live in it (`docs/specs/demo.md`, "Judged demo (hard-coded, 2026-11-08)").
+The beats below are from the original plan and apply to rehearsal and video runs with the agents running; the agents' tests and the Brev real-model validation are in `docs/notes/2026-11-08-brev-validation.md`.
+
 - Watch the hand-off chain above on the dashboard's Agents panel.
 - Stop the agents: the database's watchdog still assigns, and the headline stays at 0.
