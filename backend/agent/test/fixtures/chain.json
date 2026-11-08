@@ -1,0 +1,82 @@
+[
+  {
+    "agent": "orchestrator",
+    "contains": ["#1 house 3 IMMEDIATE", "unaccounted 1"],
+    "turn": 0,
+    "reply": {
+      "tool_calls": [
+        {
+          "name": "propose_assignment",
+          "arguments": {
+            "reason": "Most urgent unassigned (IMMEDIATE, breathing 34/min); Rescuer A nearest at 40 m",
+            "survivor_id": 1,
+            "rescuer_identity": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "delegate",
+          "arguments": {
+            "reason": "Brief Rescuer A on #1",
+            "to_agent": "comms_agent",
+            "kind": "brief_rescuer",
+            "priority": "critical",
+            "survivor_id": 1
+          }
+        },
+        {
+          "name": "create_mission",
+          "arguments": {
+            "reason": "1 unaccounted at house 3 (family reports 2, 1 found); search it again",
+            "robot_id": "dog1",
+            "kind": "inspect",
+            "target_lat": 32.986374,
+            "target_lon": -96.7502
+          }
+        }
+      ]
+    }
+  },
+  {
+    "agent": "orchestrator",
+    "turn": 1,
+    "reply": { "content": "Assigned A to #1, briefing delegated, house 3 inspect mission created." }
+  },
+  {
+    "agent": "comms_agent",
+    "contains": ["TASK: brief_rescuer", "SURVIVOR #1:"],
+    "turn": 0,
+    "reply": {
+      "tool_calls": [
+        {
+          "name": "send_briefing",
+          "arguments": {
+            "reason": "Brief Rescuer A on #1",
+            "audience": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "text": "IMMEDIATE house 3: breathing 34/min (conf 0.71). 8 m in from front door. Debris.",
+            "priority": "critical",
+            "survivor_id": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "agent": "comms_agent",
+    "contains": ["NAVIGATION", "SURVIVOR #1:"],
+    "turn": 0,
+    "reply": {
+      "tool_calls": [
+        {
+          "name": "send_briefing",
+          "arguments": {
+            "reason": "Rescuer A accepted; entry and ground ahead",
+            "audience": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "text": "Enter house 3 by front door, 8 m in. Ground ahead: debris.",
+            "priority": "info",
+            "survivor_id": 1
+          }
+        }
+      ]
+    }
+  }
+]
