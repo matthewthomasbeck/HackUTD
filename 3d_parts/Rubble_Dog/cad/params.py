@@ -1,6 +1,7 @@
 """Shared dimensions for the Rubble Dog leg parts. All values are in mm.
 
-Values marked MEASURE come from the DS3218 model in Robot_Parts_Athena.
+Servo values use the DSServo DS3225 (25kg) as the reference. It shares the standard
+DSServo housing with the DS3218 in Robot_Parts_Athena, whose model these were measured from.
 The legs use DSServo 45kg servos (listed as 40 x 20 x 38.5 mm), so check
 each MEASURE value with calipers on a real servo and horn before printing.
 Change a value here, then run build.py to regenerate every STL and STEP file.
@@ -9,7 +10,7 @@ Change a value here, then run build.py to regenerate every STL and STEP file.
 # --- Servo (DSServo 45kg, standard size) ---
 SERVO_L = 40.0            # body length (MEASURE)
 SERVO_W = 20.0            # body width (MEASURE)
-SERVO_H = 40.7            # body height, bottom to top face (MEASURE, DS3218 value)
+SERVO_H = 40.5            # body height, bottom to top face (DS3225 listing; MEASURE)
 SERVO_SPLINE_FROM_END = 10.0  # spline axis to the near short end (MEASURE)
 SERVO_TOP_TO_TAB = 9.6    # top face to the top of the mounting tabs (MEASURE)
 SERVO_TAB_T = 3.1         # tab thickness (MEASURE)
