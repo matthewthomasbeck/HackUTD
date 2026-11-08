@@ -17,6 +17,9 @@ Items marked PROPOSED were unassigned in the MVP; confirm or move them at the ne
 | Eric Lee | Computer vision and models: breathing check, thermal confirmation, critical score, media server, speech-to-text for rescuer questions from the glasses, terrain camera model; the Nemotron agents (PROPOSED) | `backend/perception/`, `backend/agent/` | `tasks/eric.md` |
 | Cayden Hutcheson | G2 glasses; extra work: SpacetimeDB module and contracts, dashboard, simulator, design control, slides and pitch, integration (all PROPOSED except glasses) | `frontend/glasses/`, `backend/glasses-service/`, `backend/spacetimedb/`, `frontend/dashboard/`, `backend/sim/` | `tasks/cayden.md` |
 
+Eric took over R1 (state machine, safety gate, main loop) and the C++ build skeleton from R0 that it needs on 2026-11-07.
+Those task descriptions stay in `tasks/camille.md` (R0 and R1).
+
 Cayden's PROPOSED list is the largest.
 If it is too much, move the simulator or the dashboard to whoever finishes first, and say so in the team chat.
 

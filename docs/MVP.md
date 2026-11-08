@@ -139,8 +139,8 @@ Design and slides follow design control in `docs/DESIGN.md`.
 | Person | Owns | Notes |
 | --- | --- | --- |
 | Matthew Beck | Electrical system, assembly, legs with Camille, mock rubble set, outdoor test and footage (PROPOSED) | `docs/tasks/matthew.md` |
-| Camille | Robot edge software (robot dog code on the Pi and Pico, the bridge, missions, terrain rules) | `docs/tasks/camille.md` |
-| Eric Lee | Computer vision and models (breathing, scoring, person confirmation, speech-to-text for rescuer questions, terrain model), and the Nemotron agents (PROPOSED) | `docs/tasks/eric.md` |
+| Camille | Robot edge software (robot dog code on the Pi and Pico, the bridge, missions, terrain rules) | `docs/tasks/camille.md`; R1 and the C++ part of R0 moved to Eric (2026-11-07) |
+| Eric Lee | Computer vision and models (breathing, scoring, person confirmation, speech-to-text for rescuer questions, terrain model), and the Nemotron agents (PROPOSED); robot state machine, safety gate, and main loop (R1, from Camille, 2026-11-07) | `docs/tasks/eric.md`, R1 in `docs/tasks/camille.md` |
 | Cayden Hutcheson | Even Realities G2 glasses, and extra work: SpacetimeDB module, design control, dashboard, simulator, slides, video, Devpost, integration (PROPOSED) | `docs/tasks/cayden.md` |
 
 ## Venue and testing

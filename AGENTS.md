@@ -25,6 +25,8 @@ Run the module smoke suite with `cd backend/spacetimedb && npm test`.
 Run the glasses plugin checks with `cd frontend/glasses && npm test && npm run build`.
 Run the glasses service checks with `cd backend/glasses-service && npm test && npx tsc --noEmit`.
 Run the simulator checks with `cd backend/sim && npm test && npx tsc --noEmit`.
+The robot main program is in `raspberrypi/robot/` (C++17, CMake): the state machine, safety gate, threads (main, movement, vision), control socket, and mocks (task R1).
+Build and test it with `cmake -B build && cmake --build build -j && ctest --test-dir build --output-on-failure` inside `raspberrypi/robot/`, and run it on a laptop with `./build/robot --config config/robot.laptop.yaml`; `raspberrypi/README.md` has the dependencies and the `robotctl` commands.
 Component run and integration commands remain in their specs in `docs/specs/`.
 
 This is the team repo, https://github.com/matthewthomasbeck/HackUTD (public, branch `main`).

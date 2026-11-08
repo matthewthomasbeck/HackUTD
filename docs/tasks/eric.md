@@ -3,6 +3,7 @@
 Owner of perception and terrain models; PROPOSED owner of the Nemotron agents (Eric designed the agent split).
 Specs: `docs/specs/perception.md`, `docs/specs/agent.md`, `docs/AGENT_WORKFLOW.md`, `docs/research/perception.md`, `docs/research/agents.md`, `docs/specs/CONTRACTS.md`.
 Overview and checkpoints: `docs/TASKS.md`.
+Also owns robot task R1 (state machine, safety gate, main loop) and the C++ part of R0, taken over from Camille on 2026-11-07; the task text stays in `docs/tasks/camille.md`.
 Total with AI: about 15 h (each task 1 to 2 h with coding agents; hardware tasks are bench time, not typing).
 
 ## How to use this file
