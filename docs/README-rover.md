@@ -1,7 +1,7 @@
 # HackUTD
 
 Robot entry for HackUTD.
-The team is Cayden Hutcheson, Matthew Beck, Eric Lee, and Camille (last name to add).
+The team is Camille Rivera, Cayden Hutcheson, Matthew Beck, and Eric Lee.
 
 Target tracks: NVIDIA ("Use Nemotron Beyond a Chatbot"), State Farm, and SpacetimeDB, which also runs the whole backend.
 The project: a robot dog searches rubble after a disaster, finds survivors with a thermal camera, checks for breathing with Eulerian video magnification, scores how critical each person is, and guides an operator wearing smart glasses to the most critical survivors.

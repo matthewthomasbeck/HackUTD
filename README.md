@@ -1,6 +1,6 @@
 # Rubble Search: a drone that finds survivors first
 
-HackUTD entry by Cayden Hutcheson, Matthew Beck, Eric Lee, and Camille.
+HackUTD entry by Camille Rivera, Cayden Hutcheson, Matthew Beck, and Eric Lee.
 Target tracks: NVIDIA ("Use Nemotron Beyond a Chatbot"), State Farm ("The Worst Day, at Scale"), and SpacetimeDB, which runs the whole backend.
 
 After a disaster, a **DJI Mini 4 Pro** drone flies over the rubble first and streams live video to a laptop, where computer vision spots people from above.
