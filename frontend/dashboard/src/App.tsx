@@ -1,4 +1,4 @@
-// Assess, the coordinator dashboard: a full-bleed map of the Worthing St block with floating cards
+// Underdog, the coordinator dashboard: a full-bleed map of the Worthing St block with floating cards
 // (who needs help first; the database headline; rescuers and robot; houses) and an Agents page.
 // All data comes live from SpacetimeDB through useBoard(); see src/view/derive.ts for what each card shows.
 import { useEffect, useMemo, useRef, useState } from 'react';

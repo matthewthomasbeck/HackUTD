@@ -1,4 +1,4 @@
-// The slim night-purple top bar: the Assess name, the two pages, the system chips (collapsed to one summary
+// The slim night-purple top bar: the Underdog name, the two pages, the system chips (collapsed to one summary
 // chip until opened), Play demo (demo sites only), and the run recorder.
 import { useState } from 'react';
 
@@ -19,7 +19,7 @@ export function AppBar({ page, onPage, chips, demo, run }: Props) {
   return <header className="bar">
     <div className="wordmark">
       <img className="wordmark-logo" src={`${import.meta.env.BASE_URL}brand/assess-dog.png`} alt="" width={40} height={40} />
-      <span className="wordmark-name">Assess</span>
+      <span className="wordmark-name">Underdog</span>
     </div>
     <span className="site">Worthing St block, Dallas</span>
     <nav className="tabs" role="tablist" aria-label="Pages">

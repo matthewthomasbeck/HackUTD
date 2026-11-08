@@ -4,7 +4,7 @@
 //      and Dog 1 finds the hidden house 3 person when it searches there
 //   3. the glasses service (Cayden starts on Worthing St, about 64 m from house 3) and the glasses pages (port 5173),
 //      which the app's glasses panel and the Even simulator (`cd frontend/glasses && npm run sim`) both use
-//   4. the Assess app on the local server, with hot reload
+//   4. the Underdog app on the local server, with hot reload
 // A service whose port is already taken is assumed to be running and is left alone. Closing the app or Ctrl-C stops
 // everything this script started. Extra flags go to the app, as with `npm run app`.
 import { spawn } from 'node:child_process';

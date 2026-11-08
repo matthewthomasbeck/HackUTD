@@ -1,4 +1,4 @@
-// Assess desktop app: the coordinator dashboard in its own window (Electron).
+// Underdog desktop app: the coordinator dashboard in its own window (Electron).
 // The page is the same Vite build as the web dashboard. This file only opens the window, passes the run-time
 // settings as URL parameters (the dashboard reads them in src/stdb/connection.ts and src/App.tsx), and adds a
 // Server menu to switch between Maincloud and a local SpacetimeDB server without rebuilding (venue Wi-Fi down).
@@ -11,6 +11,11 @@ const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { PreviewWorker } = require('./preview-worker.cjs');
+
+// Preserve existing camera settings, identity and sessions across the display-name change.
+const legacyData = path.join(app.getPath('appData'), 'Assess');
+if (fs.existsSync(legacyData)) app.setPath('userData', legacyData);
+app.setName('Underdog');
 
 const DEFAULTS = { db: 'cloud', localUri: 'ws://127.0.0.1:3000', glassesPage: '', glassesWs: '', screen: 'A',
   robotPreviewUrl: process.env.ASSESS_ROBOT_PREVIEW_URL || '', visionPython: process.env.ASSESS_VISION_PYTHON || '' };
@@ -91,7 +96,7 @@ function load() {
   const devUrl = process.env.ASSESS_DEV_URL;
   if (devUrl) window.loadURL(`${devUrl}?${query()}`);
   else window.loadFile(path.join(__dirname, '..', 'dist', 'index.html'), { search: query() });
-  window.setTitle(settings.db === 'local' ? `Assess · local server ${settings.localUri}` : 'Assess');
+  window.setTitle(settings.db === 'local' ? `Underdog · local server ${settings.localUri}` : 'Underdog');
 }
 
 function switchServer(db) {
@@ -127,7 +132,7 @@ function createWindow() {
     height: 960,
     minWidth: 1200,
     minHeight: 760,
-    title: 'Assess',
+    title: 'Underdog',
     backgroundColor: '#0A0718', // --night, the launch animation's backdrop, so the window does not flash before it paints
     show: false,
     icon: path.join(__dirname, 'icon.png'),
