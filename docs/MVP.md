@@ -63,9 +63,9 @@ What each sponsor offers and expects:
 - SpacetimeDB holds everything and runs the rules: survivors, search areas, robot, missions, assignments, briefings, and the event history, with the rules in reducers and every timer in schedule tables.
 - "No one overlooked" enforced in the database, not by the AI: strict survivor states, glasses heartbeats and acknowledgement, every timer as a schedule-table row (lease, heartbeat, escalation, agent watchdog), and a fallback that assigns rescuers if the agent is down.
 - Multi-agent orchestration (Nemotron), with agents that talk only through a shared task board in SpacetimeDB (`agent_task`), so every hand-off is logged and replayable:
-  - Orchestrator (Nemotron 3 Super): triage, proposes rescuers, plans the search and creates robot missions, delegates work.
-  - Auditor (Nemotron 3 Nano): judges the quality of every orchestrator proposal (wrong rescuer, unfair load) with a verdict and a reason; the timers, not the auditor, own "too long unattended".
-  - Comms agent (glasses, Nemotron 3 Nano): starts with templates for briefings and nudges (the arrow and distance are plain math); its model is added once the core demo runs end to end, and it earns its place on rescuer voice questions.
+  - Orchestrator (Nemotron 3.5 Super VL): triage, proposes rescuers, plans the search and creates robot missions, delegates work.
+  - Auditor (Nemotron 3.5 Lightning): judges the quality of every orchestrator proposal (wrong rescuer, unfair load) with a verdict and a reason; the timers, not the auditor, own "too long unattended".
+  - Comms agent (glasses, Nemotron 3.5 Lightning): starts with templates for briefings and nudges (the arrow and distance are plain math); its model is added once the core demo runs end to end, and it earns its place on rescuer voice questions.
   - Build order: orchestrator and auditor first, then the comms agent's model.
   - All agents are configurations of one shared agent runner (agent set from `docs/research/agents.md`).
   - If time runs short, cut in this order: vision tool, sitrep tool, rescuer voice questions, the comms agent's model (templates stay), then the auditor's model review; the orchestrator is never cut (`docs/AGENT_WORKFLOW.md`).

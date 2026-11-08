@@ -3,7 +3,7 @@
 // llm/client.ts (NvidiaProvider and buildBody), so a pass here means the runner's client works.
 //
 // Test the key in one line first (no tools):
-//   curl -s https://integrate.api.nvidia.com/v1/chat/completions -H "Authorization: Bearer $NVIDIA_API_KEY" -H "Content-Type: application/json" -d '{"model":"nvidia/nemotron-3-nano-30b-a3b","messages":[{"role":"user","content":"Say OK"}],"max_tokens":16,"stream":false}'
+//   curl -s https://integrate.api.nvidia.com/v1/chat/completions -H "Authorization: Bearer $NVIDIA_API_KEY" -H "Content-Type: application/json" -d '{"model":"nvidia/nemotron-3.5-lightning-30b-a3b","messages":[{"role":"user","content":"Say OK"}],"max_tokens":16,"stream":false}'
 
 import "dotenv/config";
 import { loadConfig, type Config } from "../src/config.ts";

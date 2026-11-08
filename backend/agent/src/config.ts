@@ -80,8 +80,8 @@ export function loadConfig(env: Env = process.env, opts: { requireKey?: boolean 
   const cfg: Config = {
     NVIDIA_API_KEY: str(env, "NVIDIA_API_KEY", ""),
     NVIDIA_BASE_URL: str(env, "NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"),
-    MODEL_SUPER: str(env, "MODEL_SUPER", "nvidia/nemotron-3-super-120b-a12b"),
-    MODEL_NANO: str(env, "MODEL_NANO", "nvidia/nemotron-3-nano-30b-a3b"),
+    MODEL_SUPER: str(env, "MODEL_SUPER", "nvidia/nemotron-3.5-super-vl-120b-a12b"),
+    MODEL_NANO: str(env, "MODEL_NANO", "nvidia/nemotron-3.5-lightning-30b-a3b"),
     MODEL_VISION: str(env, "MODEL_VISION", "nvidia/nemotron-nano-12b-v2-vl"),
     TOOL_MODE: toolMode,
     TOOL_MODE_SUPER: oneOf(env, "TOOL_MODE_SUPER", ["native", "json"] as const, toolMode),

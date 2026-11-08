@@ -36,8 +36,13 @@ Scenario names: `chain`, `priority`, `kill_orchestrator`, `race`, `auditor_disag
 
 | Model | Native tool call (steps 1 and 2) | JSON action (step 4) | Thinking off (step 3) | Latency | Decision |
 | --- | --- | --- | --- | --- | --- |
-| `nvidia/nemotron-3-super-120b-a12b` | not run yet | not run yet | not run yet (`reasoning_effort: "none"`) | not run yet | not run yet |
-| `nvidia/nemotron-3-nano-30b-a3b` | not run yet | not run yet | not run yet (`enable_thinking: false`) | not run yet | not run yet |
+| `nvidia/nemotron-3-super-120b-a12b` | HTTP 404, function not found for our account | HTTP 404 | HTTP 404 | - | not usable |
+| `nvidia/nemotron-3-nano-30b-a3b` | HTTP 410, end of life on 2026-09-01 | HTTP 410 | HTTP 410 | - | not usable |
+| `nvidia/nemotron-3.5-super-vl-120b-a12b` (orchestrator) | pass | pass | `reasoning_effort: "none"` accepted, reasoning text gone | 0.8 to 2.0 s | `TOOL_MODE_SUPER=native` |
+| `nvidia/nemotron-3.5-lightning-30b-a3b` (auditor, comms) | pass | pass only with thinking off (empty reply otherwise) | `enable_thinking: false` accepted, reasoning text gone | 0.1 to 1.3 s | `TOOL_MODE_NANO=native`, `NANO_THINKING_OFF=1` |
+
+Smoke test run on 2026-11-07 against build.nvidia.com; no 429 seen.
+The model ids in agent.md 4.1 are out of date: Super returns 404 for our key and Nano 30B reached end of life, so `.env.example` uses the two Nemotron 3.5 models above (same sizes).
 
 Set `TOOL_MODE_SUPER` and `TOOL_MODE_NANO` in `.env` from the result; it is a config change, not a code change.
 `NANO_THINKING_OFF=1` sends `chat_template_kwargs: {"enable_thinking": false}` to Nano, only if step 3 shows the hosted API honors it.

@@ -15,9 +15,9 @@ Each agent is a configuration of one shared agent runner (one Node.js process ty
 
 | Agent | Owns | Model | May write | Status |
 | --- | --- | --- | --- | --- |
-| Orchestrator | Triage, rescuer assignments, the search plan and robot missions, delegating work | Nemotron 3 Super (`nvidia/nemotron-3-super-120b-a12b`) | `propose_assignment`, `create_mission`, `post_agent_task`, `set_audit_flag_status` | Must have, never cut, built first |
-| Auditor | Judges the quality of every orchestrator proposal (wrong rescuer, unfair load) with a verdict and a reason | Nemotron 3 Nano (`nvidia/nemotron-3-nano-30b-a3b`) | `file_audit_flag`, review task results | Must have, built first |
-| Comms agent | The rescuers' glasses: briefings, nudges, answers to rescuer voice questions | Nemotron 3 Nano | `post_briefing` | Templates first; its model is added once the core demo runs end to end |
+| Orchestrator | Triage, rescuer assignments, the search plan and robot missions, delegating work | Nemotron 3.5 Super VL (`nvidia/nemotron-3.5-super-vl-120b-a12b`) | `propose_assignment`, `create_mission`, `post_agent_task`, `set_audit_flag_status` | Must have, never cut, built first |
+| Auditor | Judges the quality of every orchestrator proposal (wrong rescuer, unfair load) with a verdict and a reason | Nemotron 3.5 Lightning (`nvidia/nemotron-3.5-lightning-30b-a3b`) | `file_audit_flag`, review task results | Must have, built first |
+| Comms agent | The rescuers' glasses: briefings, nudges, answers to rescuer voice questions | Nemotron 3.5 Lightning | `post_briefing` | Templates first; its model is added once the core demo runs end to end |
 
 The search agent was cut on 2026-11-07: the orchestrator already plans the search, and with a few houses it does not need a separate agent.
 

@@ -35,15 +35,15 @@ Do these two things before writing any service code, because they decide the pla
 ### 1. Nemotron smoke test (E0, 30 minutes)
 
 - [ ] 1. Get the NVIDIA API key from build.nvidia.com ("Get API Key" on a model page) and put it in `backend/agent/.env` as `NVIDIA_API_KEY=` (never commit it; the team repo is public).
-- [ ] 2. Test the key in one line with curl (no tools yet):
+- [x] 2. Test the key in one line with curl (no tools yet):
 
 ```bash
 curl -s https://integrate.api.nvidia.com/v1/chat/completions \
   -H "Authorization: Bearer $NVIDIA_API_KEY" -H "Content-Type: application/json" \
-  -d '{"model":"nvidia/nemotron-3-nano-30b-a3b","messages":[{"role":"user","content":"Say OK"}],"max_tokens":16,"stream":false}'
+  -d '{"model":"nvidia/nemotron-3.5-lightning-30b-a3b","messages":[{"role":"user","content":"Say OK"}],"max_tokens":16,"stream":false}'
 ```
 
-- [ ] 3. Run `npm run smoke:llm` (written in E0) for both models, with one native tool call and one strict JSON call each.
+- [x] 3. Run `npm run smoke:llm` (written in E0) for both models, with one native tool call and one strict JSON call each.
 - [ ] 4. Post the result table in the team chat: model, native tool calls yes or no, JSON mode yes or no, latency, any 400 or 429.
 
 ### 2. Record breathing clips in the demo lighting (E1, 60 minutes)
@@ -62,11 +62,11 @@ Anything marked UNCONFIRMED must pass a smoke test before code depends on it.
 | Use | Identifier | Where it is set | Status |
 | --- | --- | --- | --- |
 | NVIDIA base URL | `https://integrate.api.nvidia.com/v1`, `POST /chat/completions` | `NVIDIA_BASE_URL` in `backend/agent/.env` | Confirmed in the API reference (agent.md 4.1) |
-| Orchestrator | `nvidia/nemotron-3-super-120b-a12b` | `MODEL_SUPER` | Model id confirmed; tool calling UNCONFIRMED |
-| Auditor and comms agent | `nvidia/nemotron-3-nano-30b-a3b` | `MODEL_NANO` | Model id confirmed; tool calling UNCONFIRMED |
+| Orchestrator | `nvidia/nemotron-3.5-super-vl-120b-a12b` | `MODEL_SUPER` | Confirmed by the smoke test (2026-11-07): native tool calls; `nemotron-3-super-120b-a12b` returns 404 for our key |
+| Auditor and comms agent | `nvidia/nemotron-3.5-lightning-30b-a3b` | `MODEL_NANO` | Confirmed by the smoke test (2026-11-07): native tool calls with thinking off; `nemotron-3-nano-30b-a3b` reached end of life |
 | Vision describer (could have) | `nvidia/nemotron-nano-12b-v2-vl` | `MODEL_VISION` | UNCONFIRMED until `smoke:vision` passes |
 | Super reasoning | `reasoning_effort: "low"` (values `none`, `low`, `high`) | runner code | Confirmed in the Super schema |
-| Nano thinking off | `chat_template_kwargs: {"enable_thinking": false}` | runner code, only if the smoke test shows it works | UNCONFIRMED that the hosted API honors it |
+| Nano thinking off | `chat_template_kwargs: {"enable_thinking": false}` | `NANO_THINKING_OFF=1` | Confirmed by the smoke test; needed for Lightning's JSON mode |
 | Sampling | `temperature: 0.6`, `top_p: 0.95`, `stream: false` | runner code | From the Nano model card; `stream` defaults to true, so always send false |
 | Rate limit | about 40 requests per minute (forum report) | our cap `RPM_BUDGET=20` | UNCONFIRMED; ask the NVIDIA mentors |
 | Hosted speech-to-text | Parakeet ASR pages: `parakeet-ctc-1.1b-asr`, `parakeet-ctc-0.6b-asr`, `parakeet-tdt-0.6b-v2`, through `nvidia-riva-client` | `STT_ENGINE=nvidia_riva`, `RIVA_SERVER`, `RIVA_FUNCTION_ID` in `backend/perception/.env` | UNCONFIRMED: server `grpc.nvcf.nvidia.com:443`, the function id, and limits; copy them from the model's API page |
@@ -114,7 +114,7 @@ Only `src/stdb/` and `src/world.ts` in the agent runner import from `backend/spa
 ### E0. Smoke tests that decide the plan
 Estimate with AI: 0.5 h.
 
-Goal: one Nemotron tool call through NVIDIA's hosted API with `nvidia/nemotron-3-super-120b-a12b` and `nvidia/nemotron-3-nano-30b-a3b`, and a decision on native tool calls or the strict JSON action format for each model.
+Goal: one Nemotron tool call through NVIDIA's hosted API with `nvidia/nemotron-3.5-super-vl-120b-a12b` and `nvidia/nemotron-3.5-lightning-30b-a3b`, and a decision on native tool calls or the strict JSON action format for each model.
 If native tool calls fail, switch both to the strict JSON action format in `specs/agent.md` (section 4.4).
 
 Why it matters: the NVIDIA track ("Use Nemotron Beyond a Chatbot") wants agents that act through tools; this test decides whether every later agent call is native or JSON, and it is checkpoint 0 in `docs/TASKS.md`.
@@ -144,12 +144,12 @@ Environment variables: `NVIDIA_API_KEY`, `NVIDIA_BASE_URL`, `MODEL_SUPER`, `MODE
 
 Checklist:
 
-- [ ] 1. Scaffold `backend/agent/` (package.json scripts, tsconfig with `"module": "NodeNext"`, `.env.example`, `.gitignore`) and install the dependencies.
-- [ ] 2. Run the curl one-liner for both model ids and note the HTTP status and latency.
-- [ ] 3. Write `smoke-llm.ts` step 1: one request per model with one tool, `compute_bearing` (`{from_lat, from_lon, to_lat, to_lon, reason}`), and the message from agent.md 4.3; pass if `tool_calls[0].function.name === "compute_bearing"` and four numbers parse.
-- [ ] 4. Step 2: send the tool result back as a `role: "tool"` message with `tool_call_id`; pass if the reply has no tool calls and mentions meters.
-- [ ] 5. Step 3: try `reasoning_effort: "none"` on Super and `chat_template_kwargs: {"enable_thinking": false}` on Nano; record whether each is accepted and whether reasoning text disappears.
-- [ ] 6. Write `parse.ts` (strip `<think>` blocks and code fences, take the first balanced `{...}`, accept `{"actions":[...]}`, `{"done":true,...}`, and `{"name","arguments"}`), then step 4: repeat step 1 with no `tools` field and the catalog in the prompt.
+- [x] 1. Scaffold `backend/agent/` (package.json scripts, tsconfig with `"module": "NodeNext"`, `.env.example`, `.gitignore`) and install the dependencies.
+- [x] 2. Run the curl one-liner for both model ids and note the HTTP status and latency.
+- [x] 3. Write `smoke-llm.ts` step 1: one request per model with one tool, `compute_bearing` (`{from_lat, from_lon, to_lat, to_lon, reason}`), and the message from agent.md 4.3; pass if `tool_calls[0].function.name === "compute_bearing"` and four numbers parse.
+- [x] 4. Step 2: send the tool result back as a `role: "tool"` message with `tool_call_id`; pass if the reply has no tool calls and mentions meters.
+- [x] 5. Step 3: try `reasoning_effort: "none"` on Super and `chat_template_kwargs: {"enable_thinking": false}` on Nano; record whether each is accepted and whether reasoning text disappears.
+- [x] 6. Write `parse.ts` (strip `<think>` blocks and code fences, take the first balanced `{...}`, accept `{"actions":[...]}`, `{"done":true,...}`, and `{"name","arguments"}`), then step 4: repeat step 1 with no `tools` field and the catalog in the prompt.
 - [ ] 7. Print a results table (model, mode, status, latency, pass), write it into `backend/agent/README.md`, post it in the team chat, and write the decision into `specs/agent.md` section 4.3.
 
 Done when: the result is posted in the team chat and written into `specs/agent.md`.
@@ -993,7 +993,7 @@ Perception ready:
 
 What to show on the Agents panel (full screen with `A`, or `?view=agents&survivor=<id>` for the video):
 
-- [ ] Agent status cards: Orchestrator on Nemotron 3 Super, Auditor and Comms agent on Nemotron 3 Nano, each with its model chip and heartbeat.
+- [ ] Agent status cards: Orchestrator on Nemotron 3.5 Super VL, Auditor and Comms agent on Nemotron 3.5 Lightning, each with its model chip and heartbeat.
 - [ ] The task board: `brief_rescuer` and `review` cards moving from open to claimed to done as the robot finds the teammate.
 - [ ] The chain for the found survivor: detection, score, proposal, auditor verdict, briefing, acknowledgement, with the total "detection to acknowledgement" time.
 - [ ] One auditor objection (the `load_imbalance` example from agent.md section 10) and the orchestrator's response under it.
