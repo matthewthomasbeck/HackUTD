@@ -21,6 +21,10 @@ export function getNamedCoordinates(config: DemoSiteConfig): NamedCoordinate[] {
       label: `robot: ${config.robots.sim.robot_id}`,
       ...offsetToLatLon(center, config.robots.sim.home),
     },
+    {
+      label: `robot: ${config.robots.drone.robot_id}`,
+      ...offsetToLatLon(center, config.robots.drone.home),
+    },
     ...config.rescuers.flatMap((rescuer) => rescuer.start
       ? [{ label: `rescuer: ${rescuer.name}`, ...offsetToLatLon(center, rescuer.start) }]
       : []),

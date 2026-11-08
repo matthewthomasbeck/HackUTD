@@ -44,6 +44,14 @@ npm run reset                    # republish with --delete-data=always, then set
 npm test && npx tsc --noEmit
 ```
 
+### Sim robots
+
+The sim crew is two robots (`robots` in `demo-site.json`, 2026-11-08): `sim-dog` ("Dog 1", the judged demo's robot) and `sim-drone` ("Drone 1", real id `drone1`), which replaced the second dog `sim-dog-2`.
+`SimRobotRunner` (`src/simrobot.ts`) runs both the same way: heartbeats, positions, the mission loop (search, inspect, return home, hold), hidden-survivor findings, and Take over remote control.
+The drone reports no terrain (that is the ground robot's lidar and IMU rules), and only `sim-dog` replays the house 3 find.
+`robot start` and `robot stop` drive `sim-dog`; the console starts `sim-drone` as soon as it connects, and `fail robot-offline sim-drone` stops it until `recover`.
+`scale`, `dupes`, and `scene` report through `sim-drone` (`scene` through both robots), so the judged demo's dog stays untouched.
+
 ### Run the demo
 
 The judged demo is hard-coded (decision 2026-11-08): only SpacetimeDB runs live, and the sim scripts the robot (`sim-dog`), the find, the breathing result and score, and rescuer actions.

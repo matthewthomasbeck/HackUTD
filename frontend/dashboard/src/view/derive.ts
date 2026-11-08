@@ -24,8 +24,8 @@ type Participant = BoardState['participants'][number];
 
 const tag = enumTagToContract;
 
-// Names as the coordinator should read them: no simulator markers. "R1 (sim)" -> "R1"; robots read "Dog 1", "Dog 2"
-// from ids like "sim-dog", "sim-dog-2" or "dog1".
+// Names as the coordinator should read them: no simulator markers. "R1 (sim)" -> "R1"; robots read "Dog 1" from ids
+// like "sim-dog" or "dog1", and "Drone 1" from "sim-drone" or "drone1".
 // "R2 (sim)" -> "R2", "cayden" -> "Cayden" (the glasses register the rescuer key in lower case).
 export function crewName(name: string): string {
   const clean = name.replace(/\s*\(sim\)\s*/gi, ' ').trim() || name;
@@ -34,7 +34,12 @@ export function crewName(name: string): string {
 export function robotName(robot: { robotId: string; name?: string }): string {
   const id = robot.robotId || robot.name || '';
   const number = /(\d+)\s*$/.exec(id)?.[1] ?? '1';
-  return /dog/i.test(id) ? `Dog ${number}` : crewName(robot.name || id);
+  const kind = robotKind(id);
+  return kind === 'drone' ? `Drone ${number}` : kind === 'dog' ? `Dog ${number}` : crewName(robot.name || id);
+}
+// Which marker the map draws for a robot: the drone gets its own icon, every other robot the dog's tile.
+export function robotKind(robotId: string): 'dog' | 'drone' | 'other' {
+  return /drone/i.test(robotId) ? 'drone' : /dog/i.test(robotId) ? 'dog' : 'other';
 }
 const clock = (ms: number) => new Date(ms).toLocaleTimeString([], { hour12: false });
 const meters = (a: GeoPoint, b: GeoPoint) => Math.hypot(...toMeters(a, b));
@@ -131,7 +136,7 @@ export function mapLayers(board: BoardState, site: SiteGeometry | null, graph: S
     rescuers.push({ id: hex, name: crewName(person.name), lat: person.lat, lon: person.lon, ...(route ? { note: `${Math.round(routeMetersOf(route))} m` } : {}) });
     if (route && assignment && tag(assignment.status) === 'active') routes.push({ id: `route-${assignment.id}`, points: route });
   }
-  const robots: MapRobot[] = board.robots.filter(hasPosition).map((row) => ({ id: row.robotId, name: robotName(row), lat: row.lat!, lon: row.lon!, online: row.online, busy: row.currentMissionId !== undefined }));
+  const robots: MapRobot[] = board.robots.filter(hasPosition).map((row) => ({ id: row.robotId, name: robotName(row), drone: robotKind(row.robotId) === 'drone', lat: row.lat!, lon: row.lon!, online: row.online, busy: row.currentMissionId !== undefined }));
   return { survivors, rescuers, routes, robots };
 }
 
@@ -180,7 +185,10 @@ export function peopleRows(board: BoardState, site: SiteGeometry | null, graph: 
     const house = site && hasPosition(robot) ? houseAt(site.houses, robot as GeoPoint, 20) : undefined;
     rows.push({ id: robot.robotId, name: robotName(robot), initials: robotName(robot), robot: true,
       where: house?.address ? `at ${house.address}` : robot.currentMissionId !== undefined ? `mission #${robot.currentMissionId}` : 'standing by',
-      status: robot.currentMissionId !== undefined ? { text: 'Searching', tone: 'ok' } : { text: 'Ready', tone: 'muted' } });
+      status: robot.currentMissionId === undefined ? { text: 'Ready', tone: 'muted' }
+        // A taken-over robot is being driven, not searching (its current mission is the teleop one).
+        : board.missions.some((row) => row.id === robot.currentMissionId && tag(row.kind) === 'teleop') ? { text: 'Remote control', tone: 'ok' }
+          : { text: 'Searching', tone: 'ok' } });
   }
   return rows.slice(0, 6);
 }

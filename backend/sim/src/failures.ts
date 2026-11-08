@@ -1,6 +1,6 @@
 import { DeviceHealth } from '../../spacetimedb-bindings/types.js';
 import { spawnSurvivorAt } from './commands.ts';
-import type { DemoSiteConfig } from './config.ts';
+import { simRobotIds, type DemoSiteConfig } from './config.ts';
 import { distanceMeters, walkToward, type LatLon } from './geo.ts';
 import { logInjection } from './inject.ts';
 import type { SimActor, SimPool } from './pool.ts';
@@ -24,7 +24,7 @@ export class FailureController {
     const sim = this.pool.get('sim');
     if (kind === 'robot-offline') {
       const robotId = args[0] ?? this.config.robots.sim.robot_id;
-      if (!robotId.startsWith(this.config.robots.sim.robot_id)) throw new Error('The simulator can only stop a simulated robot');
+      if (!simRobotIds(this.config).includes(robotId)) throw new Error(`The simulator can only stop a simulated robot (${simRobotIds(this.config).join(', ')})`);
       this.pool.get(robotId);
       await logInjection(sim, 'fail robot-offline', robotId);
       this.robots.stop(robotId);

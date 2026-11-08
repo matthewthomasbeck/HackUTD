@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BoardState } from '../../src/data/BoardData';
 import { describeCommand, driveCommand, driveInputForKey, isStill, type DriveInput } from '../../src/model/teleop';
-import { robotControls } from '../../src/view/derive';
+import { peopleRows, robotControls } from '../../src/view/derive';
 
 const held = (...inputs: DriveInput[]) => new Set(inputs);
 
@@ -55,6 +55,22 @@ describe('robotControls', () => {
     const driving = robotControls(board([mission(2n, 'Teleop', 'Active')], { currentMissionId: 2n }), null, 'coordinator-A')[0]!;
     expect(driving.control).toMatchObject({ kind: 'mine', phase: 'driving' });
     expect(driving.doing).toBe('Remote control by Coordinator-A');
+  });
+
+  it('handles the drone like the dog: named Drone 1, and taken over the same way', () => {
+    const drone = { robotId: 'sim-drone', online: true, state: { tag: 'Active' }, batteryPct: 90, currentMissionId: 3n };
+    const state = { ...board([mission(3n, 'Teleop', 'Active', { robotId: 'sim-drone' })]), robots: [board([]).robots[0]!, drone] } as unknown as BoardState;
+    const controls = robotControls(state, null, 'coordinator-A');
+    expect(controls.map((row) => row.name)).toEqual(['Dog 1', 'Drone 1']);
+    expect(controls[0]!.control).toEqual({ kind: 'free' });
+    expect(controls[1]).toMatchObject({ robotId: 'sim-drone', doing: 'Remote control by Coordinator-A', control: { kind: 'mine', missionId: 3n, phase: 'driving' } });
+  });
+
+  it('lists a taken-over robot as under remote control, not searching, in the rescuers and robot card', () => {
+    const state = { ...board([mission(3n, 'Teleop', 'Active'), mission(4n, 'SearchCells', 'Active')], { currentMissionId: 3n }), assignments: [], participants: [] } as unknown as BoardState;
+    expect(peopleRows(state, null).find((row) => row.robot)?.status).toEqual({ text: 'Remote control', tone: 'ok' });
+    const searching = { ...state, robots: [{ ...state.robots[0]!, currentMissionId: 4n }] } as unknown as BoardState;
+    expect(peopleRows(searching, null).find((row) => row.robot)?.status).toEqual({ text: 'Searching', tone: 'ok' });
   });
 
   it('shows another screen as the driver, and ignores a finished take-over', () => {

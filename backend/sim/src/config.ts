@@ -22,7 +22,8 @@ export interface DemoSiteConfig {
   robots: {
     real: { robot_id: string };
     sim: { robot_id: string; home: Offset };
-    fleet_size: number;
+    // The sim drone, in the second dog's place (2026-11-08); real_id is the real drone's robot_id ("drone1").
+    drone: { robot_id: string; real_id: string; home: Offset };
   };
   rescuers: Array<{ key: string; name: string; real?: boolean; start?: Offset }>;
   extra_sim_rescuers: number;
@@ -116,6 +117,22 @@ export function extraRescuerNumber(config: DemoSiteConfig, index: number): numbe
   return config.rescuers.filter((rescuer) => !rescuer.real).length + index + 1;
 }
 
+// Every sim robot, sim-dog first: one actor and one `robot` row each.
+export function simRobotIds(config: DemoSiteConfig): string[] {
+  return [config.robots.sim.robot_id, config.robots.drone.robot_id];
+}
+
+// The robots `scale`, `dupes`, and `scene` report through besides sim-dog, so the judged demo's dog stays untouched.
+export function fleetRobotIds(config: DemoSiteConfig): string[] {
+  return [config.robots.drone.robot_id];
+}
+
+export function simRobotHome(config: DemoSiteConfig, robotId: string): Offset {
+  if (robotId === config.robots.sim.robot_id) return config.robots.sim.home;
+  if (robotId === config.robots.drone.robot_id) return config.robots.drone.home;
+  throw new Error(`${robotId} is not a simulated robot`);
+}
+
 export function validateDemoConfig(value: unknown): asserts value is DemoSiteConfig {
   const root = requireRecord(value, 'config');
   const site = requireRecord(root.site, 'site');
@@ -148,7 +165,11 @@ export function validateDemoConfig(value: unknown): asserts value is DemoSiteCon
   const simRobot = requireRecord(robots.sim, 'robots.sim');
   requireString(simRobot.robot_id, 'robots.sim.robot_id');
   validateOffset(simRobot.home, 'robots.sim.home');
-  requireNumber(robots.fleet_size, 'robots.fleet_size', 1);
+  const drone = requireRecord(robots.drone, 'robots.drone');
+  requireString(drone.robot_id, 'robots.drone.robot_id');
+  requireString(drone.real_id, 'robots.drone.real_id');
+  validateOffset(drone.home, 'robots.drone.home');
+  if (drone.robot_id === simRobot.robot_id) throw new Error('robots.drone.robot_id must differ from robots.sim.robot_id');
   if (!Array.isArray(root.rescuers)) throw new Error('rescuers must be an array');
   root.rescuers.forEach((item, index) => {
     const rescuer = requireRecord(item, `rescuers[${index}]`);

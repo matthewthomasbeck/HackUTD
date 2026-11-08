@@ -7,7 +7,15 @@ import type { HouseState, HouseView } from '../site/houses';
 
 export interface MapSurvivor extends GeoPoint { id: bigint; level: string; label: string; tag: string; urgent: boolean }
 export interface MapRescuer extends GeoPoint { id: string; name: string; note?: string }
-export interface MapRobot extends GeoPoint { id: string; name: string; online: boolean; busy: boolean }
+export interface MapRobot extends GeoPoint { id: string; name: string; drone: boolean; online: boolean; busy: boolean }
+
+// A quadcopter (four rotors on crossed arms), centred on 0,0 in a 12 px robot tile: the drone's map marker and map key.
+export function DroneGlyph() {
+  return <g fill="none" stroke="var(--on-night)" strokeWidth={0.9} strokeLinecap="round" pointerEvents="none">
+    <path d="M-2.6,-2.6 L2.6,2.6 M2.6,-2.6 L-2.6,2.6" />
+    {[[-2.6, -2.6], [2.6, -2.6], [-2.6, 2.6], [2.6, 2.6]].map(([cx, cy]) => <circle key={`${cx},${cy}`} cx={cx} cy={cy} r={1.7} />)}
+  </g>;
+}
 export interface MapRoute { id: string; points: GeoPoint[] }
 export interface MapLayers { status: boolean; rescuers: boolean; robots: boolean }
 
@@ -171,7 +179,7 @@ export const SiteMap = forwardRef<SiteMapHandle, Props>(function SiteMap(props, 
 
       {LABELS.map((label) => {
         const [x, y] = project(label.at);
-        return <text key={`${label.text}${x}`} x={x} y={y} fontSize={(label.size ?? 12) * s} transform={`rotate(${label.rotate ?? 0} ${x} ${y})`} className="map-label" style={{ strokeWidth: 3 * s }}>{label.text}</text>;
+        return <text key={`${label.text}${x},${y}`} x={x} y={y} fontSize={(label.size ?? 12) * s} transform={`rotate(${label.rotate ?? 0} ${x} ${y})`} className="map-label" style={{ strokeWidth: 3 * s }}>{label.text}</text>;
       })}
 
       {layers.rescuers && props.routes.map((route) => <path key={route.id} d={path(route.points)} fill="none" stroke="var(--rescuer)" strokeWidth={2.6 * s * 1.6} strokeDasharray={`${8 * s} ${6 * s}`} strokeLinecap="round" strokeLinejoin="round" />)}
@@ -179,10 +187,12 @@ export const SiteMap = forwardRef<SiteMapHandle, Props>(function SiteMap(props, 
       {/* Robots first, so a robot standing at a find never hides the survivor marker. */}
       {layers.robots && props.robots.map((robot) => {
         const [x, y] = project(robot);
-        // Every robot is a small dark tile with its name tag (the demo crew is two robots, so tags stay readable).
+        // Every robot is a small dark tile with its name tag (the demo crew is the dog and the drone, so tags stay
+        // readable); the drone's tile carries a quadcopter.
         const width = (robot.name.length * 6.6 + 14) * s;
         return <g key={robot.id} opacity={robot.online ? 1 : 0.45}>
           <rect x={x - 6 * s} y={y - 6 * s} width={12 * s} height={12 * s} rx={3 * s} fill="var(--night-2)" stroke="var(--panel)" strokeWidth={1.5 * s}><title>{robot.name}{robot.busy ? ' · on a mission' : ''}</title></rect>
+          {robot.drone && <g transform={`translate(${x},${y}) scale(${s})`}><DroneGlyph /></g>}
           <g transform={`translate(${x + width / 2 + 10 * s},${y})`}>
             <rect x={-width / 2} y={-9 * s} width={width} height={18 * s} rx={5 * s} fill="var(--night-2)" />
             <text x={0} y={4 * s} fontSize={10 * s} textAnchor="middle" className="map-robot-label">{robot.name}</text>

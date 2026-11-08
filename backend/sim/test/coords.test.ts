@@ -16,6 +16,7 @@ test('lists the named demo points as latitude and longitude', () => {
   assert.ok(byLabel.has('house 4'));
   assert.ok(byLabel.has('demo anchor: house 3 southeast door'));
   assert.ok(byLabel.has('robot: sim-dog'));
+  assert.ok(byLabel.has('robot: sim-drone'));
   assert.ok(byLabel.has('rescuer: R1'));
   assert.ok(byLabel.has('survivor: house 4'));
 });

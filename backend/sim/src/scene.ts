@@ -1,9 +1,9 @@
-// `scene`: seeds an in-progress board on the newest site, so a crew of 2 robots and 2 sim rescuers looks live.
+// `scene`: seeds an in-progress board on the newest site, so a crew of sim-dog, sim-drone, and the sim rescuers looks live.
 // Some house cells are already searched (house 4 only partly, its view is blocked), a handful of survivors sit
 // inside real buildings near the center, and the house 4 family report is on file. Running it again changes nothing.
 import { CellStatus } from '../../spacetimedb-bindings/types.js';
 import { reportConfiguredHouse } from './commands.ts';
-import type { DemoSiteConfig } from './config.ts';
+import { simRobotIds, type DemoSiteConfig } from './config.ts';
 import { reportDetectionAndWait, writeClinical } from './finding.ts';
 import { offsetToLatLon } from './geo.ts';
 import { logInjection } from './inject.ts';
@@ -52,7 +52,7 @@ export async function seedScene(config: DemoSiteConfig, pool: SimPool): Promise<
   const site = Array.from(db.site.iter()).sort((a, b) => Number(b.id - a.id))[0];
   if (!site) throw new Error('No site exists. Run setup first.');
   const center = { lat: config.site.center_lat, lon: config.site.center_lon };
-  const robotIds = [config.robots.sim.robot_id, ...Array.from({ length: config.robots.fleet_size }, (_, index) => `${config.robots.sim.robot_id}-${index + 2}`)];
+  const robotIds = simRobotIds(config);
   await logInjection(sim, 'scene', 'in-progress board');
 
   const plans = planSceneSurvivors(config);

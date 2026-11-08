@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { blockHomes, containsPoint, houseAt, parseSite, ringCenter, toMeters } from '../../src/site/geometry';
 import { homeViews, houseCounts, houseViews, placeName } from '../../src/site/houses';
 import { buildStreetGraph, routeMeters, streetRoute } from '../../src/site/route';
-import { crewName, initials, robotName, shortTag, systemChips } from '../../src/view/derive';
+import { crewName, initials, robotKind, robotName, shortTag, systemChips } from '../../src/view/derive';
 import type { BoardState } from '../../src/data/BoardData';
 
 const read = (name: string) => JSON.parse(readFileSync(new URL(`../../public/site/${name}`, import.meta.url), 'utf8'));
@@ -82,6 +82,15 @@ describe('crew names', () => {
     expect(robotName({ robotId: 'sim-dog' })).toBe('Dog 1');
     expect(robotName({ robotId: 'sim-dog-2', name: 'sim-dog-2' })).toBe('Dog 2');
     expect(robotName({ robotId: 'dog1' })).toBe('Dog 1');
+    expect(robotName({ robotId: 'sim-drone', name: 'sim-drone' })).toBe('Drone 1');
+    expect(robotName({ robotId: 'drone1' })).toBe('Drone 1');
+  });
+
+  it('tells the drone from the dog for the map marker', () => {
+    expect(robotKind('sim-drone')).toBe('drone');
+    expect(robotKind('drone1')).toBe('drone');
+    expect(robotKind('sim-dog')).toBe('dog');
+    expect(robotKind('rover')).toBe('other');
   });
 });
 

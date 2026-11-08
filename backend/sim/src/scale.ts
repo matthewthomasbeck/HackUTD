@@ -1,5 +1,5 @@
 import { Breathing as BreathingEnum, CellStatus, CriticalLevel, DetectionSource, MissionKind, MissionStatus, RobotState } from '../../spacetimedb-bindings/types.js';
-import type { DemoSiteConfig } from './config.ts';
+import { fleetRobotIds, type DemoSiteConfig } from './config.ts';
 import { insideRing, offsetToLatLon } from './geo.ts';
 import { generateScaleLots, type ScaleLot } from './setup.ts';
 import { mulberry32 } from './rng.ts';
@@ -101,7 +101,7 @@ export async function scaleSurvivors(config: DemoSiteConfig, pool: SimPool, coun
   const sim = pool.get('sim');
   const plans = planScaleSurvivors(config, count);
   await logInjection(sim, 'scale', String(count));
-  const robotIds = Array.from({ length: config.robots.fleet_size }, (_, index) => `${config.robots.sim.robot_id}-${index + 2}`);
+  const robotIds = fleetRobotIds(config);
   const missionIds = await ensureHoldMissions(sim, pool, robotIds);
   try {
     return await reportScalePlans(config, pool, plans, ratePerSecond, robotIds, missionIds);
@@ -218,7 +218,7 @@ async function markCoverage(config: DemoSiteConfig, pool: SimPool, count: number
   }
   const searchedCount = Math.round(lots.length * 0.6);
   const partialCount = Math.round(lots.length * 0.05);
-  const ids = Array.from({ length: config.robots.fleet_size }, (_, index) => `${config.robots.sim.robot_id}-${index + 2}`);
+  const ids = fleetRobotIds(config);
   for (let index = 0; index < searchedCount + partialCount; index += 1) {
     const cell = shuffled[index];
     if (!cell) break;
@@ -265,7 +265,7 @@ async function waitForValue<T>(actor: SimActor, read: () => T | undefined, timeo
 export async function addDuplicatePairs(config: DemoSiteConfig, pool: SimPool, count = config.scale.duplicate_pairs): Promise<number> {
   if (!Number.isInteger(count) || count < 0) throw new Error('n must be a non-negative integer');
   const sim = pool.get('sim');
-  const robotIds = Array.from({ length: config.robots.fleet_size }, (_, index) => `${config.robots.sim.robot_id}-${index + 2}`);
+  const robotIds = fleetRobotIds(config);
   const prefix = `${config.scale_lots.label_prefix} `;
   const detections = Array.from(sim.connection.db.detection.iter());
   const candidates = Array.from(sim.connection.db.survivor.iter())

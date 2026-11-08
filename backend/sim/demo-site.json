@@ -23,7 +23,11 @@
       "robot_id": "sim-dog",
       "home": { "east_m": 56.0, "north_m": 12.0 }
     },
-    "fleet_size": 1
+    "drone": {
+      "robot_id": "sim-drone",
+      "real_id": "drone1",
+      "home": { "east_m": -40.0, "north_m": -90.0 }
+    }
   },
   "rescuers": [
     { "key": "cayden", "name": "Cayden", "real": true },

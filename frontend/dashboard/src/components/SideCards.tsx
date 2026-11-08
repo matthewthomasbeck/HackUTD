@@ -2,6 +2,7 @@
 import type { HouseCounts } from '../site/houses';
 import { CardHeader, useCollapsed } from './CardHeader';
 import { Mascot } from './Mascot';
+import { DroneGlyph } from './SiteMap';
 
 export function HeadlineCard({ unattended }: { unattended: number }) {
   const ok = unattended === 0;
@@ -45,6 +46,7 @@ export function MapKey() {
       <span><svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 1 L11 6 L6 11 L1 6 Z" className="glyph-unknown" /></svg>not scored</span>
       <span><i className="km km-rescuer" />rescuer (glasses)</span>
       <span><i className="km km-robot" />robot dog</span>
+      <span><svg className="km" width="11" height="11" viewBox="-6 -6 12 12"><rect x="-6" y="-6" width="12" height="12" rx="3" fill="var(--night-2)" /><DroneGlyph /></svg>drone</span>
       <span><i className="km km-route" />rescuer route</span>
     </div>}
   </section>;

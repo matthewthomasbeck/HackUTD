@@ -29,7 +29,8 @@ The presenter does not say that the robot, the agents, perception, or the real G
 The rules below that mention the real robot, the real breathing check, or the real agents were written for the original live plan (2026-11-07) and apply to rehearsal and video runs that actually use those parts.
 
 - The dashboard shows "DEMO MODE" whenever `site.demo_mode` is true, and it stays on screen in the video.
-- Simulated robot ids say so (`sim-dog`, `sim-dog-2` and up; the dashboard shows them as Dog 1 and Dog 2).
+- Simulated robot ids say so (`sim-dog` and `sim-drone`; the dashboard shows them as Dog 1 and Drone 1).
+  The drone replaced the second dog (`sim-dog-2`) on 2026-11-08.
   Since 2026-11-08 (Cayden) nothing people see says "(sim)": the sim rescuer is named R1 (R2 was dropped on 2026-11-08), and texts the sim writes to the board (notes, mission reasons, resolutions) carry no "simulated" wording.
   The `sim_injection` events and DEMO MODE still mark what the simulator did.
 - The presenter says out loud which parts are live (the real robot, the real breathing check, the real agents, the real glasses) and which are simulated (the hundreds of other survivors, the extra rescuers, injected failures).
@@ -78,7 +79,11 @@ The houses are about 17 m apart, so cells are 15 m.
       "robot_id": "sim-dog",
       "home": { "east_m": 56.0, "north_m": 12.0 }
     },
-    "fleet_size": 1
+    "drone": {
+      "robot_id": "sim-drone",
+      "real_id": "drone1",
+      "home": { "east_m": -40.0, "north_m": -90.0 }
+    }
   },
   "rescuers": [
     { "key": "cayden", "name": "Cayden", "real": true },
@@ -128,10 +133,11 @@ The houses are about 17 m apart, so cells are 15 m.
 Notes:
 
 - Updated 2026-11-08: the JSON above is copied from the committed `backend/sim/demo-site.json`.
-  The simulated crew is minimal at Cayden's request: `fleet_size` 1 (so two robot dogs, `sim-dog` and `sim-dog-2`), rescuers Cayden (real, glasses) plus R1 (sim rescuer, key `r1`; R2 was dropped later on 2026-11-08), and `extra_sim_rescuers` 0.
+  The simulated crew is minimal at Cayden's request: two robots, the dog `sim-dog` and the drone `sim-drone` (real id `drone1`; it replaced the second dog `sim-dog-2` on 2026-11-08, and `fleet_size` is gone), rescuers Cayden (real, glasses) plus R1 (sim rescuer, key `r1`; R2 was dropped later on 2026-11-08), and `extra_sim_rescuers` 0.
   `sim-dog` (Dog 1) has its home on Rutford Ave next to 2520 Rutford Ave (`home` 56 m east, 12 m north), so the Play demo search starts at once.
   Cayden (the glasses demo walker) starts in the parking lot south of Franklyn Jenifer Dr (92 m at bearing 158 from the center) and walks about 100 m at 8 m/s (four times a brisk walk; every sim walker is sped up the same, `timing.speedup` 12), about 15 seconds.
-  `setup` prints "Robots: sim-dog, sim-dog-2" and "Rescuers: R1".
+  `sim-drone` (Drone 1) starts south of Franklyn Jenifer Dr (40 m west, 90 m south), where the second dog used to stand.
+  `setup` prints "Robots: sim-dog, sim-drone" and "Rescuers: R1".
   `hidden_survivors` now starts with the house 3 person the judged demo finds (just outside the east wall of 2520 Rutford Ave under rubble, IMMEDIATE, breathing 8 per minute).
 - The center is an approximate point near UT Dallas, a placeholder.
   Before the first run, open the dashboard map, move the center to a residential block nearby so mock houses sit on houses, and run `coords` again.
@@ -199,7 +205,7 @@ backend/sim/
   The sim acts as rescuers only through the simulated rescuer identities.
 - Identities:
   - `sim` (role `sim`): setup, scale, runs, person reports, `log_event`.
-  - One per sim robot (`sim-dog`, `sim-dog-2` and up), role `robot`, with `participant.name` equal to its `robot_id` (contract rule), so robot reducers run the same code path as the real bridge.
+  - One per sim robot (`sim-dog` and `sim-drone`), role `robot`, with `participant.name` equal to its `robot_id` (contract rule), so robot reducers run the same code path as the real bridge.
   - One per sim rescuer, role `rescuer`.
 - Roles other than `rescuer` need demo mode or a prior `grant_role` (contract), so `setup` creates the demo site first, then registers the rest.
 - Tokens are saved to `.tokens/<key>.token` on the first `onConnect` and reused, so identities survive restarts and `reset`.
@@ -247,10 +253,10 @@ Every command that changes the story (marked "inj") also writes a `sim_injection
 
 ### In-progress board (`scene.ts`, added 2026-11-08)
 
-`scene` makes a board with only 2 robots and 1 sim rescuer look like a search under way, on the newest site after `setup`:
+`scene` makes a board with only 2 robots (the dog and the drone) and 1 sim rescuer look like a search under way, on the newest site after `setup`:
 
 1. Survivors from `scene` in `demo-site.json` (3 IMMEDIATE, 4 delayed, 5 minor): placed like `scale`, inside real building footprints and their lot cells, at least `min_spacing_m` apart, but only in lots within `scene.radius_m` (250 m) of the center, from seed `scale.seed + 300`.
-   Each is a `report_detection` by `sim-dog` or `sim-dog-2` (mission 0), then breathing and score as in `scale`, so the module labels it with its lot ("lot 28").
+   Each is a `report_detection` by `sim-dog` or `sim-drone` (mission 0), then breathing and score as in `scale`, so the module labels it with its lot ("lot 28").
 2. Cells: `scene.searched_houses` (houses 1, 2, 5) and every lot with a scene survivor are marked `searched`; `scene.partial_houses` (house 4, whose view is blocked, and house 9) are marked `partially_searched`.
    The judged demo house (house 3, `demo_pile`) is never touched, and the config check rejects a scene that names it.
    The house 3 hidden survivor is not part of the scene.
@@ -280,9 +286,10 @@ Goal for State Farm: show the board ranking hundreds of people at once, keeping 
 For each of `count` survivors (seeded, so every run is the same):
 
 1. Pick a scale lot (never a named house, so the live story stays clean), and a point inside it at least `min_spacing_m` (12 m) from other survivors, so the module neither merges them (`MERGE_RADIUS_M`, 4 m) nor flags them as possible duplicates (`DUPLICATE_RADIUS_M`, 10 m).
-2. Pick a fleet robot `sim-dog-2` to `sim-dog-<fleet_size + 1>`.
+2. Pick the fleet robot `sim-drone` (the fleet is the drone only, so the judged demo dog stays untouched).
    Each has a `hold` mission created once at the start (`create_mission(robot_id, hold, [], none, none, reason, 0)` by `sim`, which starts `queued`, then claimed with `claim_next_mission`) so detections have a `mission_id`, and keeps its heartbeat and position running.
    When `scale` or `dupes` ends, even on an error, each fleet robot reports its hold mission `done` with `mission_progress`, so a one-shot run never leaves a hold mission to expire and sit `queued` with `robot_id = ""`; the next `scale` creates fresh ones.
+   In the console the drone's own mission loop runs too and may finish its hold mission early; `report_detection` only checks that the mission belongs to the robot, so the detections still carry it.
 3. `report_detection(...)` from that robot's connection with `source = thermal`, `gps_fix = false`, a `location_note` from a short list ("front room", "under a table", "basement stairs", "back bedroom", "garage"), `max_temp_c` 31 to 36, `thermal_confidence` 0.55 to 0.95, and a `thermal_image_url` from `sim-thermal/` (uploaded once with `POST /media`).
 4. Wait for the `survivor` insert whose `lat` and `lon` match (both rounded to 7 decimals), or the `detection` row's `survivor_id`, because reducers return no value to the client.
 5. Draw a level from `scale.mix`, then `report_breathing(survivor_id, breathing, rate_bpm, confidence, visibility_pct, display_url)` as `sim` (in demo mode the sim may call the perception reducers):
@@ -299,7 +306,7 @@ For each of `count` survivors (seeded, so every run is the same):
 Also in `scale`:
 
 - Mark about 60% of the lots `searched` and about 5% `partially_searched` with `mark_cell` from the fleet robots, in random order over the same 20 s, so coverage climbs and partial cells stay in the queue.
-- `dupes duplicate_pairs`: for 3 survivors, add a second detection 5 to 6 m away (from a different fleet robot), so the module keeps both and sets `possible_duplicate_of` (contract rule); the dashboard then has pairs to show side by side.
+- `dupes duplicate_pairs`: for 3 survivors, add a second detection 5 to 6 m away (from a different fleet robot when there is one; with the drone alone it is the same robot), so the module keeps both and sets `possible_duplicate_of` (contract rule); the dashboard then has pairs to show side by side.
 
 Load rule for the agent owner: 300 survivors in 20 s must not cause 300 Nemotron calls.
 The orchestrator batches new survivors, and for the scale burst it uses its deterministic path (`docs/research/agents.md`); the live house 3 survivor still goes through the models.

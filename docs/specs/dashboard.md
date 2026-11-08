@@ -48,7 +48,7 @@ References, for approach only (no copied code or assets): Standard Response (Cal
 - Night-purple top bar (HackUTD Zero Day colors), light map and cards underneath, so the projector does not wash out the data.
 - Every mark has a word: level pills, a map key card, and name tags on every rescuer, robot, and survivor.
 - The mascot is a small cartoon tornado, one per agent, each with its agent's tint and one prop; the app logo is the dog with the visor (`public/brand/underdog-logo.png`).
-- No simulator wording on screen: rescuers read R1, robots read Dog 1 and Dog 2 (`crewName` and `robotName` in `src/view/derive.ts`).
+- No simulator wording on screen: rescuers read R1, robots read Dog 1 and Drone 1 (`crewName` and `robotName` in `src/view/derive.ts`).
 
 ### Light theme, with a dark option
 
@@ -124,6 +124,15 @@ Take over (contract version 8.3, `robot.md` 18.1) lets the person at the dashboa
 4. Hand back to autonomy, Esc, or × calls `cancel_mission` on the `teleop` mission; the robot resumes its paused mission. Another screen sees "Remote control by NAME" and can end that control.
 
 The robot stops by itself 300 ms after the last command (closed tab, dropped Wi-Fi), and its safety gate still limits speed and acceleration. In the judged demo the sim dog obeys the same commands and moves on the map (a full stick is 4 m/s on the map so it shows); the real robot and its live feeds are not part of the judged demo.
+The rescuers and robot card reads "Remote control" for a robot whose current mission is the `teleop` one, not "Searching".
+
+### The drone (2026-11-08)
+
+The second sim dog (`sim-dog-2`, "Dog 2") is gone; a drone takes its place and is shown and handled exactly like the dog, with nothing added.
+The simulator's drone is `sim-drone` and the real drone's id is `drone1` (`robots.drone` in `backend/sim/demo-site.json`); both read "Drone 1" (`robotName` in `src/view/derive.ts`).
+It appears in the same places as the dog: a map marker (the dog's dark tile with a quadcopter in it, `DroneGlyph` in `SiteMap.tsx`, and a "drone" entry in the Map key), the rescuers and robot card, the Camera View robot picker and robot bar, Take over, mission approvals, and saved findings.
+The `robot` table has no kind column, so the dashboard tells the drone from the dog by its id (`robotKind`: an id containing "drone"); see "Proposed contract changes".
+The `sim-dog` path of the judged demo is unchanged, and the system chips still read "Dog 1 online" (a fixed judged-demo chip, Cayden 2026-11-08).
 
 ### Play demo (2026-11-08)
 
@@ -404,7 +413,7 @@ Their data rules (ranking, labels, banned words, timers, accounting) still hold;
 - House fills: critical survivor inside (orange), open or people unaccounted (amber), searched and clear (green), searching (lavender), not searched (white); the Status button turns the fills off.
 - Survivors: level shape (triangle, square, circle, diamond) with a short tag under it (the house number inside the block, else the street); an IMMEDIATE survivor with no rescuer pulses.
 - Rescuers: pink dot with the name; an active assignment draws a dashed walking route along the streets (`src/site/route.ts`), with the walking distance in the label and in the rescuers card.
-- Robots: dark tile with a name tag ("Dog 1"); drawn under survivors so a robot at a find never hides the survivor.
+- Robots: dark tile with a name tag ("Dog 1", "Drone 1"); the drone's tile carries a quadcopter; drawn under survivors so a robot at a find never hides the survivor.
 - The selected survivor gets a callout with its address and level.
 - The Map key card lists every color and shape.
 
@@ -868,5 +877,9 @@ Steps 1 and 2 can start before the module exists by filling `BoardState` from co
 
 ## Proposed contract changes
 
-Proposed contract changes: none open.
+One open proposal (2026-11-08, the drone):
+
+- Add a `kind` column to `robot` (an enum such as `dog | drone | rover`, set by `robot_heartbeat` or a registration reducer), so clients do not have to guess a robot's kind from its `robot_id`.
+  Until it lands, the dashboard reads the kind from the id (`robotKind` in `src/view/derive.ts`: an id containing "drone" is the drone), and the simulator skips terrain reports for `sim-drone` because terrain is the ground robot's lidar and IMU rules.
+
 `clear_possible_duplicate(survivor_id)` and the person check fields were merged into `CONTRACTS.md` version 8.1.

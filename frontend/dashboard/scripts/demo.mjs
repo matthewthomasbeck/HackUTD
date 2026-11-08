@@ -1,6 +1,6 @@
 // `npm run demo`: everything the Play demo button needs, on the local SpacetimeDB server, in one terminal.
 //   1. the local SpacetimeDB server (started if it is not running) with the module published (if the database is missing)
-//   2. `sim setup` (idempotent), then a sim console running `hidden` and `scene`: Dog 1 and Dog 2 patrol with R1 and R2,
+//   2. `sim setup` (idempotent), then a sim console running `hidden` and `scene`: Dog 1 and Drone 1 stand by with R1,
 //      and Dog 1 finds the hidden house 3 person when it searches there
 //   3. the glasses service (Cayden starts in the parking lot south of Franklyn Jenifer Dr and walks about 100 m to the
 //      person outside the east wall of 2520 Rutford Ave, at 8 m/s, four times a brisk walk, so the demo moves along) and the glasses pages (port 5173),

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { extraRescuerNumber, type DemoSiteConfig } from './config.ts';
+import { extraRescuerNumber, simRobotHome, simRobotIds, type DemoSiteConfig } from './config.ts';
 import { offsetToLatLon } from './geo.ts';
 import { mulberry32 } from './rng.ts';
 import type { SimActor, SimPool } from './pool.ts';
@@ -58,15 +58,11 @@ export async function setupSite(config: DemoSiteConfig, pool: SimPool): Promise<
 
   await pool.connectConfiguredActors(config);
 
-  const robotNames: string[] = [];
-  for (let index = 0; index <= config.robots.fleet_size; index += 1) {
-    const robotId = index === 0 ? config.robots.sim.robot_id : `${config.robots.sim.robot_id}-${index + 1}`;
-    robotNames.push(robotId);
+  const robotNames = simRobotIds(config);
+  for (const robotId of robotNames) {
     const robot = pool.get(robotId);
     await robot.connection.reducers.robotHeartbeat({ robotId, state: RobotState.Ready, batteryPct: 95, observedAt: undefined });
-    const position = index === 0
-      ? offsetToLatLon(center, config.robots.sim.home)
-      : offsetToLatLon(center, { east_m: (index * 35) % 150 - 75, north_m: -80 - index * 10 });
+    const position = offsetToLatLon(center, simRobotHome(config, robotId));
     await robot.connection.reducers.robotReportPosition({ robotId, ...position, gpsFix: false, indoorOffsetM: 0, headingDeg: 0, observedAt: undefined });
   }
 
