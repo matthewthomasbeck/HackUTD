@@ -44,8 +44,10 @@ function fixtureConnection(identityHex: string, participantRows: Array<Record<st
     ],
   };
   const registerParticipant = vi.fn(async () => undefined);
+  const rowCallbacks: Record<string, Array<(...args: unknown[]) => void>> = {};
+  const watch = (name: string) => (callback: (...args: unknown[]) => void) => { (rowCallbacks[name] ??= []).push(callback); };
   const connection: ConnectionLike = {
-    db: Object.fromEntries(Object.entries(data).map(([name, rows]) => [name, { iter: () => rows }])),
+    db: Object.fromEntries(Object.entries(data).map(([name, rows]) => [name, { iter: () => rows, onInsert: watch(name), onUpdate: watch(name), onDelete: watch(name) }])),
     reducers: { registerParticipant } as unknown as ConnectionLike['reducers'],
     subscriptionBuilder: () => {
       let onError: ((context: unknown, error: Error) => void) | undefined;
@@ -76,7 +78,7 @@ function fixtureConnection(identityHex: string, participantRows: Array<Record<st
     };
     return builder;
   };
-  return { connection, errors, applied, queries, registerParticipant, makeBuilder, get configValues() { return { uri, database, token: withTokenValue }; } };
+  return { connection, data, rowCallbacks, errors, applied, queries, registerParticipant, makeBuilder, get configValues() { return { uri, database, token: withTokenValue }; } };
 }
 
 describe('read-only SpacetimeDB session', () => {
@@ -97,6 +99,25 @@ describe('read-only SpacetimeDB session', () => {
     expect(session.snapshot().briefings.map(row => row.id)).toEqual([1, 2]);
     expect(session.snapshot().assignedSurvivors.map(row => row.id)).toEqual([7]);
     expect(changed).toHaveBeenCalled();
+    session.disconnect();
+  });
+
+  it('sends one fresh snapshot per batch of row changes after the subscription is applied', async () => {
+    tempDirectory = await mkdtemp(join(tmpdir(), 'glasses-db-'));
+    const identity = 'c'.repeat(64);
+    const fake = fixtureConnection(identity);
+    const changed = vi.fn();
+    const session = new ReadOnlyDbSession({ config: { uri: 'ws://127.0.0.1:3000', database: 'rubble-test', tokenDirectory: tempDirectory }, rescuer: 'alex', onChange: changed, makeBuilder: fake.makeBuilder });
+    await session.connect();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    changed.mockClear();
+
+    fake.data.myAssignment!.push({ id: 13, survivorId: 9, status: { Proposed: [] }, rescuerIdentity: { toHexString: () => identity } });
+    for (const callback of [...fake.rowCallbacks.myAssignment!, ...fake.rowCallbacks.survivor!]) callback();
+    await new Promise(resolve => setImmediate(resolve));
+
+    expect(changed).toHaveBeenCalledOnce();
+    expect(changed.mock.calls[0]![0].assignments.map((row: { id: number }) => row.id)).toEqual([11, 13]);
     session.disconnect();
   });
 
