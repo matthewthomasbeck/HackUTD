@@ -8,6 +8,7 @@ import type { SimPool } from './pool.ts';
 import { RescuerRunner } from './rescuers.ts';
 import { endRun, startRun } from './run.ts';
 import { addDuplicatePairs, scaleSurvivors } from './scale.ts';
+import { seedScene } from './scene.ts';
 import { setupSite } from './setup.ts';
 import { SimRobotRunner } from './simrobot.ts';
 import { formatTimelineDryRun, loadTimeline, runTimeline } from './timeline.ts';
@@ -17,7 +18,7 @@ import { MissionKind } from '../../spacetimedb-bindings/types.js';
 export type CommandName =
   | 'help' | 'coords' | 'setup' | 'run start' | 'run end' | 'scale' | 'hidden' | 'search'
   | 'robot start' | 'robot stop' | 'robot replay' | 'rescuers start' | 'rescuers stop'
-  | 'spawn' | 'report' | 'dupes' | 'imbalance' | 'walk' | 'fail' | 'recover' | 'timeline' | 'status';
+  | 'spawn' | 'report' | 'dupes' | 'imbalance' | 'walk' | 'fail' | 'recover' | 'timeline' | 'status' | 'scene';
 
 export interface ParsedCommand { name: CommandName; args: string[] }
 
@@ -28,7 +29,7 @@ const SHORT: Record<string, string[]> = {
   d: ['dupes'], ib: ['imbalance'], w: ['walk'], ok: ['recover'], t: ['timeline'], '?': ['status'],
   f1: ['fail', 'robot-offline'], f2: ['fail', 'rescuer-silent'], f3: ['fail', 'device'], f4: ['fail', 'rescuer-drop'],
 };
-const SIMPLE = new Set(['help', 'coords', 'setup', 'scale', 'hidden', 'search', 'spawn', 'report', 'dupes', 'imbalance', 'walk', 'fail', 'recover', 'timeline', 'status']);
+const SIMPLE = new Set(['help', 'coords', 'setup', 'scene', 'scale', 'hidden', 'search', 'spawn', 'report', 'dupes', 'imbalance', 'walk', 'fail', 'recover', 'timeline', 'status']);
 const PAIRED: Record<string, string[]> = { run: ['start', 'end'], robot: ['start', 'stop', 'replay'], rescuers: ['start', 'stop'] };
 const FAILURES = new Set(['robot-offline', 'rescuer-silent', 'rescuer-drop', 'device']);
 const LEVELS = new Set(['immediate', 'delayed', 'minor', 'unknown']);
@@ -65,6 +66,7 @@ export function validateCommand(text: string, config: DemoSiteConfig): ParsedCom
   if (name === 'fail' && !FAILURES.has(args[0] ?? '')) fail(`failure must be one of ${[...FAILURES].join(', ')}`);
   if (name === 'fail' && (args[0] === 'rescuer-silent' || args[0] === 'rescuer-drop') && (!args[1] || args[1] === 'cayden')) fail('choose a simulated rescuer key, such as r2');
   if (name === 'timeline' && !args[0]) fail('usage: timeline <name> [--dry]');
+  if (name === 'scene' && (args.length > 1 || (args[0] !== undefined && args[0] !== 'seed'))) fail('usage: scene [seed]');
   return command;
 }
 
@@ -155,7 +157,11 @@ export class SimSession {
   private async executeActorCommand(name: CommandName, args: string[]): Promise<void> {
     const config = this.config;
     const sim = this.pool.get('sim');
-    if (name === 'scale') {
+    if (name === 'scene') {
+      const result = await seedScene(config, this.pool);
+      console.log(`Scene: ${result.survivorsAdded} survivors added (${result.survivorsKept} already there), ${result.cellsMarked} cells marked, ${result.reportAdded ? 'house report added' : 'house report already on file'}.`);
+      if (args[0] !== 'seed') for (const cmd of SCENE_LOOPS) await this.execute(cmd);
+    } else if (name === 'scale') {
       const rateIndex = args.indexOf('--rate');
       const count = args[0] && args[0] !== '--rate' ? Number(args[0]) : config.scale.count;
       const rate = rateIndex < 0 ? config.scale.rate_per_s : Number(args[rateIndex + 1]);
@@ -171,7 +177,7 @@ export class SimSession {
       const cell = Array.from(sim.connection.db.searchCell.iter()).find((row) => row.label === label);
       if (!cell) throw new Error(`Search cell not found for ${label}. Run setup first.`);
       await logInjection(sim, 'search', label);
-      await sim.connection.reducers.createMission({ robotId: config.robots.sim.robot_id, kind: MissionKind.SearchCells, targetCellIds: [cell.id], targetLat: undefined, targetLon: undefined, reason: `scripted demo search of ${label}`, chainId: 0n });
+      await sim.connection.reducers.createMission({ robotId: config.robots.sim.robot_id, kind: MissionKind.SearchCells, targetCellIds: [cell.id], targetLat: undefined, targetLon: undefined, reason: `search ${label}`, chainId: 0n });
       console.log(`Queued a search of ${label} for ${config.robots.sim.robot_id}.`);
     } else if (name === 'spawn') {
       console.log(`Simulated survivor ${await spawnSurvivor(config, this.pool, args[0]!, args.slice(1).join(' '))} reported by ${config.robots.sim.robot_id}.`);
@@ -223,9 +229,13 @@ export class SimSession {
   }
 }
 
+// The loops `scene` starts after seeding the board.
+export const SCENE_LOOPS = ['rescuers start', 'robot start'];
+
 export const HELP = `HackUTD simulator commands (one-shot: npm run sim -- <command>; or inside the console):
   coords                              Print named config coordinates (offline)
   setup                               Create or reuse the demo site, cells, and actors
+  scene [seed]                        Seed an in-progress board (searched houses, survivors, house report), then start the loops; seed only seeds (inj)
   run start [name] | rs               Start a recorded run
   run end [notes] | re                End the active run
   scale [count] [--rate n] | s        Add seeded simulated survivors and partial cells (inj)

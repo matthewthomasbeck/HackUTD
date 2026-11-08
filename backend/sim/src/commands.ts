@@ -61,7 +61,7 @@ export async function spawnSurvivor(config: DemoSiteConfig, pool: SimPool, level
   if (!house) throw new Error(`Unknown house: ${houseLabel}`);
   const point = offsetToLatLon({ lat: config.site.center_lat, lon: config.site.center_lon }, house);
   await logInjection(pool.get('sim'), 'spawn', `${levelInput} ${houseLabel}`);
-  return spawnSurvivorAt(config, pool, levelInput, point, `demo finding at ${houseLabel}`);
+  return spawnSurvivorAt(config, pool, levelInput, point, `found at ${houseLabel}`);
 }
 
 export async function spawnSurvivorAt(config: DemoSiteConfig, pool: SimPool, levelInput: string, point: LatLon, note: string): Promise<bigint> {

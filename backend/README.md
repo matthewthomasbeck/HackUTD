@@ -37,8 +37,9 @@ npm run sim -- help              # every command and its short form
 npm run sim -- setup             # create the demo site, cells, and sim actors
 npm run sim -- console           # interactive controls
 npm run sim -- timeline demo     # the judged demo (hard-coded, 2026-11-08)
+npm run sim -- scene             # seed an in-progress board (searched houses, survivors, house 4 report), start rescuers and sim-dog
 npm run sim -- search house 3    # short: sr; queue a sim-dog search mission for one house
-npm run sim -- timeline judge    # run a timeline (demo, e2e, judge, video, stress); add --dry to print it
+npm run sim -- timeline judge    # run a timeline (demo, scene, e2e, judge, video, stress); add --dry to print it
 npm run reset                    # republish with --delete-data=always, then setup (never on Maincloud during judging)
 npm test && npx tsc --noEmit
 ```

@@ -134,7 +134,7 @@ export class SimPool {
     }
     for (let index = 0; index < config.extra_sim_rescuers; index += 1) {
       const number = extraRescuerNumber(config, index);
-      const name = `R${number} (sim)`;
+      const name = `R${number}`;
       pending.push(this.connect(`r${number}`, name, 'rescuer'));
     }
     await Promise.all(pending);

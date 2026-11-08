@@ -24,7 +24,7 @@ test('a sim rescuer accepts a new proposal promptly while it is still walking to
   const assignments: Row[] = [{ id: 1n, survivorId: 10n, rescuerIdentity: identity('aa'), status: { tag: 'Proposed' } }];
   const accepted: bigint[] = [];
   const actor = {
-    key: 'r1', name: 'R1 (sim)', role: 'rescuer', identity: 'aa',
+    key: 'r1', name: 'R1', role: 'rescuer', identity: 'aa',
     connection: {
       db: {
         myAssignment: table(assignments),
@@ -77,7 +77,7 @@ function imbalanceFixture(options: { pendingFrom?: 'watchdog'; delayed: number }
   const sim = {
     key: 'sim', name: 'sim', role: 'sim', identity: 'ff',
     connection: {
-      db: { assignment: table(assignments), survivor: table(survivors), participant: table([{ identity: identity('aa'), name: 'R1 (sim)', lat: 33, lon: -96.77 }]) },
+      db: { assignment: table(assignments), survivor: table(survivors), participant: table([{ identity: identity('aa'), name: 'R1', lat: 33, lon: -96.77 }]) },
       reducers: {
         logEvent: async () => {},
         proposeAssignment: async ({ survivorId }: { survivorId: bigint }) => { calls.push(`propose ${survivorId}`); propose(survivorId); },
@@ -85,7 +85,7 @@ function imbalanceFixture(options: { pendingFrom?: 'watchdog'; delayed: number }
     },
   } as unknown as SimActor;
   const loaded = {
-    key: 'r1', name: 'R1 (sim)', role: 'rescuer', identity: 'aa',
+    key: 'r1', name: 'R1', role: 'rescuer', identity: 'aa',
     connection: {
       db: { myAssignment: table(assignments) },
       reducers: {

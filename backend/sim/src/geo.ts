@@ -55,3 +55,12 @@ export function walkToward(from: LatLon, to: LatLon, stepMeters: number): LatLon
     lon: from.lon + (to.lon - from.lon) * fraction,
   };
 }
+
+// Inverse of offsetToLatLon, with the same local approximation.
+export function latLonToOffset(center: LatLon, point: LatLon): Offset {
+  const latitudeRadians = (center.lat * Math.PI) / 180;
+  return {
+    east_m: (point.lon - center.lon) * METERS_PER_DEGREE * Math.cos(latitudeRadians),
+    north_m: (point.lat - center.lat) * METERS_PER_DEGREE,
+  };
+}

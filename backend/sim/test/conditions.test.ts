@@ -25,7 +25,7 @@ test('released and audit_flag pass only on rows that appear after the step start
   const flags: Array<{ id: bigint; kind: { tag: string } }> = [{ id: 1n, kind: { tag: 'LoadImbalance' } }];
   const sim = fakeSim({
     assignment: assignments,
-    participant: [{ identity: identity('aa'), name: 'R2 (sim)', role: { tag: 'Rescuer' } }],
+    participant: [{ identity: identity('aa'), name: 'R2', role: { tag: 'Rescuer' } }],
     auditFlag: flags,
   });
   const released = makeCondition({ await: 'released', rescuer: 'r2' }, sim, config);
@@ -57,7 +57,7 @@ test('assignment_for and released match the glasses rescuer registered by key, i
     assignment: assignments,
     participant: [
       { identity: identity('dd'), name: 'cayden', role: { tag: 'Rescuer' } },
-      { identity: identity('ee'), name: 'r1 (SIM)', role: { tag: 'Rescuer' } },
+      { identity: identity('ee'), name: 'R1', role: { tag: 'Rescuer' } },
     ],
   });
   assert.equal(makeCondition({ await: 'assignment_for', rescuer: 'cayden', status: 'active' }, sim, config)(), true);

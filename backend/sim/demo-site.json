@@ -1,5 +1,5 @@
 {
-  "site": { "name": "Demo: tornado, Dallas TX (simulated)", "center_lat": 32.9968745, "center_lon": -96.7704708, "radius_m": 483, "demo_mode": true, "require_mission_approval": true },
+  "site": { "name": "Tornado response, Dallas TX", "center_lat": 32.9968745, "center_lon": -96.7704708, "radius_m": 483, "demo_mode": true, "require_mission_approval": true },
   "cell_size_m": 15,
   "houses": [
     { "label": "house 1", "east_m": -33.5, "north_m": 0.8 },
@@ -27,8 +27,8 @@
   },
   "rescuers": [
     { "key": "cayden", "name": "Cayden", "real": true },
-    { "key": "r1", "name": "R1 (sim)", "start": { "east_m": -150, "north_m": -60 } },
-    { "key": "r2", "name": "R2 (sim)", "start": { "east_m": 150, "north_m": -60 } }
+    { "key": "r1", "name": "R1", "start": { "east_m": -150, "north_m": -60 } },
+    { "key": "r2", "name": "R2", "start": { "east_m": 150, "north_m": -60 } }
   ],
   "extra_sim_rescuers": 0,
   "hidden_survivors": [
@@ -45,6 +45,15 @@
     "not_detected_share_of_immediate": 0.3,
     "min_spacing_m": 12,
     "duplicate_pairs": 3
+  },
+  "patrol": { "roads_file": "site-roads.json", "speed_mps": [0.8, 1.2], "follow_m": 3, "together_m": 8, "rejoin_speed_mps": 1.8, "min_leg_m": 60 },
+  "scene": {
+    "searched_houses": ["house 1", "house 2", "house 5"],
+    "partial_houses": ["house 4", "house 9"],
+    "radius_m": 250,
+    "immediate": 3,
+    "delayed": 4,
+    "minor": 5
   },
   "timing": {
     "speedup": 3,

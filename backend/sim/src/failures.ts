@@ -56,7 +56,7 @@ export class FailureController {
       const robot = this.pool.get(robotId);
       const health = status === 'OK' ? DeviceHealth.Ok : status === 'DEGRADED' ? DeviceHealth.Degraded : DeviceHealth.Failed;
       await logInjection(sim, 'fail device', `${device} ${status} ${robotId}`);
-      await robot.connection.reducers.robotReportDevice({ robotId, device, status: health, detail: status === 'FAILED' ? 'no frames for 3 s' : `simulated ${status.toLowerCase()} status`, observedAt: undefined });
+      await robot.connection.reducers.robotReportDevice({ robotId, device, status: health, detail: status === 'FAILED' ? 'no frames for 3 s' : `${device} ${status.toLowerCase()}`, observedAt: undefined });
       return;
     }
     throw new Error(`Unknown failure: ${kind}`);

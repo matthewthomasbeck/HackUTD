@@ -167,7 +167,7 @@ export class RescuerRunner {
       if (this.config.timing.auto_resolve_sim_rescues) {
         await delay(this.config.timing.on_scene_s * 1000, signal);
         if (signal.aborted) return;
-        try { await actor.connection.reducers.resolveSurvivor({ survivorId: survivor.id, resolution: Resolution.Rescued, note: 'simulated rescuer reached the person' }); }
+        try { await actor.connection.reducers.resolveSurvivor({ survivorId: survivor.id, resolution: Resolution.Rescued, note: 'rescuer reached the person' }); }
         catch (error) { console.warn(`Rescuer ${actor.name} could not resolve survivor: ${errorText(error)}`); }
       }
     }

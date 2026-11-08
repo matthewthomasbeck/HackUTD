@@ -28,3 +28,6 @@ for (const feature of features) {
 lots.sort((a, b) => b.north_m - a.north_m || a.east_m - b.east_m);
 writeFileSync(target, `${JSON.stringify({ source: 'OpenStreetMap contributors (ODbL)', center: { lat: lat0, lon: lon0 }, lots })}\n`);
 console.log(`Wrote ${lots.length} building lots to ${target}`);
+
+// The road graph comes from the same context file (same optional path argument).
+await import('./build-roads.ts');

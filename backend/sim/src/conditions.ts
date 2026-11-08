@@ -59,7 +59,7 @@ export function makeCondition(step: TimelineStep, sim: SimActor, config: DemoSit
   }
 }
 
-// The sim registers rescuers by display name ("R1 (sim)"), but the glasses service registers
+// The sim registers rescuers by display name ("R1"), but the glasses service registers
 // the real rescuer by its key ("cayden"), so match a configured rescuer by either, ignoring case.
 export function rescuerIdentities(sim: SimActor, config: DemoSiteConfig, key: string): Set<string> {
   const wanted = key.toLowerCase();

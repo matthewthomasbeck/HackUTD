@@ -36,7 +36,7 @@ export function generateExtraRescuerStarts(config: DemoSiteConfig): Array<{ key:
     const north_m = Math.sin(angle) * radius;
     const point = offsetToLatLon({ lat: config.site.center_lat, lon: config.site.center_lon }, { east_m, north_m });
     const number = extraRescuerNumber(config, index);
-    starts.push({ key: `r${number}`, name: `R${number} (sim)`, ...point });
+    starts.push({ key: `r${number}`, name: `R${number}`, ...point });
   }
   return starts;
 }

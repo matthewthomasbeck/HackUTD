@@ -1,7 +1,7 @@
 import { Breathing as BreathingEnum, CellStatus, CriticalLevel, DetectionSource, MissionKind, MissionStatus, RobotState } from '../../spacetimedb-bindings/types.js';
 import type { DemoSiteConfig } from './config.ts';
 import { insideRing, offsetToLatLon } from './geo.ts';
-import { generateScaleLots } from './setup.ts';
+import { generateScaleLots, type ScaleLot } from './setup.ts';
 import { mulberry32 } from './rng.ts';
 import { logInjection } from './inject.ts';
 import type { SimActor, SimPool } from './pool.ts';
@@ -24,12 +24,26 @@ export interface PlannedScaleSurvivor {
 }
 
 export function planScaleSurvivors(config: DemoSiteConfig, count = config.scale.count): PlannedScaleSurvivor[] {
-  if (!Number.isInteger(count) || count < 0) throw new Error('count must be a non-negative integer');
-  const lots = generateScaleLots(config);
-  if (count > 0 && lots.length === 0) throw new Error('No scale lots available');
   const random = mulberry32(config.scale.seed);
-  const plans: PlannedScaleSurvivor[] = [];
   const mix = config.scale.mix;
+  return placeSurvivorsInLots(config, generateScaleLots(config), count, random, () => {
+    const roll = random();
+    return roll < mix.immediate
+      ? 'immediate'
+      : roll < mix.immediate + mix.delayed
+        ? 'delayed'
+        : roll < mix.immediate + mix.delayed + mix.minor
+          ? 'minor'
+          : 'unknown';
+  });
+}
+
+// Places count survivors inside real building footprints (and inside each lot's search cell, so the module
+// labels them with their lot), at least min_spacing_m apart. levelFor picks each survivor's level.
+export function placeSurvivorsInLots(config: DemoSiteConfig, lots: readonly ScaleLot[], count: number, random: () => number, levelFor: (index: number) => ScaleLevel): PlannedScaleSurvivor[] {
+  if (!Number.isInteger(count) || count < 0) throw new Error('count must be a non-negative integer');
+  if (count > 0 && lots.length === 0) throw new Error('No scale lots available');
+  const plans: PlannedScaleSurvivor[] = [];
   const totalAttempts = Math.max(10_000, count * 400);
   let attempts = 0;
   while (plans.length < count && attempts < totalAttempts) {
@@ -44,14 +58,7 @@ export function planScaleSurvivors(config: DemoSiteConfig, count = config.scale.
     if (Math.abs(east_m - lot.east_m) > config.cell_size_m / 2 - 0.5 || Math.abs(north_m - lot.north_m) > config.cell_size_m / 2 - 0.5) continue;
     if (Math.hypot(east_m, north_m) > config.site.radius_m) continue;
     if (plans.some((point) => Math.hypot(point.east_m - east_m, point.north_m - north_m) < config.scale.min_spacing_m)) continue;
-    const roll = random();
-    const level: ScaleLevel = roll < mix.immediate
-      ? 'immediate'
-      : roll < mix.immediate + mix.delayed
-        ? 'delayed'
-        : roll < mix.immediate + mix.delayed + mix.minor
-          ? 'minor'
-          : 'unknown';
+    const level = levelFor(plans.length);
     plans.push({ lot: lot.label, east_m, north_m, level, ...makeClinicalPlan(level, random, config) });
   }
   if (plans.length !== count) throw new Error(`Could only place ${plans.length} of ${count} scale survivors while preserving ${config.scale.min_spacing_m} m spacing`);

@@ -769,7 +769,7 @@ One command dispatcher (`src/dispatch.ts`) serves the console, one-shot commands
 The sim robot claims missions with `claim_next_mission`, walks, reports terrain, marks cells (house 4 `partially_searched`), and finds the `hidden` survivors; `robot replay house3` (`rr`), `imbalance`, and `dupes` work.
 Live `timeline` runs are implemented for `e2e`, `judge`, and `video`; `stress` has not been run (it needs 120 rescuers and status sampling).
 Added 2026-11-08: `search <house>` (`sr`) and `timelines/demo.json` for the hard-coded judged demo; `timeline demo` was verified live on a local server (found at 0:14 with no fallback).
-The site is "Demo: tornado, Dallas TX (simulated)", centered on 7716 Worthing St, Dallas TX 75252 (32.9968745, -96.7704708), which is house 3.
+The site is "Tornado response, Dallas TX", centered on 7716 Worthing St, Dallas TX 75252 (32.9968745, -96.7704708), which is house 3.
 
 Done when: one command runs the whole demo story with no hardware.
 - `npm run sim -- timeline judge`, with no robot, no glasses, and the agents stopped, reaches the end; every `await` either passes or runs its `else` fallback.

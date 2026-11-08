@@ -29,7 +29,9 @@ The presenter does not say that the robot, the agents, perception, or the real G
 The rules below that mention the real robot, the real breathing check, or the real agents were written for the original live plan (2026-11-07) and apply to rehearsal and video runs that actually use those parts.
 
 - The dashboard shows "DEMO MODE" whenever `site.demo_mode` is true, and it stays on screen in the video.
-- Simulated robots, rescuers, and survivors have names that say so: robots `sim-dog`, `sim-dog-2` and up; rescuers end in "(sim)".
+- Simulated robot ids say so (`sim-dog`, `sim-dog-2` and up; the dashboard shows them as Dog 1 and Dog 2).
+  Since 2026-11-08 (Cayden) nothing people see says "(sim)": the sim rescuers are named R1 and R2, and texts the sim writes to the board (notes, mission reasons, resolutions) carry no "simulated" wording.
+  The `sim_injection` events and DEMO MODE still mark what the simulator did.
 - The presenter says out loud which parts are live (the real robot, the real breathing check, the real agents, the real glasses) and which are simulated (the hundreds of other survivors, the extra rescuers, injected failures).
 - Every sim injection writes `log_event(kind = sim_injection, message, payload_json)`, so the dashboard marks it "SIMULATED" and the replay stays honest.
   The `message` names the command and its target (for example `"sim: fail rescuer-drop r2"`), and `payload_json` is `{}`, because an injection changes no entity.
@@ -50,7 +52,7 @@ The houses are about 17 m apart, so cells are 15 m.
 
 ```json
 {
-  "site": { "name": "Demo: tornado, Dallas TX (simulated)", "center_lat": 32.9968745, "center_lon": -96.7704708, "radius_m": 483, "demo_mode": true, "require_mission_approval": true },
+  "site": { "name": "Tornado response, Dallas TX", "center_lat": 32.9968745, "center_lon": -96.7704708, "radius_m": 483, "demo_mode": true, "require_mission_approval": true },
   "cell_size_m": 15,
   "houses": [
     { "label": "house 1", "east_m": -33.5, "north_m": 0.8 },
@@ -78,8 +80,8 @@ The houses are about 17 m apart, so cells are 15 m.
   },
   "rescuers": [
     { "key": "cayden", "name": "Cayden", "real": true },
-    { "key": "r1", "name": "R1 (sim)", "start": { "east_m": -150, "north_m": -60 } },
-    { "key": "r2", "name": "R2 (sim)", "start": { "east_m": 150, "north_m": -60 } }
+    { "key": "r1", "name": "R1", "start": { "east_m": -150, "north_m": -60 } },
+    { "key": "r2", "name": "R2", "start": { "east_m": 150, "north_m": -60 } }
   ],
   "extra_sim_rescuers": 0,
   "hidden_survivors": [
@@ -116,8 +118,8 @@ The houses are about 17 m apart, so cells are 15 m.
 Notes:
 
 - Updated 2026-11-08: the JSON above is copied from the committed `backend/sim/demo-site.json`.
-  The simulated crew is minimal at Cayden's request: `fleet_size` 1 (so two robot dogs, `sim-dog` and `sim-dog-2`), rescuers Cayden (real, glasses) plus R1 (sim) and R2 (sim), and `extra_sim_rescuers` 0.
-  `setup` prints "Robots: sim-dog, sim-dog-2" and "Rescuers: R1 (sim), R2 (sim)".
+  The simulated crew is minimal at Cayden's request: `fleet_size` 1 (so two robot dogs, `sim-dog` and `sim-dog-2`), rescuers Cayden (real, glasses) plus R1 and R2 (sim rescuers, keys `r1` and `r2`), and `extra_sim_rescuers` 0.
+  `setup` prints "Robots: sim-dog, sim-dog-2" and "Rescuers: R1, R2".
   `hidden_survivors` now starts with the house 3 person the judged demo finds (back bedroom, under debris, IMMEDIATE, breathing 8 per minute).
 - The center is an approximate point near UT Dallas, a placeholder.
   Before the first run, open the dashboard map, move the center to a residential block nearby so mock houses sit on houses, and run `coords` again.
@@ -209,6 +211,7 @@ Every command that changes the story (marked "inj") also writes a `sim_injection
 | `setup` |  | site, cells, sim robots and rescuers (below) |
 | `run start [name]` | `rs` | `start_run(site_id, name)`; default "Judging `HH:MM`" |
 | `run end [notes]` | `re` | `end_run(run_id, notes)` |
+| `scene [seed]` |  | seed an in-progress board on the newest site, then `rescuers start` and `robot start` (below); `scene seed` only seeds (inj) |
 | `scale [count]` | `s` | add simulated survivors and duplicate pairs (below) (inj) |
 | `hidden` | `h` | arm the `hidden_survivors` so a sim robot finds them when it searches those houses (inj) |
 | `robot start` / `robot stop` | `rb` / `rbx` | run or stop `sim-dog` |
@@ -229,6 +232,22 @@ Every command that changes the story (marked "inj") also writes a `sim_injection
 | `status` | `?` | headline, survivors by level and status, cells by status, assignments, agents online, robots, active run |
 
 `reset` is a separate script, because it republishes the module.
+
+### In-progress board (`scene.ts`, added 2026-11-08)
+
+`scene` makes a board with only 2 robots and 2 sim rescuers look like a search under way, on the newest site after `setup`:
+
+1. Survivors from `scene` in `demo-site.json` (3 IMMEDIATE, 4 delayed, 5 minor): placed like `scale`, inside real building footprints and their lot cells, at least `min_spacing_m` apart, but only in lots within `scene.radius_m` (250 m) of the center, from seed `scale.seed + 300`.
+   Each is a `report_detection` by `sim-dog` or `sim-dog-2` (mission 0), then breathing and score as in `scale`, so the module labels it with its lot ("lot 28").
+2. Cells: `scene.searched_houses` (houses 1, 2, 5) and every lot with a scene survivor are marked `searched`; `scene.partial_houses` (house 4, whose view is blocked, and house 9) are marked `partially_searched`.
+   The judged demo house (house 3, `demo_pile`) is never touched, and the config check rejects a scene that names it.
+   The house 3 hidden survivor is not part of the scene.
+3. The configured `family_report` for house 4 (2 missing), unless house 4 already has a person report, so house 4 shows 2 unaccounted.
+4. `rescuers start` and `robot start`.
+   The module backstop then proposes the nearest free sim rescuer for each IMMEDIATE survivor within about 15 s (demo mode), and R1 and R2 accept, walk, reach, and resolve them.
+
+Running `scene` again adds nothing: it skips survivors already at their planned points, cells already in their state, and an existing house 4 report.
+`timelines/scene.json` runs the same steps (`scene seed`, `rescuers start`, `robot start`) and waits for Enter.
 
 ### Site and grid (`setup.ts`)
 
@@ -299,7 +318,7 @@ The orchestrator batches new survivors, and for the scale burst it uses its dete
 
 ### Simulated rescuers (`rescuers.ts`)
 
-Each sim rescuer (the named ones, R1 and R2 since 2026-11-08 and R1 to R4 in the earlier plan, plus `extra_sim_rescuers`, 0 since 2026-11-08, named "R5 (sim)" and up, starting at seeded points on the site circle) runs:
+Each sim rescuer (the named ones, R1 and R2 since 2026-11-08 and R1 to R4 in the earlier plan, plus `extra_sim_rescuers`, 0 since 2026-11-08, named "R5" and up, starting at seeded points on the site circle) runs:
 
 1. Every `rescuer_heartbeat_ms`: `rescuer_heartbeat()`; every `position_ms`: `participant_update_position(lat, lon)`.
    Both renew its leases.
@@ -516,7 +535,7 @@ This script is the original live plan; the judged demo is "Judged demo (hard-cod
 | 2:30 to 2:55 | Glasses connection drops | Cayden closes the Even app. Both screens at once: Cayden's avatar leaves, the assignment reads "RELEASED, glasses disconnected", the survivor is "UNASSIGNED, no rescuer" and back on top. "The database noticed the dropped connection itself, in a lifecycle reducer." Cayden reopens the app; the orchestrator re-proposes and he acknowledges again. | SpacetimeDB, State Farm | Release does not show within 3 s: `f4` (`fail rescuer-drop r2`) shows the same rule on a sim rescuer; if only the heartbeat path works, show the 15 s release and say which rule fired. |
 | 2:55 to 3:10 | Family report | The coordinator opens Buildings, house 4 ("No reports"), and enters "missing 2, family". The sim fleet found one person there earlier, so house 4 shows "1 UNACCOUNTED" on both screens. "We never say a building is empty." House 4 stays at the front of the search queue while anyone there is unaccounted. | State Farm | Form fails: `rp` (`report house 4`). |
 | 3:10 to 3:35 | Stop the agents, the watchdog still assigns | Ctrl-C in the agents' terminal; the Agents panel shows each agent OFFLINE. `spawn immediate house 8`. The Timers panel counts down the watchdog (`AGENT_WATCHDOG_S`, 15 s in demo mode); it fires, the chain in the Agents panel shows "MODULE FALLBACK: nearest free rescuer", a sim rescuer acknowledges, and the headline stays at 0. "The AI improves decisions. The database guarantees nobody is dropped." Restart the agents. | SpacetimeDB, State Farm, NVIDIA | Watchdog does not fire: the 45 s escalation banner appears on both screens, and the presenter says the escalation rule caught it. |
-| 3:35 to 3:55 | Auditor flags an imbalance | `ib`: R1 (sim) holds three survivors while R2 (sim) is idle, and a new survivor appears next to R1. The auditor reviews the orchestrator's proposal for it; if the proposal adds to R1's load, the auditor's `disagree` verdict makes the module file `load_imbalance` with the auditor's reason, shown in the Agents panel, and the orchestrator rebalances (or the coordinator clicks "Mark acted"). | NVIDIA | No flag in 30 s (for example the orchestrator already picked R2): show the auditor's verdict from the house 3 chain again and a flag from the rehearsal run in replay. |
+| 3:35 to 3:55 | Auditor flags an imbalance | `ib`: R1 holds three survivors while R2 is idle, and a new survivor appears next to R1. The auditor reviews the orchestrator's proposal for it; if the proposal adds to R1's load, the auditor's `disagree` verdict makes the module file `load_imbalance` with the auditor's reason, shown in the Agents panel, and the orchestrator rebalances (or the coordinator clicks "Mark acted"). | NVIDIA | No flag in 30 s (for example the orchestrator already picked R2): show the auditor's verdict from the house 3 chain again and a flag from the rehearsal run in replay. |
 | 3:55 to 4:20 | Replay | Cayden's walk has arrived; the coordinator resolves house 3 as "Rescued". "End run", then the run in the sidebar, replay at 16x: the whole session, including the agent chain, the release, and the robot's state changes, plays back from the event log in the database (no movement trails, because positions are not recorded). Close: "Reducers are the backend, schedule tables run every timer, Nemotron agents propose and verify, and a person resolves every survivor." | SpacetimeDB, NVIDIA, State Farm | Replay errors: open the Events tab for the ended run, which holds the same history, and scroll the agent chain. |
 
 Over time: cut lower-value beats in this order, and say nothing about the cut beats.

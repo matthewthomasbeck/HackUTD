@@ -46,6 +46,24 @@ export interface DemoSiteConfig {
     min_spacing_m: number;
     duplicate_pairs: number;
   };
+  // Robot and sim rescuer pairs walking the streets (`patrol start`). Speeds are real-world m/s, times timing.speedup.
+  patrol: {
+    roads_file: string;
+    speed_mps: [number, number];
+    follow_m: number;
+    together_m: number;
+    rejoin_speed_mps: number;
+    min_leg_m: number;
+  };
+  // The in-progress board that `scene` seeds: house cells already searched, survivors in real buildings near the center.
+  scene: {
+    searched_houses: string[];
+    partial_houses: string[];
+    radius_m: number;
+    immediate: number;
+    delayed: number;
+    minor: number;
+  };
   timing: {
     speedup: number;
     robot_heartbeat_ms: number;
@@ -166,6 +184,30 @@ export function validateDemoConfig(value: unknown): asserts value is DemoSiteCon
   const mix = requireRecord(scale.mix, 'scale.mix');
   const mixSum = ['immediate', 'delayed', 'minor', 'unknown'].reduce((sum, key) => sum + requireNumber(mix[key], `scale.mix.${key}`, 0), 0);
   if (Math.abs(mixSum - 1) > 1e-9) throw new Error('scale.mix values must sum to 1');
+  const patrol = requireRecord(root.patrol, 'patrol');
+  requireString(patrol.roads_file, 'patrol.roads_file');
+  if (!Array.isArray(patrol.speed_mps) || patrol.speed_mps.length !== 2) throw new Error('patrol.speed_mps must contain [min, max]');
+  requireNumber(patrol.speed_mps[0], 'patrol.speed_mps[0]', 0.1);
+  requireNumber(patrol.speed_mps[1], 'patrol.speed_mps[1]', patrol.speed_mps[0] as number);
+  requireNumber(patrol.follow_m, 'patrol.follow_m', 0);
+  requireNumber(patrol.together_m, 'patrol.together_m', patrol.follow_m as number);
+  requireNumber(patrol.rejoin_speed_mps, 'patrol.rejoin_speed_mps', patrol.speed_mps[1] as number);
+  requireNumber(patrol.min_leg_m, 'patrol.min_leg_m', 0);
+  const scene = requireRecord(root.scene, 'scene');
+  const houseLabels = new Set((root.houses as Array<{ label: string }>).map((house) => house.label));
+  const pile = (root.houses as Array<{ label: string; demo_pile?: boolean }>).filter((house) => house.demo_pile).map((house) => house.label);
+  for (const key of ['searched_houses', 'partial_houses']) {
+    if (!Array.isArray(scene[key])) throw new Error(`scene.${key} must be an array`);
+    (scene[key] as unknown[]).forEach((label, index) => {
+      if (typeof label !== 'string' || !houseLabels.has(label)) throw new Error(`scene.${key}[${index}] must be a configured house`);
+      if (pile.includes(label)) throw new Error(`scene.${key}[${index}] must not be the judged demo house ${label}`);
+    });
+  }
+  requireNumber(scene.radius_m, 'scene.radius_m', 0);
+  for (const key of ['immediate', 'delayed', 'minor']) {
+    const count = requireNumber(scene[key], `scene.${key}`, 0);
+    if (!Number.isInteger(count)) throw new Error(`scene.${key} must be an integer`);
+  }
   const timing = requireRecord(root.timing, 'timing');
   for (const key of ['speedup', 'robot_heartbeat_ms', 'rescuer_heartbeat_ms', 'position_ms', 'on_scene_s']) {
     requireNumber(timing[key], `timing.${key}`, 0);

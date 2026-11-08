@@ -15,7 +15,7 @@ const DEFAULT_RESULT: FindingClinical = {
   visibility_pct: 40,
   score: 92,
   score_confidence: 0.7,
-  score_reasons: ['breathing seen 14 per min', '40% of body visible', 'rehearsal result (simulated)'],
+  score_reasons: ['breathing seen 14 per min', '40% of body visible', 'rehearsal result'],
 };
 
 // The scripted house 3 person, when demo-site.json hides one there, so a replay reports the same find as the search.
