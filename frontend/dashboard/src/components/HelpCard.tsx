@@ -67,20 +67,38 @@ function Actions({ row, rescuers, onAssign, onResolve }: { row: HelpRow } & Pick
 
 export function HelpCard({ critical, rows, selectedId, rescuers, readOnly, onSelect, onAssign, onResolve }: Props) {
   const { collapsed, toggle } = useCollapsed();
+  const [levelFilter, setLevelFilter] = useState<string | null>(null);
+  const levels = [
+    { key: 'immediate', label: 'Immediate', count: critical },
+    { key: 'delayed', label: 'Delayed', count: rows.filter((row) => row.level === 'delayed').length },
+    { key: 'minor', label: 'Minor', count: rows.filter((row) => row.level === 'minor').length },
+    { key: 'unknown', label: 'Not scored', count: rows.filter((row) => row.level === 'unknown').length },
+  ];
+  const visibleRows = levelFilter ? rows.filter((row) => row.level === levelFilter) : rows;
   return <section className={`fcard help ${collapsed ? 'collapsed' : ''}`} aria-label="Who needs help first">
-    <CardHeader title="Who needs help first" count={rows.length} collapsed={collapsed} onToggle={toggle} display />
+    <CardHeader title="Who needs help first" count={<span title={`${rows.length} people on the board`}>{rows.length}</span>} collapsed={collapsed} onToggle={toggle} display />
     {!collapsed && <>
-    <div className="tally"><span className="bignum crit">{critical}</span><span><b>critical</b></span></div>
+    <div className="triage-summary" aria-label="People by triage level">
+      {levels.map((level) => <button type="button" key={level.key} className={`triage-count triage-${level.key}`}
+        aria-label={`Filter ${level.label}: ${level.count} people`} aria-pressed={levelFilter === level.key}
+        onClick={() => setLevelFilter(levelFilter === level.key ? null : level.key)}>
+        <div><LevelGlyph level={level.key} size={14} /><b>{level.count}</b></div><span>{level.label}</span>
+      </button>)}
+    </div>
+    <p className="queue-explainer">{rows.length} people on the board · urgency score out of 100<br />Higher scores need help sooner. Select a person for evidence.</p>
+    {levelFilter && <button className="queue-reset" onClick={() => setLevelFilter(null)}>Show all {rows.length} people</button>}
     <div className="rows">
       {rows.length === 0 && <p className="empty">No one found yet. Survivors appear here the moment a robot reports a find.</p>}
-      {rows.map((row) => {
+      {rows.length > 0 && visibleRows.length === 0 && <p className="empty">No people in this triage level.</p>}
+      {visibleRows.map((row) => {
         const open = row.id === selectedId;
-        return <article key={String(row.id)} className={`row ${open ? 'sel' : ''}`}>
+        return <article key={String(row.id)} className={`row triage-${row.level} ${open ? 'sel' : ''}`}>
           <button className="row-main" aria-expanded={open} onClick={() => onSelect(open ? null : row.id)}>
             <span className="g"><LevelGlyph level={row.level} /></span>
-            <span className="addr"><span className={`lvl lvl-${row.level}`}>{LEVEL_TEXT[row.level] ?? row.level.toUpperCase()}</span>{row.place}</span>
-            <span className="side-r"><span className="score">{row.score}</span><span className={`st tone-${row.status.tone}`}>{row.status.text}</span></span>
+            <span className="addr"><span className={`lvl lvl-${row.level}`}>{LEVEL_TEXT[row.level] ?? row.level.toUpperCase()}</span><span className="place">{row.place}</span></span>
+            <span className="side-r"><span className="score-label">Urgency</span><span className="score" aria-label={row.score === '--' ? 'Not scored yet' : `Urgency score ${row.score} out of 100`}>{row.score}{row.score !== '--' && <small>/100</small>}</span></span>
             <span className="why">{row.why}</span>
+            <span className={`queue-status tone-${row.status.tone}`} title="For queued people, this timer is the time since their first report.">{row.status.text}</span>
           </button>
           {open && <div className="row-detail">
             <ul>{row.details.map((line) => <li key={line}>{line}</li>)}</ul>

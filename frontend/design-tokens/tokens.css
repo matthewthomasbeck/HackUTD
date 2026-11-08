@@ -34,6 +34,13 @@
   --crit-unknown: #6B7280;
   --crit-unknown-fg: #FFFFFF;
   --crit-unknown-ink: #4B5563;
+  --triage-immediate-bg: color-mix(in srgb, var(--crit-immediate) 9%, var(--panel));
+  --triage-delayed-bg: color-mix(in srgb, var(--crit-delayed) 16%, var(--panel));
+  --triage-minor-bg: color-mix(in srgb, var(--crit-minor) 7%, var(--panel));
+  --triage-unknown-bg: color-mix(in srgb, var(--crit-unknown) 7%, var(--panel));
+  --fs-ui-caption: 11px;
+  --fs-ui-detail: 13px;
+  --fs-ui-body: 14px;
   /* PROPOSED only: DESIGN.md leaves the resolved green TBD; confirm in Figma. */
   --status-resolved: #2E7D32;
   --status-resolved-fg: #FFFFFF;
