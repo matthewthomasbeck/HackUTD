@@ -12,22 +12,23 @@ import { setupSite } from './setup.ts';
 import { SimRobotRunner } from './simrobot.ts';
 import { formatTimelineDryRun, loadTimeline, runTimeline } from './timeline.ts';
 import { makeCondition } from './conditions.ts';
+import { MissionKind } from '../../spacetimedb-bindings/types.js';
 
 export type CommandName =
-  | 'help' | 'coords' | 'setup' | 'run start' | 'run end' | 'scale' | 'hidden'
+  | 'help' | 'coords' | 'setup' | 'run start' | 'run end' | 'scale' | 'hidden' | 'search'
   | 'robot start' | 'robot stop' | 'robot replay' | 'rescuers start' | 'rescuers stop'
   | 'spawn' | 'report' | 'dupes' | 'imbalance' | 'walk' | 'fail' | 'recover' | 'timeline' | 'status';
 
 export interface ParsedCommand { name: CommandName; args: string[] }
 
 const SHORT: Record<string, string[]> = {
-  rs: ['run', 'start'], re: ['run', 'end'], s: ['scale'], h: ['hidden'],
+  rs: ['run', 'start'], re: ['run', 'end'], s: ['scale'], h: ['hidden'], sr: ['search'],
   rb: ['robot', 'start'], rbx: ['robot', 'stop'], rr: ['robot', 'replay', 'house3'],
   rc: ['rescuers', 'start'], rcx: ['rescuers', 'stop'], sp: ['spawn'], rp: ['report'],
   d: ['dupes'], ib: ['imbalance'], w: ['walk'], ok: ['recover'], t: ['timeline'], '?': ['status'],
   f1: ['fail', 'robot-offline'], f2: ['fail', 'rescuer-silent'], f3: ['fail', 'device'], f4: ['fail', 'rescuer-drop'],
 };
-const SIMPLE = new Set(['help', 'coords', 'setup', 'scale', 'hidden', 'spawn', 'report', 'dupes', 'imbalance', 'walk', 'fail', 'recover', 'timeline', 'status']);
+const SIMPLE = new Set(['help', 'coords', 'setup', 'scale', 'hidden', 'search', 'spawn', 'report', 'dupes', 'imbalance', 'walk', 'fail', 'recover', 'timeline', 'status']);
 const PAIRED: Record<string, string[]> = { run: ['start', 'end'], robot: ['start', 'stop', 'replay'], rescuers: ['start', 'stop'] };
 const FAILURES = new Set(['robot-offline', 'rescuer-silent', 'rescuer-drop', 'device']);
 const LEVELS = new Set(['immediate', 'delayed', 'minor', 'unknown']);
@@ -57,6 +58,7 @@ export function validateCommand(text: string, config: DemoSiteConfig): ParsedCom
   if (name === 'dupes' && args[0] !== undefined && !/^\d+$/.test(args[0])) fail('n must be a non-negative integer');
   if (name === 'spawn' && (!LEVELS.has(args[0] ?? '') || !knownHouse(args.slice(1).join(' ')))) fail('usage: spawn <level> <house>');
   if (name === 'report' && !knownHouse(house)) fail('unknown house');
+  if (name === 'search' && !knownHouse(house)) fail('usage: search <house>');
   if (name === 'walk' && house && !knownHouse(house)) fail('unknown house');
   if (name === 'robot replay' && house !== 'house3') fail('usage: robot replay house3');
   if (name === 'imbalance' && args[0] !== undefined && !simKeys.has(args[0]) && !/^r\d+$/.test(args[0])) fail('choose a simulated rescuer key');
@@ -164,6 +166,13 @@ export class SimSession {
     } else if (name === 'hidden') {
       await logInjection(sim, 'hidden', config.hidden_survivors.map((item) => item.house).join(', '));
       console.log(`Armed ${this.robots.armHidden()} hidden survivors; ${config.robots.sim.robot_id} finds them when it searches those houses.`);
+    } else if (name === 'search') {
+      const label = args.join(' ');
+      const cell = Array.from(sim.connection.db.searchCell.iter()).find((row) => row.label === label);
+      if (!cell) throw new Error(`Search cell not found for ${label}. Run setup first.`);
+      await logInjection(sim, 'search', label);
+      await sim.connection.reducers.createMission({ robotId: config.robots.sim.robot_id, kind: MissionKind.SearchCells, targetCellIds: [cell.id], targetLat: undefined, targetLon: undefined, reason: `scripted demo search of ${label}`, chainId: 0n });
+      console.log(`Queued a search of ${label} for ${config.robots.sim.robot_id}.`);
     } else if (name === 'spawn') {
       console.log(`Simulated survivor ${await spawnSurvivor(config, this.pool, args[0]!, args.slice(1).join(' '))} reported by ${config.robots.sim.robot_id}.`);
     } else if (name === 'robot start') {
@@ -222,6 +231,7 @@ export const HELP = `HackUTD simulator commands (one-shot: npm run sim -- <comma
   scale [count] [--rate n] | s        Add seeded simulated survivors and partial cells (inj)
   dupes [n] | d                       Add n possible duplicate pairs near scale survivors (inj)
   hidden | h                          Arm the hidden survivors for sim-dog to find (inj)
+  search <house> | sr                 Queue a sim-dog search mission for one house, as the scripted demo does (inj)
   robot start | rb                    Run sim-dog: heartbeats, missions, cell search, findings
   robot stop | rbx                    Stop sim-dog
   robot replay house3 | rr            Fallback: sim-dog reports the house 3 detection with rehearsal media (inj)

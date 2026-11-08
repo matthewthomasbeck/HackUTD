@@ -50,6 +50,7 @@
   ],
   "extra_sim_rescuers": 36,
   "hidden_survivors": [
+    { "house": "house 3", "east_m": 2.4, "north_m": 3.2, "note": "back bedroom, under debris", "level": "immediate", "breathing": "detected", "rate_bpm": 8, "visibility_pct": 35 },
     { "house": "house 4", "east_m": 16.2, "north_m": 3.5, "note": "front room", "level": "delayed", "breathing": "detected", "rate_bpm": 18, "visibility_pct": 70 },
     { "house": "house 10", "east_m": 34.1, "north_m": -39.5, "note": "under stairs", "level": "immediate", "breathing": "not_detected", "visibility_pct": 15 }
   ],
