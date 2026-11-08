@@ -19,13 +19,20 @@ Its older files (produced water, leak detection, inspection robots, images) were
 `docs/PROJECT.md` has the proposed platform, glasses view, and the accounts and keys list.
 `docs/IDEAS.md` and `docs/notes/` are the history of the ideation phase (the grid outage idea led until this pivot), so do not treat them as current decisions.
 
-Code has landed in the SpacetimeDB module, simulator foundation, and glasses plugin.
+As of 2026-11-08, code has landed in the SpacetimeDB module (`backend/spacetimedb/`, with bindings in `backend/spacetimedb-bindings/`), the simulator (`backend/sim/`), the glasses service (`backend/glasses-service/`), the glasses plugin and fallback page (`frontend/glasses/`), and the dashboard (`frontend/dashboard/`).
+Eric's agents (`backend/agent/`) and perception service (`backend/perception/`) arrive with the merge of the local branch `integration/eric-agents`.
+The robot folders (`raspberrypi/`, `pico/`) hold only READMEs, so the sim robot stands in for the robot.
+The Maincloud database is `assess-0hw81` (owned by Cayden's `spacetime login`); the local fallback server uses the same name, and clients set `STDB_URI` and `STDB_DATABASE`.
+Open work and per-task status are in `docs/tasks/cayden.md` and `docs/TASKS.md`.
 Run the module typecheck and build with `cd backend/spacetimedb && npx tsc --noEmit -p . && spacetime build`.
 Run the module smoke suite with `cd backend/spacetimedb && npm test`.
-Run the glasses plugin checks with `cd frontend/glasses && npm test && npm run build`.
-Run the glasses service checks with `cd backend/glasses-service && npm test && npx tsc --noEmit`.
 Run the simulator checks with `cd backend/sim && npm test && npx tsc --noEmit`.
-Component run and integration commands remain in their specs in `docs/specs/`.
+Run the glasses service checks with `cd backend/glasses-service && npm test && npx tsc --noEmit`.
+Run the glasses plugin checks with `cd frontend/glasses && npm test && npm run build`.
+Run the dashboard checks with `cd frontend/dashboard && npm test && npm run build`.
+Run the agent checks with `cd backend/agent && npm test && npx tsc --noEmit`.
+Run the perception checks with `cd backend/perception && python -m pytest`.
+How to run each part is in `backend/README.md` and `frontend/README.md`; integration commands remain in the specs in `docs/specs/`.
 
 This is the team repo, https://github.com/matthewthomasbeck/HackUTD (public, branch `main`).
 The planning docs live in `docs/`, next to the code folders.

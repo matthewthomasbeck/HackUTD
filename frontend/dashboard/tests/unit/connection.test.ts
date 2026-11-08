@@ -4,7 +4,7 @@ import { dashboardConfigFromSearch, readToken, saveToken, tokenStorageKey } from
 const env = {
   VITE_STDB_URI: 'wss://example.test',
   VITE_STDB_URI_LOCAL: 'ws://192.168.1.20:3000',
-  VITE_STDB_DATABASE: 'hackutd-rubble',
+  VITE_STDB_DATABASE: 'assess-0hw81',
 };
 
 describe('dashboard connection configuration', () => {

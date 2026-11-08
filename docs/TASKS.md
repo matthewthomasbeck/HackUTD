@@ -54,6 +54,17 @@ Confirm the submission time and judging time, then write clock times into this t
 | 4 | End to end | everyone | The real robot finds a teammate in dim light, the board, the agents, and the real G2 glasses all react, and replay works |
 | 5 | Demo ready | everyone | Two full rehearsals of `specs/demo.md` with every fallback tried once; video recorded; slides final; Devpost submitted; feature freeze |
 
+### Checkpoint status (2026-11-08)
+
+- Checkpoint 1: the module half is done.
+  The module is published locally and on Maincloud as `assess-0hw81`, with bindings in `backend/spacetimedb-bindings/` and 62 passing smoke checks.
+  The robot half is open: `raspberrypi/` and `pico/` hold only READMEs, and Camille's bridge is not pushed, so no bridge heartbeat has reached the module yet.
+- Checkpoint 2: the whole flow with no robot runs in the simulator, but it is not marked passed.
+  The sim robot finds survivors, and the dashboard and the glasses service show changes live.
+  With Eric's agents merged locally (`integration/eric-agents`) and `LLM_MODE=mock`, the orchestrator proposed, the auditor reviewed, and the comms agent briefed against the live module.
+  Still open: perception scoring a sim detection in the same run, a real Nemotron key, and one recorded run with its run id.
+- Checkpoints 3 to 5: not started; they need the real robot, the real G2, and rehearsals.
+
 ## What blocks what
 
 1. Cayden's SpacetimeDB module (C1) unblocks everyone; publish a skeleton with the core tables early, even before every reducer is done.

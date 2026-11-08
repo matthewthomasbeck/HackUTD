@@ -115,7 +115,7 @@ backend/perception/
 
 ```
 STDB_URI=https://maincloud.spacetimedb.com    # or http://<laptop-a-ip>:3000 for the local fallback server
-STDB_DATABASE=hackutd-rubble                  # from spacetimedb.md section 1.4
+STDB_DATABASE=assess-0hw81                  # from spacetimedb.md section 1.4
 STDB_TOKEN=                                   # empty on first run; the service creates and saves one
 PUBLIC_BASE_URL=http://<laptop LAN IP>:8080   # what the Pi and dashboard use to reach this service
 CORS_ORIGINS=http://localhost:5180,http://<laptop A IP>:5180   # dashboard (Vite on port 5180, dashboard.md)
@@ -654,7 +654,7 @@ stdb.call("set_critical_score", [survivor_id, enc_enum(level), score, score_conf
 - A 4xx or 530 is a reducer rejection: log the response text, mark the job `error`, do not retry.
 - If `report_breathing` fails, do not call `set_critical_score` for that job; the re-score timer will score the survivor later from what the database holds.
 - If SpacetimeDB is unreachable for longer than the retries, keep the result in SQLite as `pending_write` and retry every 10 s in order.
-- The exact argument lists come from `spacetimedb.md` and the regenerated bindings (`spacetimedb.md` section 8.5), so check `spacetime describe hackutd-rubble reducers --json` before the first call.
+- The exact argument lists come from `spacetimedb.md` and the regenerated bindings (`spacetimedb.md` section 8.5), so check `spacetime describe assess-0hw81 reducers --json` before the first call.
 
 ### 8.5 Reading rows over HTTP SQL (fallback)
 
