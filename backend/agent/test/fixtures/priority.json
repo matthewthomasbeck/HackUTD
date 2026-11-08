@@ -1,0 +1,46 @@
+[
+  {
+    "agent": "orchestrator",
+    "contains": ["#1 house 2 DELAYED", "#2 house 4 IMMEDIATE"],
+    "turn": 0,
+    "reply": {
+      "tool_calls": [
+        {
+          "name": "propose_assignment",
+          "arguments": {
+            "reason": "First detected survivor; Rescuer A nearest",
+            "survivor_id": 1,
+            "rescuer_identity": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "agent": "orchestrator",
+    "contains": ["#2 house 4 IMMEDIATE"],
+    "turn": 1,
+    "reply": {
+      "tool_calls": [
+        {
+          "name": "propose_assignment",
+          "arguments": {
+            "reason": "No signs of life detected, low confidence: tier 0 first; Rescuer A is the only free rescuer",
+            "survivor_id": 2,
+            "rescuer_identity": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "delegate",
+          "arguments": {
+            "reason": "Brief Rescuer A on #2",
+            "to_agent": "comms_agent",
+            "kind": "brief_rescuer",
+            "priority": "critical",
+            "survivor_id": 2
+          }
+        }
+      ]
+    }
+  }
+]

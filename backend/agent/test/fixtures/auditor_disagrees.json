@@ -1,0 +1,54 @@
+[
+  {
+    "agent": "orchestrator",
+    "contains": ["#1 house 3 IMMEDIATE", "OPEN FLAGS: none"],
+    "turn": 0,
+    "reply": {
+      "tool_calls": [
+        {
+          "name": "propose_assignment",
+          "arguments": {
+            "reason": "Rescuer B is available because B is free",
+            "survivor_id": 1,
+            "rescuer_identity": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "agent": "orchestrator",
+    "contains": ["OPEN FLAGS: #1 proposal_disagree"],
+    "turn": 0,
+    "reply": {
+      "tool_calls": [
+        {
+          "name": "set_flag_status",
+          "arguments": {
+            "reason": "Proposal is already on Rescuer B's glasses; moving #1 to A is a coordinator call",
+            "flag_id": 1,
+            "status": "acted"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "agent": "auditor",
+    "contains": ["TASK: review", "to Rescuer B"],
+    "turn": 0,
+    "reply": {
+      "tool_calls": [
+        {
+          "name": "submit_review",
+          "arguments": {
+            "reason": "Rescuer A is free and 60 m closer (40 m vs 100 m); the reason given cites no fact",
+            "verdict": "disagree",
+            "flag_kind": "proposal_disagree",
+            "suggested_action": "propose Rescuer A for #1 if B declines"
+          }
+        }
+      ]
+    }
+  }
+]
