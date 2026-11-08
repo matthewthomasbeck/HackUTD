@@ -29,7 +29,7 @@ motion:
   drive_only:
     hold_stance: true               # hold legs at legs.stance_height_m if the Maestros are up
   mecanum:
-    wheel_radius_m: 0.0             # TBD
+    wheel_radius_m: 0.07775         # 155.5 mm diameter (Camille, 2026-11-08)
     half_track_lx_m: 0.0            # TBD, half the left-right spacing at default stance
     half_base_ly_m: 0.0             # TBD, half the front-back spacing at default stance
     wheel_order: [1, 3, 4, 2]       # paper wheel (1 FL, 2 FR, 3 BL, 4 BR) on [A ch0, A ch1, B ch0, B ch1]; from the DCMC wiring, floor check pending
