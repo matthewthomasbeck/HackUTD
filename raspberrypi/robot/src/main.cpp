@@ -302,8 +302,22 @@ int main(int argc, char** argv) {
   if (!mecanum_dimensions_known(movement_config.mecanum)) {
     log::warn("motion: mecanum dimensions TBD (motion.mecanum.*), so the wheels stay at 0");
   }
-  MovementThread movement(Actuators{hw.dc_a, hw.dc_b, hw.maestro_a, hw.maestro_b, make_leg_ik_mock()},
-                          movement_config);
+  movement_config.servo_max_rate_us_per_s = cfg.legs.max_rate_us_per_s;
+  std::shared_ptr<ILegIK> leg_ik = make_leg_ik_mock();
+  if (cfg.legs.impl == "two_link") {
+    LegIkConfig ik{cfg.legs.l1_m, cfg.legs.l2_m, cfg.legs.stance_height_m, cfg.legs.stance_x_m, cfg.legs.knee_bend, {}};
+    bool all_calibrated = true;
+    for (std::size_t l = 0; l < 4; ++l) {
+      for (std::size_t j = 0; j < 3; ++j) {
+        const JointSettings& s = cfg.legs.joints[l][j];
+        ik.joints[l][j] = JointCal{s.bus, s.channel, s.zero_us, s.us_per_rad, s.direction, s.min_us, s.max_us};
+        all_calibrated = all_calibrated && ik.joints[l][j].calibrated();
+      }
+    }
+    if (!all_calibrated) log::warn("legs: some joints are not calibrated (robot_diag legcal), so the legs will not move");
+    leg_ik = make_leg_ik_2link(ik);
+  }
+  MovementThread movement(Actuators{hw.dc_a, hw.dc_b, hw.maestro_a, hw.maestro_b, leg_ik}, movement_config);
   VisionThread vision(hw.camera, hw.detector, cfg.vision_rate_hz);
   movement.start();
   vision.start();

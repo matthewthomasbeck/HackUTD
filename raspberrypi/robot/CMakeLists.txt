@@ -109,6 +109,7 @@ add_library(robot_core STATIC
   src/state/state_machine.cpp
   src/state/safety_gate.cpp
   src/motion/leg_ik_mock.cpp
+  src/motion/leg_ik_2link.cpp
   src/motion/movement_thread.cpp
   src/vision/vision_thread.cpp
   src/vision/detector_coral.cpp
@@ -173,6 +174,7 @@ add_executable(robot_tests
   tests/test_dc_driver.cpp
   tests/test_mecanum.cpp
   tests/test_calibration.cpp
+  tests/test_legs.cpp
 )
 target_compile_options(robot_tests PRIVATE ${ROBOT_WARNINGS})
 target_compile_definitions(robot_tests PRIVATE ROBOT_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/config")

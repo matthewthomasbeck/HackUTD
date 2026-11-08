@@ -6,19 +6,25 @@
 //   robot_diag [--config PATH] wheel fl|fr|bl|br DUTY [SECONDS]   + rolls the robot forward
 //   robot_diag [--config PATH] drive VX_MPS VY_MPS WZ_DPS [SECONDS] through the mecanum mixer
 //   robot_diag [--config PATH] calibrate                 guided: directions, top speed, lx + ly, radius
+//   robot_diag [--config PATH] servo a|b CHANNEL US      one leg servo to a raw pulse (ramped)
+//   robot_diag [--config PATH] joint LEG_JOINT DEGREES   one calibrated joint, e.g. joint FL_knee 30
+//   robot_diag [--config PATH] legcal [LEG_JOINT]        guided leg servo calibration (all 12, or one)
 //
 // DUTY is -1..1, SECONDS defaults to 1.5 and is capped at 10. Ctrl+C stops the motors at once.
 // motor and wheel ignore the mixer and its dimensions, so they work before calibration.
 // drive goes through the same mixer as the robot and respects limits.max_lin_mps / max_ang_dps.
 
 #include <atomic>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <thread>
 #include <vector>
@@ -28,6 +34,8 @@
 #include "hal/dc_driver.hpp"
 #include "hal/device_mock.hpp"
 #include "hal/pico_link.hpp"
+#include "hal/servo_bus.hpp"
+#include "motion/leg_ik.hpp"
 #include "motion/calibration.hpp"
 #include "motion/mecanum.hpp"
 
@@ -406,13 +414,231 @@ int cmd_calibrate(const std::string& config) {
   return 0;
 }
 
+
+/*************** LEG SERVOS ***************/
+
+// Maestro A and B from the config. A mock Maestro (laptop config) accepts everything.
+struct ServoRig {
+  Config cfg;
+  std::shared_ptr<IServoBus> bus[2];
+  std::map<std::pair<int, int>, double> now;  // last pulse sent per (bus, channel)
+
+  // Ramps from the last pulse to `us` at 400 us/s (a jump if this channel was never sent),
+  // so a typo moves a leg slowly instead of slamming it. Ctrl+C stops the ramp where it is.
+  bool move(int b, int channel, double us) {
+    if (!bus[b] || !bus[b]->ready()) return false;
+    us = std::max(500.0, std::min(2500.0, us));
+    auto it = now.find({b, channel});
+    double at = it == now.end() ? us : it->second;
+    while (!g_stop && at != us) {
+      const double step = 8;  // 8 us every 20 ms = 400 us/s
+      at = std::fabs(us - at) <= step ? us : at + (us > at ? step : -step);
+      bus[b]->set_target_us(channel, at);
+      now[{b, channel}] = at;
+      std::this_thread::sleep_for(20ms);
+    }
+    if (it == now.end()) {
+      bus[b]->set_target_us(channel, us);
+      now[{b, channel}] = us;
+    }
+    return !g_stop;
+  }
+};
+
+bool open_servos(const std::string& config_path, ServoRig& rig) {
+  const ConfigResult loaded = load_config_file(config_path);
+  if (!loaded.ok) {
+    std::fprintf(stderr, "config %s: %s\n", config_path.c_str(), loaded.error.c_str());
+    return false;
+  }
+  rig.cfg = loaded.config;
+  const char* names[2] = {"maestro_a", "maestro_b"};
+  bool any = false;
+  for (int b = 0; b < 2; ++b) {
+    const std::string n = names[b];
+    rig.bus[b] = rig.cfg.is_mock(n) ? make_servo_mock(n)
+                                    : make_servo_maestro(n, rig.cfg.device_path.at(n), rig.cfg.device_baud.at(n));
+    const InitResult r = rig.bus[b]->init();
+    std::printf("%s: %s (%s)%s\n", n.c_str(), to_string(r.status), r.detail.c_str(), rig.cfg.is_mock(n) ? " [mock]" : "");
+    any = any || r.status != DeviceStatus::FAILED;
+  }
+  return any;
+}
+
+// "FL_knee" -> (leg, joint); false if unknown.
+bool parse_joint(const std::string& name, int& leg, int& joint) {
+  for (int l = 0; l < kLegCount; ++l) {
+    for (int j = 0; j < kJointsPerLeg; ++j) {
+      if (name == std::string(kLegNames[l]) + "_" + kJointNames[j]) {
+        leg = l;
+        joint = j;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+JointCal cal_from(const JointSettings& s) {
+  return JointCal{s.bus, s.channel, s.zero_us, s.us_per_rad, s.direction, s.min_us, s.max_us};
+}
+
+int cmd_servo(const std::string& config, const std::string& which, int channel, double us) {
+  if ((which != "a" && which != "b") || channel < 0 || channel > 23) {
+    std::fprintf(stderr, "servo: use a or b, channel 0..23\n");
+    return 2;
+  }
+  ServoRig rig;
+  if (!open_servos(config, rig)) return 1;
+  const int b = which == "a" ? 0 : 1;
+  std::printf("Maestro %s channel %d -> %.0f us (the servo holds it after this exits)\n", which.c_str(), channel, us);
+  return rig.move(b, channel, us) ? 0 : 130;
+}
+
+int cmd_joint(const std::string& config, const std::string& name, double degrees) {
+  int leg = 0, joint = 0;
+  if (!parse_joint(name, leg, joint)) {
+    std::fprintf(stderr, "joint: use LEG_JOINT like FL_hip (legs FL FR BL BR; abduction, hip, knee)\n");
+    return 2;
+  }
+  ServoRig rig;
+  if (!open_servos(config, rig)) return 1;
+  const JointCal cal = cal_from(rig.cfg.legs.joints[static_cast<std::size_t>(leg)][static_cast<std::size_t>(joint)]);
+  if (!cal.calibrated()) {
+    std::fprintf(stderr, "%s is not calibrated yet: run `robot_diag legcal %s`\n", name.c_str(), name.c_str());
+    return 1;
+  }
+  const double us = cal.pulse_for(degrees * calibration::kPi / 180.0);
+  if (us < cal.min_us || us > cal.max_us) {
+    std::fprintf(stderr, "%s at %.1f deg is %.0f us, outside its limits %.0f..%.0f us\n", name.c_str(), degrees, us,
+                 cal.min_us, cal.max_us);
+    return 2;
+  }
+  std::printf("%s -> %.1f deg = %.0f us\n", name.c_str(), degrees, us);
+  return rig.move(cal.bus, cal.channel, us) ? 0 : 130;
+}
+
+// Interactive jog: a number sends that pulse, + / - move 10 us, ++ / -- move 50 us,
+// "ok" accepts the current pulse. Returns the accepted pulse, or empty on Ctrl+C / EOF.
+std::optional<double> jog(ServoRig& rig, int b, int channel, double start, const std::string& goal) {
+  double us = start;
+  if (!rig.move(b, channel, us)) return std::nullopt;
+  std::printf("    %s\n    Type a pulse (e.g. 1620), + / - (10 us), ++ / -- (50 us), then ok.\n", goal.c_str());
+  while (!g_stop) {
+    const std::string a = ask("    [" + std::to_string(static_cast<int>(std::lround(us))) + " us]");
+    if (g_stop) break;
+    if (a == "ok") return us;
+    double next = us;
+    if (a == "+") next += 10;
+    else if (a == "-") next -= 10;
+    else if (a == "++") next += 50;
+    else if (a == "--") next -= 50;
+    else if (!a.empty() && std::isdigit(static_cast<unsigned char>(a[0]))) next = std::atof(a.c_str());
+    else continue;
+    next = std::max(500.0, std::min(2500.0, next));
+    if (!rig.move(b, channel, next)) break;
+    us = next;
+  }
+  return std::nullopt;
+}
+
+// Where angle 0 and the reference angle are, per joint (Rubble Dog assembly, motion/leg_ik.hpp).
+const char* zero_pose(int joint) {
+  switch (joint) {
+    case Abduction: return "leg hanging straight down, not swung in or out";
+    case Hip: return "femur pointing straight down";
+    default: return "tibia in line with the femur (knee straight)";
+  }
+}
+const char* reference_pose(int joint) {
+  switch (joint) {
+    case Abduction: return "leg swung OUT, away from the body, by a known angle (a set square gives 90, half of it 45)";
+    case Hip: return "femur swung FORWARD to a known angle (horizontal forward = 90)";
+    default: return "tibia folded FORWARD from the femur to a known angle (right angle = 90)";
+  }
+}
+
+int cmd_legcal(const std::string& config, const std::string& only) {
+  ServoRig rig;
+  if (!open_servos(config, rig)) return 1;
+  std::printf("\nLeg calibration. Hang the robot so every leg swings freely and nothing can be hit.\n"
+              "Ctrl+C stops at once. Each joint: channel, zero pose, one reference angle, then both limits.\n");
+  if (!confirm("Robot supported, legs free?")) return 1;
+
+  std::vector<std::string> results;
+  for (int l = 0; l < kLegCount && !g_stop; ++l) {
+    for (int j = 0; j < kJointsPerLeg && !g_stop; ++j) {
+      const std::string name = std::string(kLegNames[l]) + "_" + kJointNames[j];
+      if (!only.empty() && only != name) continue;
+      JointSettings s = rig.cfg.legs.joints[static_cast<std::size_t>(l)][static_cast<std::size_t>(j)];
+      std::printf("\n== %s ==\n", name.c_str());
+
+      // 1. Channel.
+      if (s.channel < 0) {
+        const std::string c = ask("  Which Maestro A channel is " + name + " plugged into (0..23, or 'skip')?");
+        if (c == "skip" || c.empty()) continue;
+        s.channel = std::atoi(c.c_str());
+      } else {
+        std::printf("  Channel %d on Maestro %c (from robot.yaml).\n", s.channel, s.bus == 0 ? 'A' : 'B');
+      }
+      if (s.channel < 0 || s.channel > 23) continue;
+
+      // 2. Zero pose.
+      std::printf("  Step 1: zero pose.\n");
+      const auto zero = jog(rig, s.bus, s.channel, s.zero_us, std::string("Move it until: ") + zero_pose(j) + ".");
+      if (!zero) break;
+
+      // 3. Reference angle: gives us_per_rad and direction.
+      std::printf("  Step 2: reference angle.\n");
+      const auto ref = jog(rig, s.bus, s.channel, *zero, std::string("Move it to: ") + reference_pose(j) + ".");
+      if (!ref) break;
+      const double deg = std::atof(ask("    What angle is it at now, in degrees (e.g. 90)?").c_str());
+      if (std::fabs(deg) < 10 || std::fabs(*ref - *zero) < 20) {
+        std::printf("  Too small a move to measure (need 10+ degrees and 20+ us). Skipping %s.\n", name.c_str());
+        continue;
+      }
+      const double rad = deg * calibration::kPi / 180.0;
+      s.zero_us = *zero;
+      s.us_per_rad = std::fabs(*ref - *zero) / std::fabs(rad);
+      s.direction = (*ref - *zero) * rad > 0 ? 1 : -1;
+
+      // 4. Limits, 20 us back from wherever it would hit.
+      std::printf("  Step 3: limits. Move slowly; stop BEFORE anything touches or the servo strains.\n");
+      const auto lo = jog(rig, s.bus, s.channel, *zero, "Move toward the LOW-pulse end until it is just short of hitting.");
+      if (!lo) break;
+      const auto hi = jog(rig, s.bus, s.channel, *zero, "Now toward the HIGH-pulse end, same thing.");
+      if (!hi) break;
+      s.min_us = std::min(*lo, *hi) + 20;
+      s.max_us = std::max(*lo, *hi) - 20;
+      rig.move(s.bus, s.channel, s.zero_us);
+
+      char line[256];
+      std::snprintf(line, sizeof(line),
+                    "    %-14s { bus: %d, channel: %d, zero_us: %.0f, us_per_rad: %.1f, direction: %d, min_us: %.0f, max_us: %.0f }",
+                    (name + ":").c_str(), s.bus, s.channel, s.zero_us, s.us_per_rad, s.direction, s.min_us, s.max_us);
+      results.push_back(line);
+      std::printf("  %s: %.1f us/rad (%.0f us per 90 deg), direction %+d, limits %.0f..%.0f us\n", name.c_str(),
+                  s.us_per_rad, s.us_per_rad * calibration::kPi / 2, s.direction, s.min_us, s.max_us);
+    }
+  }
+  if (results.empty()) return g_stop ? 130 : 1;
+  std::printf("\nPaste under legs.joints in robot.yaml:\n\n");
+  for (const auto& r : results) std::printf("%s\n", r.c_str());
+  std::printf("\nCheck each with `robot_diag joint <LEG_JOINT> 0` (zero pose) and `... 45`.\n"
+              "Once all 12 are in, set legs.impl: two_link and servos.max_rate_us_per_s (start at 300).\n");
+  return 0;
+}
+
 void usage() {
   std::fprintf(stderr,
                "usage: robot_diag [--config PATH] pico [SECONDS]\n"
                "       robot_diag [--config PATH] motor a0|a1|b0|b1 DUTY [SECONDS]\n"
                "       robot_diag [--config PATH] wheel fl|fr|bl|br DUTY [SECONDS]\n"
                "       robot_diag [--config PATH] drive VX_MPS VY_MPS WZ_DPS [SECONDS]\n"
-               "       robot_diag [--config PATH] calibrate\n");
+               "       robot_diag [--config PATH] calibrate\n"
+               "       robot_diag [--config PATH] servo a|b CHANNEL US\n"
+               "       robot_diag [--config PATH] joint LEG_JOINT DEGREES\n"
+               "       robot_diag [--config PATH] legcal [LEG_JOINT]\n");
 }
 
 }  // namespace
@@ -438,6 +664,9 @@ int main(int argc, char** argv) {
   if (cmd == "wheel" && args.size() >= 3) return cmd_wheel(config, args[1], duty_arg(args[2].c_str()), num(3, 1.5));
   if (cmd == "drive" && args.size() >= 4) return cmd_drive(config, num(1, 0), num(2, 0), num(3, 0), num(4, 2));
   if (cmd == "calibrate") return cmd_calibrate(config);
+  if (cmd == "servo" && args.size() >= 4) return cmd_servo(config, args[1], std::atoi(args[2].c_str()), num(3, 1500));
+  if (cmd == "joint" && args.size() >= 3) return cmd_joint(config, args[1], num(2, 0));
+  if (cmd == "legcal") return cmd_legcal(config, args.size() >= 2 ? args[1] : "");
   usage();
   return 2;
 }

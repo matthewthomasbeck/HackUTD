@@ -56,6 +56,26 @@ struct MecanumSettings {
   std::array<bool, 4> invert{false, false, false, false};
 };
 
+// legs.joints.<LEG>_<joint>: one leg servo's calibration (robot_diag legcal).
+struct JointSettings {
+  int bus = 0;
+  int channel = -1;
+  double zero_us = 1500;
+  double us_per_rad = 0;
+  int direction = 1;
+  double min_us = 1500;
+  double max_us = 1500;
+};
+
+// legs.* (docs/specs/robot.md section 12.5).
+struct LegsSettings {
+  std::string impl;  // mock | two_link
+  double l1_m = 0, l2_m = 0, stance_height_m = 0, stance_x_m = 0;
+  int knee_bend = 1;
+  std::array<std::array<JointSettings, 3>, 4> joints{};  // [FL FR BL BR][abduction hip knee]
+  double max_rate_us_per_s = 0;                           // servos.max_rate_us_per_s
+};
+
 struct Config {
   std::string robot_id;
   std::string robot_name;
@@ -83,6 +103,7 @@ struct Config {
   std::map<std::string, int> device_baud;
   std::map<std::string, DcDriverSettings> dc_driver;  // dc_driver_a, dc_driver_b
   MecanumSettings mecanum;
+  LegsSettings legs;
   int camera_width = 0;
   int camera_height = 0;
   double camera_fps = 0;

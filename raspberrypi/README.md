@@ -106,6 +106,20 @@ Stop the robot program first; `robot_diag` drives the devices directly. Ctrl+C s
 `calibrate` runs 4 steps: wheel directions (on blocks, fixes `invert`), top wheel speed (on blocks, count turns of a tape mark), `lx + ly` (spin on the floor, measured with the IMU gyro), and an optional radius check (drive at a wall, measured with the TF-Luna).
 Only `lx + ly` appears in the mixer, so the spin measures exactly what it needs at the real stance.
 Calibrate at the stance the robot drives in: moving the legs changes the wheel spacing.
+
+## Leg bring-up and calibration (`robot_diag`, task R8)
+
+Each leg has 3 servos on Maestro A (abduction, hip, knee). Each servo maps an angle to a pulse with its own calibration in `legs.joints` (`pulse_us = zero_us + direction * us_per_rad * angle`). The zero pose comes from the Rubble Dog assembly: femur straight down, tibia in line with the femur, leg hanging straight.
+
+```
+./build/robot_diag --config config/robot.yaml servo a 3 1500      # one channel to a raw pulse (ramped)
+./build/robot_diag --config config/robot.yaml legcal              # guided, all 12 joints
+./build/robot_diag --config config/robot.yaml legcal FL_knee      # or one joint
+./build/robot_diag --config config/robot.yaml joint FL_knee 45    # check a calibrated joint
+```
+
+`legcal` per joint: which channel it is on, jog to the zero pose, jog to a known reference angle (90 degrees is easiest; it measures `us_per_rad` and `direction`), then jog to each end and stop short of hitting (`min_us` / `max_us`, kept 20 us inside). Every jog is ramped at 400 us/s, so a typo cannot slam a leg.
+When all 12 are pasted in, set `legs.impl: two_link`, `legs.stance_height_m`, and `servos.max_rate_us_per_s`. The IK then rejects (never clamps) any goal the leg cannot reach or that would pass a limit, and the movement thread moves each servo no faster than that rate. While a leg is lifted, the safety gate holds translation at zero.
 CMake finds libcamera, OpenCV, and the Edge TPU runtime (libedgetpu plus TensorFlow Lite) if installed and prints `robot backends: ...`; without them the real devices report FAILED and the mocks still work.
 
 ## How one tick works
