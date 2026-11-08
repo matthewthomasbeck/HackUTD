@@ -1,5 +1,8 @@
 [
   { "at": "0:00", "cmd": "run start Judging" },
+  { "cmd": "rescuers start" },
+  { "cmd": "hidden" },
+  { "cmd": "robot start" },
   { "at": "0:20", "cmd": "scale 300" },
   { "say": "Approve the search of house 3 on Screen A, point at Screen B" },
   { "await": "survivor_in", "house": "house 3", "timeout_s": 120, "else": "robot replay house3" },

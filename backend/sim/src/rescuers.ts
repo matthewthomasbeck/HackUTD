@@ -9,6 +9,9 @@ import { mulberry32 } from './rng.ts';
 export class RescuerRunner {
   private readonly controllers = new Map<string, AbortController>();
   private readonly paused = new Set<string>();
+  private readonly dropped = new Set<string>();
+  private readonly held = new Set<string>();
+  private readonly positions = new Map<string, LatLon>();
 
   constructor(private readonly config: DemoSiteConfig, private readonly pool: SimPool) {}
 
@@ -25,15 +28,28 @@ export class RescuerRunner {
     }).finally(() => this.controllers.delete(actor.key));
   }
 
+  anyRunning(): boolean { return this.controllers.size > 0; }
+
   pause(key: string): void { this.paused.add(key); }
   resume(key: string): void {
     this.paused.delete(key);
+    this.dropped.delete(key);
     const actor = this.pool.get(key);
     this.startActor(actor);
   }
 
+  hold(key: string): void { this.held.add(key); }
+  releaseHolds(): void { this.held.clear(); }
+
+  injectedKeys(): string[] { return [...new Set([...this.paused, ...this.dropped])]; }
+
+  positionOf(key: string): LatLon | undefined { return this.positions.get(key) ?? this.startPoint(key); }
+
+  placeNear(key: string, point: LatLon): void { this.positions.set(key, point); }
+
   drop(key: string): void {
     this.pause(key);
+    this.dropped.add(key);
     this.controllers.get(key)?.abort();
     this.controllers.delete(key);
     const actor = this.pool.get(key);
@@ -50,7 +66,7 @@ export class RescuerRunner {
   private async runActor(actor: SimActor, signal: AbortSignal): Promise<void> {
     const start = this.startPoint(actor.key);
     if (!start) return;
-    let position = start;
+    if (!this.positions.has(actor.key)) this.positions.set(actor.key, start);
     const random = mulberry32(this.config.scale.seed + actor.key.split('').reduce((seed, char) => seed * 31 + char.charCodeAt(0), 0));
     let lastPosition = 0;
     const completed = new Set<string>();
@@ -71,10 +87,10 @@ export class RescuerRunner {
       }
       const now = Date.now();
       if (now - lastPosition >= this.config.timing.position_ms) {
-        await actor.connection.reducers.participantUpdatePosition(position);
+        await actor.connection.reducers.participantUpdatePosition(this.positions.get(actor.key)!);
         lastPosition = now;
       }
-      const assignment = Array.from(actor.connection.db.myAssignment.iter()).find((row) => (
+      const assignment = this.held.has(actor.key) ? undefined : Array.from(actor.connection.db.myAssignment.iter()).find((row) => (
         sameIdentity(row.rescuerIdentity, actor.identity) && row.status.tag === 'Proposed' && !completed.has(row.id.toString())
       ));
       if (assignment) {
@@ -93,7 +109,7 @@ export class RescuerRunner {
         }
         const survivor = await waitForValue(actor, () => Array.from(actor.connection.db.mySurvivor.iter()).find((row) => row.id === assignment.survivorId), 10_000);
         if (!survivor) throw new Error(`Survivor ${assignment.survivorId} disappeared from the subscription`);
-        position = await this.walkTo(actor, position, { lat: survivor.lat, lon: survivor.lon }, signal);
+        await this.walkTo(actor, { lat: survivor.lat, lon: survivor.lon }, signal);
         if (signal.aborted) return;
         try { await actor.connection.reducers.markReached({ survivorId: survivor.id }); }
         catch (error) { console.warn(`Rescuer ${actor.name} could not mark reached: ${errorText(error)}`); }
@@ -103,7 +119,7 @@ export class RescuerRunner {
           try { await actor.connection.reducers.resolveSurvivor({ survivorId: survivor.id, resolution: Resolution.Rescued, note: 'simulated rescuer reached the person' }); }
           catch (error) { console.warn(`Rescuer ${actor.name} could not resolve survivor: ${errorText(error)}`); }
         }
-        position = await this.walkTo(actor, position, start, signal);
+        await this.walkTo(actor, start, signal);
         lastPosition = 0;
       } else {
         await delay(200, signal);
@@ -114,17 +130,17 @@ export class RescuerRunner {
     }
   }
 
-  private async walkTo(actor: SimActor, from: LatLon, target: LatLon, signal: AbortSignal): Promise<LatLon> {
-    let point = from;
+  private async walkTo(actor: SimActor, target: LatLon, signal: AbortSignal): Promise<void> {
     const speed = 1.4 * this.config.timing.speedup;
     while (!signal.aborted) {
+      const point = this.positions.get(actor.key)!;
       const distance = distanceMeters(point, target);
-      if (distance <= 5) return point;
-      point = walkToward(point, target, Math.min(distance, speed * this.config.timing.position_ms / 1000));
-      await actor.connection.reducers.participantUpdatePosition(point);
+      if (distance <= 5) return;
+      const next = walkToward(point, target, Math.min(distance, speed * this.config.timing.position_ms / 1000));
+      this.positions.set(actor.key, next);
+      await actor.connection.reducers.participantUpdatePosition(next);
       await delay(this.config.timing.position_ms, signal);
     }
-    return point;
   }
 
   private startPoint(key: string): LatLon | undefined {

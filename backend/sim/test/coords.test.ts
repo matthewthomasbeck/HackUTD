@@ -9,8 +9,8 @@ test('lists the named demo points as latitude and longitude', () => {
 
   assert.deepEqual(byLabel.get('site center'), {
     label: 'site center',
-    lat: 32.9857,
-    lon: -96.7502,
+    lat: 32.9968745,
+    lon: -96.7704708,
   });
   assert.ok(byLabel.has('house 3'));
   assert.ok(byLabel.has('house 4'));

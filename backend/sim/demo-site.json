@@ -1,52 +1,64 @@
 {
-  "site": {
-    "name": "Demo: tornado damage, Richardson TX (simulated)",
-    "center_lat": 32.9857,
-    "center_lon": -96.7502,
-    "radius_m": 483,
-    "demo_mode": true,
-    "require_mission_approval": true
-  },
-  "cell_size_m": 30,
+  "site": { "name": "Demo: tornado, Dallas TX (simulated)", "center_lat": 32.9968745, "center_lon": -96.7704708, "radius_m": 483, "demo_mode": true, "require_mission_approval": true },
+  "cell_size_m": 15,
   "houses": [
-    { "label": "house 1",  "east_m": -120, "north_m": 140 },
-    { "label": "house 2",  "east_m": -60,  "north_m": 140 },
-    { "label": "house 3",  "east_m": 0,    "north_m": 140, "demo_pile": true },
-    { "label": "house 4",  "east_m": 60,   "north_m": 140, "view_blocked": true },
-    { "label": "house 5",  "east_m": 120,  "north_m": 140 },
-    { "label": "house 6",  "east_m": -120, "north_m": 70 },
-    { "label": "house 7",  "east_m": -60,  "north_m": 70 },
-    { "label": "house 8",  "east_m": 0,    "north_m": 70 },
-    { "label": "house 9",  "east_m": 60,   "north_m": 70 },
-    { "label": "house 10", "east_m": 120,  "north_m": 70 },
-    { "label": "apartments 11", "east_m": -60, "north_m": 0 },
-    { "label": "house 12", "east_m": 60,   "north_m": 0 }
+    { "label": "house 1", "east_m": -33.5, "north_m": 0.8 },
+    { "label": "house 2", "east_m": -17.2, "north_m": 1.3 },
+    { "label": "house 3", "east_m": 1.2, "north_m": 0.7, "demo_pile": true },
+    { "label": "house 4", "east_m": 18.2, "north_m": 0.5, "view_blocked": true },
+    { "label": "house 5", "east_m": 36.7, "north_m": 0.0 },
+    { "label": "house 6", "east_m": -35.3, "north_m": -42.5 },
+    { "label": "house 7", "east_m": -16.3, "north_m": -38.9 },
+    { "label": "house 8", "east_m": 1.9, "north_m": -40.2 },
+    { "label": "house 9", "east_m": 18.1, "north_m": -41.6 },
+    { "label": "house 10", "east_m": 36.1, "north_m": -42.5 },
+    { "label": "apartments 11", "east_m": -5.0, "north_m": 45.9 },
+    { "label": "house 12", "east_m": 25.5, "north_m": 47.7 }
   ],
   "scale_lots": { "pitch_m": 60, "label_prefix": "lot", "exclude_within_m": 40 },
-  "demo_anchor": { "label": "house 3 front door", "east_m": 0, "north_m": 125 },
+  "demo_anchor": { "label": "house 3 front door", "east_m": 1.2, "north_m": -14.3 },
   "robots": {
     "real": { "robot_id": "dog1" },
-    "sim":  { "robot_id": "sim-dog", "home": { "east_m": 0, "north_m": -40 } },
+    "sim": {
+      "robot_id": "sim-dog",
+      "home": { "east_m": 0, "north_m": -20 }
+    },
     "fleet_size": 4
   },
   "rescuers": [
     { "key": "cayden", "name": "Cayden", "real": true },
-    { "key": "r1", "name": "R1 (sim)", "start": { "east_m": -150, "north_m": -60 } },
-    { "key": "r2", "name": "R2 (sim)", "start": { "east_m": 150,  "north_m": -60 } },
-    { "key": "r3", "name": "R3 (sim)", "start": { "east_m": -200, "north_m": 200 } },
-    { "key": "r4", "name": "R4 (sim)", "start": { "east_m": 200,  "north_m": 200 } }
+    {
+      "key": "r1",
+      "name": "R1 (sim)",
+      "start": { "east_m": -150, "north_m": -60 }
+    },
+    {
+      "key": "r2",
+      "name": "R2 (sim)",
+      "start": { "east_m": 150, "north_m": -60 }
+    },
+    {
+      "key": "r3",
+      "name": "R3 (sim)",
+      "start": { "east_m": -200, "north_m": 200 }
+    },
+    {
+      "key": "r4",
+      "name": "R4 (sim)",
+      "start": { "east_m": 200, "north_m": 200 }
+    }
   ],
   "extra_sim_rescuers": 36,
   "hidden_survivors": [
-    { "house": "house 4",  "east_m": 56,  "north_m": 144, "note": "front room", "level": "delayed", "breathing": "detected", "rate_bpm": 18, "visibility_pct": 70 },
-    { "house": "house 10", "east_m": 124, "north_m": 66,  "note": "under stairs", "level": "immediate", "breathing": "not_detected", "visibility_pct": 15 }
+    { "house": "house 4", "east_m": 16.2, "north_m": 3.5, "note": "front room", "level": "delayed", "breathing": "detected", "rate_bpm": 18, "visibility_pct": 70 },
+    { "house": "house 10", "east_m": 34.1, "north_m": -39.5, "note": "under stairs", "level": "immediate", "breathing": "not_detected", "visibility_pct": 15 }
   ],
   "family_report": { "house": "house 4", "kind": "missing", "count": 2, "name_or_unit": "family of 2", "source": "family", "note": "both were home" },
   "scale": {
     "count": 300,
     "rate_per_s": 15,
     "seed": 7,
-    "mix": { "immediate": 0.05, "delayed": 0.25, "minor": 0.60, "unknown": 0.10 },
+    "mix": { "immediate": 0.05, "delayed": 0.25, "minor": 0.6, "unknown": 0.1 },
     "not_detected_share_of_immediate": 0.3,
     "min_spacing_m": 12,
     "duplicate_pairs": 3
@@ -56,15 +68,12 @@
     "robot_heartbeat_ms": 1000,
     "rescuer_heartbeat_ms": 5000,
     "position_ms": 1000,
-    "accept_delay_s": [2, 4],
+    "accept_delay_s": [
+      2,
+      4
+    ],
     "on_scene_s": 8,
     "auto_resolve_sim_rescues": true
   },
-  "media": {
-    "rehearsal_thermal": "assets/rehearsal/thermal.png",
-    "rehearsal_camera": "assets/rehearsal/camera.jpg",
-    "rehearsal_clip": "assets/rehearsal/breathing.mp4",
-    "rehearsal_result": "assets/rehearsal/result.json",
-    "sim_thermal_pool": "assets/sim-thermal/"
-  }
+  "media": { "rehearsal_thermal": "assets/rehearsal/thermal.png", "rehearsal_camera": "assets/rehearsal/camera.jpg", "rehearsal_clip": "assets/rehearsal/breathing.mp4", "rehearsal_result": "assets/rehearsal/result.json", "sim_thermal_pool": "assets/sim-thermal/" }
 }

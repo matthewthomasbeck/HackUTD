@@ -2,7 +2,7 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { DbConnection, tables } from '../../spacetimedb-bindings/index.js';
 import { Role } from '../../spacetimedb-bindings/types.js';
-import type { DemoSiteConfig } from './config.ts';
+import { extraRescuerNumber, type DemoSiteConfig } from './config.ts';
 
 export type SimRole = 'sim' | 'robot' | 'rescuer';
 export interface SimActor {
@@ -133,7 +133,7 @@ export class SimPool {
       if (!rescuer.real) pending.push(this.connect(rescuer.key, rescuer.name, 'rescuer'));
     }
     for (let index = 0; index < config.extra_sim_rescuers; index += 1) {
-      const number = config.rescuers.length + index + 1;
+      const number = extraRescuerNumber(config, index);
       const name = `R${number} (sim)`;
       pending.push(this.connect(`r${number}`, name, 'rescuer'));
     }

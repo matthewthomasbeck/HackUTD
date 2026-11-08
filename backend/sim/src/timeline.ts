@@ -28,6 +28,9 @@ const AWAIT_CONDITIONS = new Set<AwaitCondition>([
   'survivor_in', 'assignment_for', 'released', 'person_report', 'mission_for',
   'watchdog_fallback', 'audit_flag', 'status', 'key',
 ]);
+const AWAIT_FIELDS: Partial<Record<AwaitCondition, Array<'house' | 'rescuer'>>> = {
+  survivor_in: ['house'], person_report: ['house'], mission_for: ['house'], assignment_for: ['rescuer'], released: ['rescuer'],
+};
 const STEP_KEYS = new Set([
   'at', 'after_s', 'cmd', 'say', 'await', 'timeout_s', 'else',
   'say_on_timeout', 'house', 'rescuer', 'status', 'kind',
@@ -55,6 +58,88 @@ export function computeTimelineSchedule(steps: readonly TimelineStep[]): Schedul
     }
   }
   return schedule;
+}
+
+export interface TimelineDeps {
+  execute(cmd: string): Promise<void>;
+  condition(step: TimelineStep): () => boolean;
+  waitForKey(): Promise<void>;
+  say(text: string): void;
+  log(text: string): void;
+  pollMs?: number;
+  now?: () => number;
+}
+
+export type StepOutcome = 'done' | 'passed' | 'fallback' | 'cue' | 'timed_out' | 'failed';
+
+export async function runTimeline(steps: readonly TimelineStep[], deps: TimelineDeps): Promise<StepOutcome[]> {
+  const now = deps.now ?? Date.now;
+  const pollMs = deps.pollMs ?? 250;
+  const start = now();
+  const outcomes: StepOutcome[] = [];
+  for (const [index, step] of steps.entries()) {
+    if (step.at !== undefined) await sleep(start + parseClock(step.at) * 1000 - now());
+    else if (step.after_s !== undefined) await sleep(step.after_s * 1000);
+    if (step.say) deps.say(step.say);
+    let outcome: StepOutcome = 'done';
+    if (step.cmd) {
+      deps.log(`${stamp(now() - start, index + 1)} cmd: ${step.cmd}`);
+      outcome = await runCommand(deps, step.cmd);
+    }
+    if (step.await === 'key') {
+      deps.log(`${stamp(now() - start, index + 1)} await: Enter`);
+      await deps.waitForKey();
+      outcome = 'passed';
+    } else if (step.await) {
+      deps.log(`${stamp(now() - start, index + 1)} await: ${step.await}${describeAwait(step)}${step.timeout_s === undefined ? '' : ` (up to ${step.timeout_s} s)`}`);
+      const check = deps.condition(step);
+      const deadline = step.timeout_s === undefined ? Infinity : now() + step.timeout_s * 1000;
+      let passed = check();
+      while (!passed && now() < deadline) {
+        await sleep(Math.min(pollMs, deadline - now()));
+        passed = check();
+      }
+      if (passed) {
+        deps.log(`${stamp(now() - start, index + 1)} passed: ${step.await}${describeAwait(step)}`);
+        outcome = 'passed';
+      } else {
+        deps.log(`${stamp(now() - start, index + 1)} timed out: ${step.await}${describeAwait(step)}`);
+        outcome = 'timed_out';
+        if (step.say_on_timeout) { deps.say(step.say_on_timeout); outcome = 'cue'; }
+        if (step.else) {
+          deps.log(`${stamp(now() - start, index + 1)} fallback: ${step.else}`);
+          outcome = await runCommand(deps, step.else) === 'failed' ? 'failed' : 'fallback';
+        }
+      }
+    }
+    outcomes.push(outcome);
+  }
+  const counts = outcomes.reduce<Record<string, number>>((total, item) => ({ ...total, [item]: (total[item] ?? 0) + 1 }), {});
+  deps.log(`Timeline finished: ${Object.entries(counts).map(([key, value]) => `${key}=${value}`).join(' ')}`);
+  return outcomes;
+}
+
+async function runCommand(deps: TimelineDeps, cmd: string): Promise<StepOutcome> {
+  try {
+    await deps.execute(cmd);
+    return 'done';
+  } catch (error) {
+    deps.log(`  command failed, continuing: ${error instanceof Error ? error.message : String(error)}`);
+    return 'failed';
+  }
+}
+
+function stamp(elapsedMs: number, stepNumber: number): string {
+  return `[${formatClock(elapsedMs / 1000)}] step ${stepNumber}`;
+}
+
+function describeAwait(step: TimelineStep): string {
+  const parts = [step.house, step.rescuer, step.status, step.kind].filter(Boolean);
+  return parts.length ? ` ${parts.join(' ')}` : '';
+}
+
+function sleep(ms: number): Promise<void> {
+  return ms > 0 ? new Promise((resolve) => setTimeout(resolve, ms)) : Promise.resolve();
 }
 
 export async function loadTimeline(name: string, directory = new URL('../timelines/', import.meta.url)): Promise<TimelineStep[]> {
@@ -101,6 +186,8 @@ function validateStep(value: unknown, index: number): TimelineStep {
   if (entry.await === undefined && (entry.timeout_s !== undefined || entry.else !== undefined || entry.say_on_timeout !== undefined)) {
     throw new Error(`Timeline step ${index + 1} timeout and fallback fields require await`);
   }
+  const needs = AWAIT_FIELDS[entry.await as AwaitCondition] ?? [];
+  for (const key of needs) if (entry[key] === undefined) throw new Error(`Timeline step ${index + 1} await ${entry.await as string} needs ${key}`);
   if (entry.timeout_s !== undefined && (typeof entry.timeout_s !== 'number' || !Number.isFinite(entry.timeout_s) || entry.timeout_s < 0)) {
     throw new Error(`Timeline step ${index + 1} timeout_s must be a non-negative number`);
   }

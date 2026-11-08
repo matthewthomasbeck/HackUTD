@@ -1,5 +1,8 @@
 [
   { "at": "0:00", "cmd": "run start Recorded video" },
+  { "cmd": "rescuers start" },
+  { "cmd": "hidden" },
+  { "cmd": "robot start" },
   { "at": "0:05", "cmd": "scale 300" },
   { "say": "Keep DEMO MODE and map attribution visible on both screens" },
   { "await": "survivor_in", "house": "house 3", "timeout_s": 120, "else": "robot replay house3" },

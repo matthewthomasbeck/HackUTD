@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
-import { loadDemoConfig, validateDemoConfig } from '../src/config.ts';
+import { extraRescuerNumber, loadDemoConfig, validateDemoConfig } from '../src/config.ts';
 import { bearingDegrees, distanceMeters, offsetToLatLon, walkToward } from '../src/geo.ts';
 import { mulberry32 } from '../src/rng.ts';
 
@@ -9,8 +9,8 @@ test('loads the committed demo site without changing its configured center', asy
   const raw = JSON.parse(await readFile(new URL('../demo-site.json', import.meta.url), 'utf8'));
   const config = loadDemoConfig();
   assert.deepEqual(config, raw);
-  assert.equal(config.site.center_lat, 32.9857);
-  assert.equal(config.site.center_lon, -96.7502);
+  assert.equal(config.site.center_lat, 32.9968745);
+  assert.equal(config.site.center_lon, -96.7704708);
 });
 
 test('validates required config shape and rejects invalid scale settings', () => {
@@ -18,6 +18,33 @@ test('validates required config shape and rejects invalid scale settings', () =>
   const raw = JSON.parse(JSON.stringify(loadDemoConfig()));
   raw.scale.min_spacing_m = -1;
   assert.throws(() => validateDemoConfig(raw), /scale\.min_spacing_m/);
+});
+
+test('numbers extra sim rescuers right after the named sim rescuers', () => {
+  const config = loadDemoConfig();
+  const named = config.rescuers.filter((rescuer) => !rescuer.real).length;
+  assert.equal(extraRescuerNumber(config, 0), named + 1);
+  assert.equal(extraRescuerNumber(config, config.extra_sim_rescuers - 1), named + config.extra_sim_rescuers);
+});
+
+test('keeps the demo houses the story depends on', () => {
+  const config = loadDemoConfig();
+  const house = (label: string) => config.houses.find((item) => item.label === label);
+  assert.equal(house('house 3')?.demo_pile, true);
+  assert.equal(house('house 4')?.view_blocked, true);
+  assert.equal(config.family_report.house, 'house 4');
+  for (const survivor of config.hidden_survivors) {
+    const target = house(survivor.house);
+    assert.ok(target, `${survivor.house} exists`);
+    const half = config.cell_size_m / 2;
+    assert.ok(Math.abs(survivor.east_m - target.east_m) <= half && Math.abs(survivor.north_m - target.north_m) <= half, `${survivor.house} survivor is inside its cell`);
+  }
+});
+
+test('rejects a site name longer than the module accepts', () => {
+  const raw = JSON.parse(JSON.stringify(loadDemoConfig()));
+  raw.site.name = 'x'.repeat(41);
+  assert.throws(() => validateDemoConfig(raw), /site\.name must be at most 40/);
 });
 
 test('converts north and east offsets using the documented local approximation', () => {
