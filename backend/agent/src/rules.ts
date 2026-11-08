@@ -28,13 +28,51 @@ export interface RuleChecks {
   otherUnassigned: Array<{ survivor: Survivor; distance_m: number | null }>;
 }
 
+/**
+ * Consistency check on the auditor model's own review, run as a submit_review guard. The prompt
+ * says "disagree only when you can name a better action"; on real Nemotron Lightning often
+ * disagreed while naming the proposal itself, or called a load unfair with no other load. A
+ * rejected review leaves the rules verdict (reviewChecks) as the answer. Returns the error, or null.
+ */
+export function reviewConsistency(w: World, p: ReviewPayload, a: { verdict?: unknown; flag_kind?: unknown; suggested_action?: unknown }): string | null {
+  if (a.verdict !== "disagree") return null;
+  const c = reviewChecks(w, p);
+  const text = String(a.suggested_action ?? "");
+  const lower = text.toLowerCase();
+  const hex = p.rescuer_identity.toLowerCase();
+  // The rescuer the suggestion names first is the one it assigns ("Assign #1 to Rescuer B ...").
+  let first: { callsign: string; identity: string; at: number } | null = null;
+  for (const r of w.rescuers()) {
+    const at = lower.indexOf(r.callsign.toLowerCase());
+    if (at >= 0 && (!first || at < first.at)) first = { callsign: r.callsign, identity: r.identity.toLowerCase(), at };
+  }
+  const otherSurvivor = [...text.matchAll(/#(\d+)/g)].some((m) => Number(m[1]) !== p.survivor_id);
+  if (a.flag_kind === "load_imbalance" && c.proposedActive === 0) {
+    return `${c.callsign} has no other active assignments, so the load cannot be unfair; use proposal_disagree with a better rescuer, or agree`;
+  }
+  if (first && first.identity === hex && !otherSurvivor) {
+    return `suggested_action keeps ${c.callsign} on survivor #${p.survivor_id}, which is the proposal itself; that is verdict agree`;
+  }
+  if (first && first.identity !== hex && !otherSurvivor && c.proposedDistanceM != null && c.higherTier.length === 0) {
+    const s = c.survivor;
+    const alt = s ? w.rescuersNear(s.lat, s.lon, false).find((r) => r.identity.toLowerCase() === first!.identity) : null;
+    if (alt && alt.distance_m != null && alt.distance_m >= c.proposedDistanceM && alt.active_assignments >= c.proposedActive) {
+      return `${alt.callsign} is ${alt.distance_m} m away and ${c.callsign} ${c.proposedDistanceM} m, with no lighter load; that is not a better rescuer`;
+    }
+  }
+  return null;
+}
+
 export function reviewChecks(w: World, p: ReviewPayload): RuleChecks {
   const s = w.survivor(p.survivor_id);
   const hex = p.rescuer_identity.toLowerCase();
   const callsign = w.callsign(hex);
   const me = w.rescuer(hex);
-  // The proposal itself is open, so count only active assignments for the load.
-  const proposedActive = me?.active_assignments ?? 0;
+  // The proposal itself is open, so count only active assignments for the load, and not the
+  // reviewed one once the rescuer has accepted it (the review can run after the acceptance).
+  const reviewed = w.assignment(p.assignment_id);
+  const ownActive = reviewed && reviewed.status === "active" && reviewed.rescuer_identity.toLowerCase() === hex ? 1 : 0;
+  const proposedActive = Math.max(0, (me?.active_assignments ?? 0) - ownActive);
   const proposedDistanceM = s ? w.distanceM(hex, s.id) : null;
   const out: RuleChecks = {
     survivor: s,

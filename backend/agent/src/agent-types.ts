@@ -78,6 +78,8 @@ export interface CycleState {
   usedFallback: boolean;
   /** chain_id of the tool call being dispatched (one cycle can cover several survivors). */
   callChain: number | null;
+  /** Last rejected write ("tool: error"), named in the fallback reason. */
+  lastRejection: string | null;
 }
 
 export function newCycleState(model: string): CycleState {
@@ -93,6 +95,7 @@ export function newCycleState(model: string): CycleState {
     summary: "",
     usedFallback: false,
     callChain: null,
+    lastRejection: null,
   };
 }
 
@@ -128,6 +131,9 @@ export interface AgentConfig {
   maxSteps: number;
   maxToolCalls: number;
   maxTokens: number;
+  /** Tools offered on the last allowed model request, so the cycle ends with its write
+   * (auditor: submit_review; comms agent: send_briefing) instead of another read. */
+  finalTools?: ToolName[];
   /** Merge row wakes into one cycle (orchestrator) or run them one by one (comms agent). */
   mergeRowWakes: boolean;
   /** Seconds between heartbeats while healthy (orchestrator 5 s with the 8.1 policy, others 10 s). */

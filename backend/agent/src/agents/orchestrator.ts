@@ -225,6 +225,9 @@ export function orchestratorConfig(cfg: Config): AgentConfig {
     timeoutMs: 15_000,
     maxSteps: 4,
     maxToolCalls: 8,
+    // On real Nemotron Super sometimes spent its last requests on reads and hit the step limit
+    // before create_mission (the inspect mission for a house with someone unaccounted for).
+    finalTools: ["propose_assignment", "delegate", "set_flag_status", "create_mission", "cancel_own_mission"],
     maxTokens: 1536,
     mergeRowWakes: true,
     heartbeatMs: 5000,

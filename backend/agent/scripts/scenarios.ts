@@ -28,6 +28,8 @@ export interface ScenarioResult {
 export interface ScenarioOptions {
   env?: Record<string, string>;
   verbose?: boolean;
+  /** Real NVIDIA models in real time instead of MockLLM (scenario --real). */
+  real?: boolean;
 }
 
 /** Position `north`/`east` meters from the site center. */
@@ -112,7 +114,9 @@ function noDeathWords(h: Harness): boolean {
 }
 
 function harness(fixtures: string[], o: ScenarioOptions, extra: HarnessOptions = {}): Harness {
-  return new Harness({ fixtures: [...fixtures, "common"], verbose: o.verbose, ...extra, env: { ...(extra.env ?? {}), ...(o.env ?? {}) } });
+  // A scenario's own switches (extra.env) win over the caller's .env, or a variant such as
+  // "templates only" silently runs with the model on.
+  return new Harness({ fixtures: [...fixtures, "common"], verbose: o.verbose, real: o.real, ...extra, env: { ...(o.env ?? {}), ...(extra.env ?? {}) } });
 }
 
 async function finish(name: string, h: Harness, c: Checker): Promise<ScenarioResult> {

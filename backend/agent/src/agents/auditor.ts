@@ -37,6 +37,18 @@ function proposalReason(w: World, p: ReviewPayload): string {
   return act?.reason ?? "none given";
 }
 
+function otherFree(w: World, p: ReviewPayload): string {
+  const s = w.survivor(p.survivor_id);
+  if (!s) return "none";
+  const hex = p.rescuer_identity.toLowerCase();
+  const list = w
+    .rescuersNear(s.lat, s.lon, false)
+    .filter((r) => r.identity !== hex && r.free && r.distance_m != null)
+    .slice(0, 3)
+    .map((r) => `${r.callsign} ${r.distance_m} m from survivor #${s.id}, ${r.active_assignments} active assignments`);
+  return list.length ? list.join("; ") : "none";
+}
+
 export function auditorPacket(w: World, input: CycleInput): string {
   const t = input.task;
   const p = payloadOf(t);
@@ -56,6 +68,9 @@ export function auditorPacket(w: World, input: CycleInput): string {
             .join("; ")
         : "none"
     }`,
+    // Distances to the other free rescuers. Without them, on real Nemotron the auditor objected
+    // that "another rescuer is also free" with no idea that rescuer was three times farther away.
+    `OTHER FREE RESCUERS: ${otherFree(w, p)}`,
     "Review the proposal.",
   ];
   return lines.join("\n");
@@ -97,6 +112,7 @@ export function auditorConfig(cfg: Config): AgentConfig {
     timeoutMs: 10_000,
     maxSteps: 2,
     maxToolCalls: 3,
+    finalTools: ["submit_review"],
     maxTokens: 512,
     mergeRowWakes: false,
     heartbeatMs: 10_000,

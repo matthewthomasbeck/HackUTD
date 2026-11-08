@@ -28,7 +28,10 @@ function survivorBrief(w: World, s: Survivor) {
   };
 }
 
-export function getBoard(w: World) {
+/** The board. For a review, `reviewedAssignment` shows that proposal's rescuer as they stood
+ * before it was made: without this, the rescuer holding the proposal under review reads as "not
+ * available", and on real Nemotron the auditor objected to proposals for that reason alone. */
+export function getBoard(w: World, reviewedAssignment: number | null = null) {
   const all = w.survivors().filter((s) => s.status !== "resolved");
   const byTier: Record<string, number> = { "0": 0, "1": 0, "2": 0 };
   const byStatus: Record<string, number> = {};
@@ -42,14 +45,24 @@ export function getBoard(w: World) {
     run: w.activeRun()?.id ?? null,
     counts: { by_tier: byTier, by_status: byStatus },
     top_survivors: sortSurvivors(all).slice(0, 5).map((s) => survivorBrief(w, s)),
-    rescuers: w.rescuers().map((r) => ({
-      callsign: r.callsign,
-      identity: r.identity,
-      fresh: r.fresh,
-      available: r.available,
-      free: r.free,
-      active_assignments: r.active_assignments,
-    })),
+    rescuers: w.rescuers().map((r) => {
+      const reviewed = reviewedAssignment != null ? w.assignment(reviewedAssignment) : null;
+      const holder = reviewed && reviewed.rescuer_identity.toLowerCase() === r.identity.toLowerCase();
+      const underReview = !!holder && (r.proposed_assignment_id === reviewedAssignment || reviewed!.status === "active");
+      // Once accepted, the reviewed assignment is active: do not count it as this rescuer's load.
+      const active = underReview && reviewed!.status === "active" ? Math.max(0, r.active_assignments - 1) : r.active_assignments;
+      const available = underReview ? r.fresh && (r.proposed_assignment_id == null || r.proposed_assignment_id === reviewedAssignment) : r.available;
+      return {
+        callsign: r.callsign,
+        identity: r.identity,
+        fresh: r.fresh,
+        available,
+        free: underReview ? available && active === 0 : r.free,
+        active_assignments: active,
+        holding_proposal: underReview && r.proposed_assignment_id === reviewedAssignment ? null : r.proposed_assignment_id,
+        ...(underReview ? { under_review: "this is the rescuer in the proposal you are reviewing; shown as before it" } : {}),
+      };
+    }),
     cells: cellsByStatus,
     robots: w.robots().map((r) => ({ robot_id: r.robot_id, online: r.online, state: r.state, idle: w.robotIdle(r), battery_pct: r.battery_pct })),
     open_flags: w
