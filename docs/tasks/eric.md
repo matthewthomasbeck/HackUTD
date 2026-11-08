@@ -668,7 +668,7 @@ Checklist:
 - [x] 8b. Confirm a task round trip and matching `agent_action` in the live database (auditor and comms tasks, isolated local module, 2026-11-08).
 - [x] 9. `llm/client.ts` and `llm/budget.ts` with the priority queue, 429 backoff, model-down switch, and tests (25 queued in a minute send 20; critical jumps normal).
 - [x] 10. `loop.ts` with step and tool-call limits, the cycle deadline (lease minus 5 s), `<think>` stripping, and the JSON mode path through `parse.ts`.
-- [ ] 11. Dry-run modes and `MockLLM`; run one full chain against the local module and the simulator with `DRY_RUN=1 LLM_MODE=mock`.
+- [x] 11. Dry-run modes and `MockLLM`; run one full chain against the local module and the simulator with `DRY_RUN=1 LLM_MODE=mock`. Passed on a fresh disposable local database, 2026-11-08, with the primary runtimes and a complete shadow proposal/review/briefing chain. Live assignment/task/briefing/action/mission/audit tables stayed empty; see `docs/notes/2026-11-08-live-agent-scenarios.md`.
 
 Done when: dry-run mode logs a full chain against the local SpacetimeDB and the simulator without calling the model.
 Tests with pass criteria:
@@ -769,9 +769,9 @@ Checklist:
 - [x] 5. `auditor.ts`: the agent.md 7.4 prompt, the review wake packet with `RULE CHECKS (code)`, `submit_review` (completes the task; on `disagree` files the flag with `flag_kind`), and the `rules.ts` verdict fallback.
 - [x] 6. `templates.ts` and `comms.ts` with `ENABLE_COMMS_MODEL=0`: briefing, breathing part, nudge at half of `proposal_lease_s`, navigation hint with terrain, model-down answer; every template at most 120 characters.
 - [x] 7a. `scenario.ts` with the eight in-process scenarios of agent.md 12.3, checking end states and required tool names, not exact order.
-- [ ] 7b. Implement the live-module/simulator scenario path; `--live` is still a placeholder even though those sources now exist.
+- [x] 7b. Implement the live-module/simulator scenario path. `npm run scenario -- chain --live` and its `DRY_RUN=1` variant passed against separate disposable local databases on 2026-11-08. The real simulator and primary agent processes completed proposal/review/briefing with one chain; the live variant also verified simulated acknowledgement. See `docs/notes/2026-11-08-live-agent-scenarios.md`.
 - [x] 8. Pass mock scenarios plus the recorded real-Brev chain, priority and seeded auditor-disagreement checks; these use the fake database.
-- [ ] 9. Two-process run; `kill_orchestrator`, `race`, `all_down`, `budget` until they pass.
+- [x] 9. Two-process run; `kill_orchestrator`, `race`, `all_down`, `budget` until they pass. Passed against disposable local databases with actual primary worker processes and MockLLM, 2026-11-08. Kill exercised the watchdog, the stable late-proposal race exercised the sweep backstop, all-down checked escalation/heartbeat release/replacement, and the budget fixture checked ten detections, batching, send caps and auditor-first fallback with a deliberately depleted queue. See `docs/notes/2026-11-08-live-agent-scenarios.md` for exact fixtures and limits.
 - [x] 10a. Verify modeled briefings and three consecutive native/JSON Brev chains against the fake database; briefing guards remain enforced. The integrated demo is still pending.
 - [ ] 10b. Resolve or bound intermittent real-model chain failures before claiming reliable demo readiness. The completed-item audit recorded one native chain with no committed assignment; subsequent native and JSON reruns passed. Keep rejected-action and fallback evidence.
 - [x] 11. Pass three recorded real JSON chains and all eight mock scenarios; mock regression tests pass.
@@ -850,13 +850,13 @@ Environment variables: `STT_ENGINE`, `NVIDIA_API_KEY` (perception's own `.env`),
 Checklist:
 
 - [x] 1a. Keep the existing question/silence WAV fixtures; public speech and generated silence also provide reference-version development checks without new recordings.
-- [ ] 1b. Verify the primary engine on the chosen demo question fixtures and noisy rescuer-style audio; keep this separate from a public general-speech smoke.
+- [ ] 1b. Verify the primary engine on the chosen demo question fixtures and noisy rescuer-style audio; keep this separate from a public general-speech smoke. Local fixture/public/silence evaluation completed 2026-11-08 (`docs/notes/2026-11-08-local-transcription-evaluation.md`), including deterministic noise and 54 primary `small.en` calls. Silence passed, but 0 dB noise corrupted the house number; fixture reference transcripts/provenance and actual rescuer/glasses audio still need verification.
 - [x] 2. `stt.py` `whisper_local` engine with resampling to 16 kHz mono (`scipy.signal.resample_poly`) and `tests/test_stt.py`.
 - [x] 3. `POST /transcribe` (`file` or `audio_url`, optional `rescuer` logged only), synchronous, no database write.
 - [ ] 4. `nvidia_riva` engine: run the model page's `transcribe_file.py` command once by hand with the key, then wrap the same call in `stt.py`.
 - [x] 5. Engine selection at startup with fallback, and `engine` in `GET /health` and in every result.
 - [x] 6a. Implement the facts-only template answer path and recipient/briefing guards.
-- [ ] 6b. Implement and test model-generated `answer_rescuer` answers from task/board facts with template fallback.
+- [x] 6b. Implement and test model-generated `answer_rescuer` answers from task/board facts with template fallback. Done locally on `eric-cv-benchmark`, 2026-11-08: native/JSON mock tests cover recipient/survivor restrictions, missing facts, text limits, privacy, one-answer limit, feature flags and failure fallbacks. Real Lightning and live glasses acceptance remain separate; see `docs/notes/2026-11-08-comms-question-validation.md`.
 - [ ] 7. With Cayden, run the full loop from the glasses (or the fallback page's Ask button) and time it.
 
 Done when: a spoken question on the glasses comes back as an answer on the display.

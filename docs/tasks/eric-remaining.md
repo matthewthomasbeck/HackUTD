@@ -1,6 +1,7 @@
 # Eric: unfinished work and dependencies
 
-Updated 2026-11-08 on branch `eric-quick-wins` (from `main` at `38e8e31`).
+Updated 2026-11-08 on branch `eric-cv-benchmark`. The earlier quick-wins handoff
+was recorded on `eric-quick-wins` (from `main` at `38e8e31`).
 This is the practical handoff for [Eric's full checklist](eric.md), not a change
 to MVP scope or assignments. The owner names below follow the existing task files.
 An artifact missing from this checkout may already exist on a teammate's branch;
@@ -38,8 +39,11 @@ created a mission, but not of kind `inspect`. That is the orchestrator's model c
 audit saw Super skip inspection at low reasoning too), not the identity mapping, and Lightning
 is not the orchestrator's real model. Rerun on Super under B1.
 
-Still to do for these three: R1 step 9 (run the scripted mock check and paste the log into
-the PR) is separate and open. The G8 change has not been run against Super; see E7 10b.
+R1 step 9's local scripted check passed on `eric-cv-benchmark`, 2026-11-08:
+88 robot tests pass, and the executable passed hold, latched e-stop, rejected restart,
+reset and SIGINT shutdown with exit 0. The [captured log](../notes/2026-11-08-r1-scripted-mock-check.md)
+is ready for review; pasting it into the PR remains open. The G8 change has not been
+run against Super; see E7 10b.
 
 ## What is already working (unchanged)
 
@@ -126,6 +130,15 @@ cases stay uncertain.
 
 #### A4. E6 11 and E7 7b: the live scenario path with the mock model (about 2 h)
 
+**Completed locally on `eric-cv-benchmark`, 2026-11-08.** `scenario -- chain --live`
+now runs actual primary agent runtimes in a child process against the real local module
+and simulator. Detection, proposal, review and briefing shared chain 254, and a simulated
+rescuer acknowledged. A separate fresh `DRY_RUN=1` run completed the shadow chain while
+live assignments, tasks, briefings, actions, missions and audit flags stayed empty.
+The harness rejects remote servers, shared database names and nonempty databases.
+See [validation note](../notes/2026-11-08-live-agent-scenarios.md).
+Primary breathing, real models, dashboard and glasses were not part of these runs.
+
 Why: every agent scenario so far runs against a fake database. This proves the same agents
 work against the real SpacetimeDB module and the simulator, with no model calls.
 
@@ -147,6 +160,16 @@ without writes.
 
 #### A5. E7 9: two-process failure runs on the mock model (about 1 h, after A4)
 
+**Completed locally on `eric-cv-benchmark`, 2026-11-08.** Actual worker processes
+passed `kill_orchestrator`, `race`, `all_down` and `budget` against separate real local
+databases. Kill verified the module watchdog and a `RULES FALLBACK` comms template.
+The stable delayed-reply race was won by the module's sweep backstop, with exactly one
+proposal and rejection of the late agent proposal. All-down verified escalation,
+heartbeat release and replacement; budget covered ten detections, batched proposals,
+rolling send limits and auditor-first queue fallback under an explicitly depleted
+test budget. This is controlled local acceptance, not default-capacity load testing.
+See [evidence and fixture limits](../notes/2026-11-08-live-agent-scenarios.md).
+
 Steps: with the A4 setup, run the orchestrator and the other agents as two processes and
 run `kill_orchestrator`, `race`, `all_down` and `budget`. For `kill_orchestrator`, kill the
 process and check the module's own schedule-table watchdog assigns, the comms briefing shows
@@ -157,8 +180,17 @@ work (module watchdog versus agent fallback).
 
 #### A6. E8 6b: model answers to rescuer questions (about 1.5 h; mock tests now, real model in B2)
 
-Why: today `answer_rescuer` always uses the template (`backend/agent/src/agents/comms.ts`,
-the "E8 extension point" comment near line 185).
+**Completed locally on `eric-cv-benchmark`, 2026-11-08.** The comms model now receives
+an explicit question and an allowlisted board facts block, with callsign redaction and
+the existing template fallback. Answers are guarded to the asking rescuer and the task's
+survivor, including rejection of broadcast audiences. Native and JSON mock tests cover
+factual and unknown answers, privacy, wrong recipients and survivors, 121-character
+rejection, timeout/server failure, model down and both feature flags. The agent typecheck
+and all 136 primary tests passed (17 question tests, plus a watchdog-briefing regression). Mock replies exercise the runner
+and guards; they do not establish real-model factual accuracy. B2 and the live voice path
+remain open. See [validation note](../notes/2026-11-08-comms-question-validation.md).
+
+Original gap: `answer_rescuer` always used the template in `backend/agent/src/agents/comms.ts`.
 
 Steps:
 1. Build a facts block from the task payload and board only (survivor level, breathing,
@@ -174,6 +206,16 @@ Done when: those mock tests pass and `ENABLE_COMMS_MODEL=0` still gives the temp
 
 #### A7. E8 1b: check local transcription on the fixtures (about 45 min)
 
+**Local evaluation completed on `eric-cv-benchmark`, 2026-11-08.** Primary
+`whisper_local:small.en` CPU/int8 processed 54 calls: question fixtures, public speech,
+and silence, clean and at two noise levels, with three repeats. All 18 silence/noise-only
+calls returned empty text. Speech medians were 0.889 to 1.071 s on this laptop.
+At 0 dB white noise, the house number was corrupted, so venue reliability is unproven.
+Question reference transcripts and recording provenance are unverified; no question
+accuracy claim is made. Results are in the perception README and
+[validation note](../notes/2026-11-08-local-transcription-evaluation.md).
+The existing STT tests passed all 17 cases. Actual glasses audio remains separate.
+
 Steps: run `whisper_local` (`perception/stt.py`) on the question WAV fixtures, a public
 speech clip and generated silence; add noise at two levels; record text, time per clip and
 model size (`WHISPER_MODEL`). Silence must give empty text, not invented words.
@@ -183,7 +225,12 @@ model-size limits stated.
 
 #### A8. Refresh the counts in the docs (15 min, any time)
 
-`docs/MVP.md` and `docs/TASKS.md` still quote older test counts (109 agent, 753
+**Refreshed locally on `eric-cv-benchmark`, 2026-11-08:** `docs/MVP.md` and
+`docs/TASKS.md` now record 136 primary agent tests plus typecheck, 770 primary
+perception tests, and 88 robot tests. These reflect the current branch checks;
+refresh again after merging further changes.
+
+Original gap: the overview docs quoted older test counts (109 agent, 753
 perception). Update them from a fresh run when the branch merges.
 
 ### B. Needs a model server (Lightning on Brev, a new Super, or the hosted API)
@@ -225,7 +272,7 @@ fallback flags on failure. Only matters if the agents are shown outside the hard
 | Inspect capture and E1 recordings (steps 1 to 7) | Camille R5, Matthew M4/M6/M7 | Stopped camera, about 20 s clips, locked exposure, gain and white balance; agreed light and mock rubble scene | Real-camera breathing and ROI checks |
 | E9: terrain model | Camille R7, Cayden dashboard | Timestamped forward frames, independently labelled hazard images, a single writer for terrain fields | Advisory terrain hints, only after held-out evaluation |
 | E0 step 7: post the Brev results to the team chat | Eric | Nothing; a person posts it | Team knows what was measured |
-| R1 step 9: scripted mock check log in the PR | Eric | Nothing | Closes R1 |
+| R1 step 9: scripted mock check log in the PR | Eric | Local check passed with 88 robot tests; [log ready](../notes/2026-11-08-r1-scripted-mock-check.md), PR paste remains | Closes R1 |
 
 E10 (vision describer and sitrep) is could-have and is cut first. Before any person image
 goes to a hosted model, the team must decide it is allowed.
