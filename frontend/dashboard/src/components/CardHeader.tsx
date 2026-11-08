@@ -2,7 +2,8 @@
 // the card down to this one line, and again to open it. No arrow; the count is the handle.
 import { useState, type ReactNode } from 'react';
 
-export function useCollapsed(initial = false) {
+// Cards start folded, so the app opens on the map with only the card titles showing (Cayden, 2026-11-08).
+export function useCollapsed(initial = true) {
   const [collapsed, setCollapsed] = useState(initial);
   return { collapsed, toggle: () => setCollapsed((value) => !value) };
 }
