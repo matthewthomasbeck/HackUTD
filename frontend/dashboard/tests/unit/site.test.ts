@@ -70,6 +70,7 @@ describe('crew names', () => {
   it('drops simulator markers', () => {
     expect(crewName('R1 (sim)')).toBe('R1');
     expect(crewName('Cayden')).toBe('Cayden');
+    expect(crewName('cayden')).toBe('Cayden');
     expect(robotName({ robotId: 'sim-dog' })).toBe('Dog 1');
     expect(robotName({ robotId: 'sim-dog-2', name: 'sim-dog-2' })).toBe('Dog 2');
     expect(robotName({ robotId: 'dog1' })).toBe('Dog 1');

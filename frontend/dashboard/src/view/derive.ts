@@ -26,8 +26,10 @@ const tag = enumTagToContract;
 
 // Names as the coordinator should read them: no simulator markers. "R1 (sim)" -> "R1"; robots read "Dog 1", "Dog 2"
 // from ids like "sim-dog", "sim-dog-2" or "dog1".
+// "R2 (sim)" -> "R2", "cayden" -> "Cayden" (the glasses register the rescuer key in lower case).
 export function crewName(name: string): string {
-  return name.replace(/\s*\(sim\)\s*/gi, ' ').trim() || name;
+  const clean = name.replace(/\s*\(sim\)\s*/gi, ' ').trim() || name;
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
 }
 export function robotName(robot: { robotId: string; name?: string }): string {
   const id = robot.robotId || robot.name || '';
@@ -125,12 +127,19 @@ export function mapLayers(board: BoardState, site: SiteGeometry | null, graph: S
     const hex = person.identity.toHexString();
     const assignment = board.assignments.filter((row) => row.rescuerIdentity.toHexString() === hex && ['active', 'proposed'].includes(tag(row.status))).sort((a, b) => (a.id < b.id ? 1 : -1))[0];
     const survivor = assignment && board.survivors.find((row) => row.id === assignment.survivorId);
-    const route = survivor && graph ? streetRoute(graph, person, survivor) : survivor ? [person, survivor] : null;
+    const route = survivor ? walkRoute(graph, person, survivor) : null;
     rescuers.push({ id: hex, name: crewName(person.name), lat: person.lat, lon: person.lon, ...(route ? { note: `${Math.round(routeMetersOf(route))} m` } : {}) });
     if (route && assignment && tag(assignment.status) === 'active') routes.push({ id: `route-${assignment.id}`, points: route });
   }
   const robots: MapRobot[] = board.robots.filter(hasPosition).map((row) => ({ id: row.robotId, name: robotName(row), lat: row.lat!, lon: row.lon!, online: row.online, busy: row.currentMissionId !== undefined }));
   return { survivors, rescuers, routes, robots };
+}
+
+// The way a rescuer walks to a survivor: along the streets, except at the house itself, where a street route would
+// send them back out to the road and around the block.
+const AT_HOUSE_M = 25;
+function walkRoute(graph: StreetGraph | null, from: GeoPoint, to: GeoPoint): GeoPoint[] {
+  return graph && meters(from, to) > AT_HOUSE_M ? streetRoute(graph, from, to) : [from, to];
 }
 
 function routeMetersOf(points: readonly GeoPoint[]): number {
@@ -154,7 +163,7 @@ export function peopleRows(board: BoardState, site: SiteGeometry | null, graph: 
     const survivor = board.survivors.find((row) => row.id === assignment.survivorId);
     if (!person || !survivor || rows.some((row) => row.id === person.identity.toHexString())) continue;
     const place = site ? placeName(site.houses, survivor, site.context) : survivor.houseLabel ?? `survivor #${survivor.id}`;
-    const away = hasPosition(person) ? ` · ${Math.round(graph ? routeMetersOf(streetRoute(graph, person, survivor)) : meters(person, survivor))} m` : '';
+    const away = hasPosition(person) ? ` · ${Math.round(routeMetersOf(walkRoute(graph, person, survivor)))} m` : '';
     const proposed = tag(assignment.status) === 'proposed';
     rows.push({ id: person.identity.toHexString(), name: crewName(person.name), initials: initials(crewName(person.name)), robot: false, where: `${proposed ? 'proposed' : 'to'} ${place}${away}`,
       status: proposed ? { text: formatDuration(timestampToMs(assignment.leaseExpiresAt) - board.now), tone: 'warn' } : { text: 'On the way', tone: 'ok' } });
