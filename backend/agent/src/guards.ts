@@ -5,7 +5,8 @@
 import type { CycleCtx } from "./agent-types.ts";
 import { sortTier } from "./priority.ts";
 import { haversineM } from "./geo.ts";
-import { parsePayload, type World } from "./world.ts";
+import type { Survivor } from "./types.ts";
+import { LAPSE_WINDOW_MS, parsePayload, type World } from "./world.ts";
 
 // ---------- text rules (G2, G5) ----------
 
@@ -74,13 +75,57 @@ export function citesFact(reason: string): boolean {
 }
 
 export const ALREADY_BY_WATCHDOG = "already proposed by watchdog";
-export const LAPSE_WINDOW_MS = 5 * 60_000;
+export { LAPSE_WINDOW_MS };
+/** A higher-tier survivor whose own proposal was just rejected does not block other work for this long. */
+export const TIER_SKIP_MS = 60_000;
 /** "About as close": within 25% or 10 m (agent.md does not define it). */
 export function aboutAsClose(other: number, mine: number): boolean {
   return other <= mine * 1.25 + 10;
 }
 
 type Args = Record<string, any>;
+
+/** Errors that say the survivor is not open for a proposal; they never mark it as stuck. */
+const NOT_OPEN = [
+  ALREADY_BY_WATCHDOG,
+  "do not repeat it",
+  "not unassigned",
+  "not in the active run",
+  "propose it first",
+  "unknown tool",
+  "tool call limit",
+];
+export function marksProposalStuck(error: string): boolean {
+  return !NOT_OPEN.some((x) => error.includes(x));
+}
+
+/**
+ * The first unassigned survivor in a strictly higher tier that should be proposed before `tier`
+ * (agent.md 7.2), or null. A higher-tier survivor does not block other work when no rescuer is
+ * eligible for it, or when a proposal for it was rejected in the last 60 s: the guard logs that
+ * once and lets the cycle continue, so one stuck survivor never starves the rest of the board.
+ * The module's watchdog still proposes for every unassigned immediate survivor.
+ */
+export function higherTierBlocker(ctx: CycleCtx, tier: number): Survivor | null {
+  const w = ctx.world;
+  const now = w.now();
+  for (const x of w.waitingRanked()) {
+    if (sortTier(x) >= tier) break;
+    let why: string | null = null;
+    if (w.candidatesFor(x).candidates.length === 0) why = "no eligible rescuer";
+    else {
+      const rej = ctx.memory.proposalRejected.get(x.id);
+      if (rej && now - rej.at < TIER_SKIP_MS) why = `its proposal was rejected ${Math.round((now - rej.at) / 1000)} s ago (${rej.error})`;
+    }
+    if (!why) return x;
+    const key = `${x.id}:${ctx.memory.proposalRejected.get(x.id)?.at ?? "none"}`;
+    if (!ctx.memory.tierSkipLogged.has(key)) {
+      ctx.memory.tierSkipLogged.add(key);
+      ctx.deps.log.warn(ctx.agent.name, `survivor #${x.id} (tier ${sortTier(x)}) not blocking lower tiers: ${why}`);
+    }
+  }
+  return null;
+}
 
 // ---------- orchestrator ----------
 
@@ -101,20 +146,16 @@ export function guardProposeAssignment(ctx: CycleCtx, a: Args): string | null {
   if (!r.fresh) return `${r.callsign} is not fresh (offline, no position, or no heartbeat in 15 s)`;
   if (!r.available) return `${r.callsign} already has pending proposal #${r.proposed_assignment_id}`;
 
-  const tier = sortTier(s);
-  const higher = w.waitingRanked().find((x) => sortTier(x) < tier);
+  const higher = higherTierBlocker(ctx, sortTier(s));
   if (higher) return `survivor #${higher.id} (tier ${sortTier(higher)}) is unassigned with no proposal; propose it first`;
 
-  const now = w.now();
-  const others = w.rescuersNear(s.lat, s.lon, true).filter((o) => o.identity !== hex);
-  const lapsed = w
-    .assignmentsFor(s.id)
-    .some(
-      (x) => x.rescuer_identity === hex && x.status === "released" && x.release_cause === "expired" && now - x.updated_at < LAPSE_WINDOW_MS,
-    );
-  if (lapsed && others.length > 0)
-    return `${r.callsign}'s proposal for #${s.id} lapsed in the last 5 min; choose another available rescuer`;
+  // Lapse rule: not the rescuer whose proposal for this survivor lapsed in the last 5 min,
+  // unless every available rescuer did (candidatesFor applies it).
+  const { candidates } = w.candidatesFor(s);
+  if (!candidates.some((c) => c.identity === hex))
+    return `${r.callsign}'s proposal for #${s.id} lapsed in the last 5 min; choose another available rescuer${candidates[0] ? `, such as ${candidates[0].callsign}` : ""}`;
 
+  const others = w.rescuersNear(s.lat, s.lon, true).filter((o) => o.identity !== hex);
   if (r.lat != null && r.lon != null) {
     const mine = haversineM(r.lat, r.lon, s.lat, s.lon);
     const closer = others.find((o) => o.distance_m != null && o.distance_m < 0.5 * mine);

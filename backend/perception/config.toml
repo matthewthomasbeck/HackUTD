@@ -40,6 +40,7 @@ min_duration_s = 15
 max_duration_s = 30
 yolo_model = "yolo26n-pose.pt"              # fallback yolo11n-pose.pt
 yolo_fallback_model = "yolo11n-pose.pt"     # PROPOSED key (breathing.py default)
+yolo_weights_dir = "weights"                # relative to paths.data_dir; weights download there on first use
 motion_null_ratio_min = 4.0                 # PROPOSED key: chest signal vs matched noise, below it nothing moves (still chest)
 yolo_conf = 0.25
 kp_conf = 0.5
@@ -92,6 +93,7 @@ absent_conf_cap = 0.3
 rescore_interval_s = 60
 rescore_min_delta = 2.0
 rescore_conf_delta = 0.05
+new_survivor_grace_s = 2.0                  # PROPOSED key: wait before scoring a new unscored survivor, so a score another writer sets first is kept
 
 [terrain]
 terrain_max_age_s = 5

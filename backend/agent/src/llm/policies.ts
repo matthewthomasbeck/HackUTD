@@ -3,6 +3,7 @@
 
 import type { FixtureReply, MockPolicy } from "./mock.ts";
 import type { ChatRequest } from "./types.ts";
+import { NEXT_CELLS_LABEL } from "../agents/orchestrator.ts";
 
 function packetOf(req: ChatRequest): string {
   return req.messages.find((m) => m.role === "user")?.content ?? "";
@@ -33,48 +34,65 @@ const briefFromPacket: MockPolicy = (req) => {
   };
 };
 
-/** orchestrator: for each waiting survivor in packet order, the nearest available rescuer not yet used. */
+const MAX_CALLS = 8;
+
+/**
+ * orchestrator, as a rule-following model would act on the packet:
+ * - every robot the ROBOT line shows idle (on any wake, not only the idle transition) gets one
+ *   search_cells mission over the next cells to search (up to 3, distinct per robot); the
+ *   robotIdle rule already excludes a robot with a proposed, queued, or leased mission;
+ * - each waiting survivor, in packet order, gets its best listed candidate (fewest active, then
+ *   nearest) not used yet in this reply, plus the brief_rescuer delegate. Once a survivor has no
+ *   unused candidate, lower-tier survivors wait (the tier rule would reject them).
+ * Missions are planned first so a long survivor list never crowds them out of the 8 calls.
+ */
 const greedyOrchestrator: MockPolicy = (req) => {
   const p = packetOf(req);
+  const lines = p.split("\n");
   const ids = new Map<string, string>();
   for (const m of p.matchAll(/(Rescuer \w+) available[^;]*?, id ([0-9a-f]{64})/g)) ids.set(m[1], m[2]);
-  const used = new Set<string>();
-  const calls: NonNullable<FixtureReply["tool_calls"]> = [];
-  for (const line of p.split("\n")) {
-    const m = /^\s+#(\d+) .*?(IMMEDIATE|DELAYED|MINOR).*nearest available: (.*)$/.exec(line);
+
+  const missions: NonNullable<FixtureReply["tool_calls"]> = [];
+  const robotLine = lines.find((l) => l.startsWith("ROBOT:")) ?? "";
+  const cellLine = lines.find((l) => l.startsWith("CELLS:")) ?? "";
+  const nextList = cellLine.split(`${NEXT_CELLS_LABEL}: `)[1] ?? "";
+  const freeCells = [...nextList.matchAll(/#(\d+) ([^,;]+)/g)].map((m) => ({ id: Number(m[1]), label: m[2].trim() }));
+  for (const m of robotLine.replace(/^ROBOT: /, "").split("; ").map((e) => /^([a-z0-9_-]+) online READY idle\b/.exec(e))) {
     if (!m) continue;
-    const pick = m[3]
-      .split(", ")
-      .map((x) => /^(Rescuer \w+) (\d+) m/.exec(x))
-      .find((x) => x && ids.has(x[1]) && !used.has(x[1]));
-    if (!pick) continue;
-    used.add(pick[1]);
-    const sid = Number(m[1]);
-    calls.push({ name: "propose_assignment", arguments: { reason: `${m[2]} #${sid}; ${pick[1]} nearest at ${pick[2]} m`, survivor_id: sid, rescuer_identity: ids.get(pick[1])! } });
-    calls.push({ name: "delegate", arguments: { reason: `brief ${pick[1]} on #${sid}`, to_agent: "comms_agent", kind: "brief_rescuer", priority: m[2] === "IMMEDIATE" ? "critical" : "high", survivor_id: sid } });
-    if (calls.length >= 8) break;
-  }
-  // A robot named idle in the WAKE line gets a search mission over the next unsearched cells in
-  // the CELLS line (up to 3, distinct per robot), as a rule-following model would.
-  const wakeLine = p.split("\n").find((l) => l.startsWith("WAKE:")) ?? "";
-  const robotLine = p.split("\n").find((l) => l.startsWith("ROBOT:")) ?? "";
-  const cellLine = p.split("\n").find((l) => l.startsWith("CELLS:")) ?? "";
-  const freeCells = [...cellLine.matchAll(/#(\d+) ([^,;]+)/g)].map((m) => ({ id: Number(m[1]), label: m[2].trim() }));
-  for (const m of wakeLine.matchAll(/robot ([a-z0-9_-]+) idle/g)) {
-    const id = m[1];
-    if (!new RegExp(`(^|[ ;])${id} online READY idle`).test(robotLine)) continue;
     const pick = freeCells.splice(0, 3);
-    if (!pick.length || calls.length >= 8) break;
-    calls.push({
+    if (!pick.length) break;
+    missions.push({
       name: "create_mission",
-      arguments: {
-        reason: `${id} idle; search ${pick.map((c) => c.label).join(", ")}`,
-        robot_id: id,
-        kind: "search_cells",
-        target_cell_ids: pick.map((c) => c.id),
-      },
+      arguments: { reason: `${m[1]} idle; search ${pick.map((c) => c.label).join(", ")}`.slice(0, 140), robot_id: m[1], kind: "search_cells", target_cell_ids: pick.map((c) => c.id) },
     });
   }
+
+  const calls: NonNullable<FixtureReply["tool_calls"]> = [];
+  const used = new Set<string>();
+  let blockedTier = Infinity;
+  for (const line of lines) {
+    const m = /^\s+#(\d+) .*?(IMMEDIATE|DELAYED|MINOR).*\| candidates[^:]*: (.*?)(?: \| lapsed.*)?$/.exec(line);
+    if (!m) continue;
+    const tier = m[2] === "IMMEDIATE" ? 0 : 1;
+    if (tier > blockedTier) break;
+    if (calls.length + 2 + missions.length > MAX_CALLS) break;
+    const pick = m[3]
+      .split("; ")
+      .map((x) => /^(Rescuer \w+) (\d+) m.*?, (\d+) active$/.exec(x))
+      .find((x) => x && ids.has(x[1]) && !used.has(x[1]));
+    if (!pick) {
+      blockedTier = Math.min(blockedTier, tier);
+      continue;
+    }
+    used.add(pick[1]);
+    const sid = Number(m[1]);
+    calls.push({
+      name: "propose_assignment",
+      arguments: { reason: `${m[2]} #${sid}; ${pick[1]} at ${pick[2]} m, load ${pick[3]}, best by load then distance`, survivor_id: sid, rescuer_identity: ids.get(pick[1])! },
+    });
+    calls.push({ name: "delegate", arguments: { reason: `brief ${pick[1]} on #${sid}`, to_agent: "comms_agent", kind: "brief_rescuer", priority: m[2] === "IMMEDIATE" ? "critical" : "high", survivor_id: sid } });
+  }
+  calls.push(...missions);
   return calls.length ? { tool_calls: calls } : { content: "No available rescuer for the waiting survivors." };
 };
 

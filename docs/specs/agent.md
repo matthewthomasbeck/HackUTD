@@ -416,6 +416,8 @@ For every tool call, in order:
    The module fills `agent` from the caller's `participant.name` and `run_id` from the active run.
    `step` is the request number within the cycle; `model` is the model id, or `rules` for any deterministic path (templates, rules verdicts, fallbacks).
    `args_json` at most 1,000 characters, `result` at most 300 (`ok: <summary>` or `error: <message>`), `reason` the model's reason, at most 140.
+   The module rejects `args_json` that is not JSON, so a long value is shortened inside (long strings and arrays cut) and never cut as text; an empty reason is logged as `(no reason given)`, and a forbidden word that a rejected call quotes is logged as `[word removed]`.
+   Found in the 2026-11-08 rehearsal: cutting the text of a `cycle_summary` with many merged wakes gave `bad json in args_json`.
 6. Append a full line to `logs/trace-<date>.jsonl` (agent, model, step, chain id, full args, full result, latency).
 
 If `log_agent_action` fails, write the error to the console and trace and continue; never loop on logging.
@@ -561,7 +563,7 @@ Tools:
 | Tool | Kind | Guard (checked on fresh data) |
 | --- | --- | --- |
 | `get_board`, `get_survivor`, `list_rescuers`, `list_cells`, `get_robot` | read | ids exist in the active run |
-| `propose_assignment` | reducer | survivor `unassigned` with no `proposed` or `active` assignment; rescuer available; if a fresh rescuer with fewer active assignments is about as close, the reason must say why; no `unassigned` survivor in a strictly higher tier without a proposal (the error names it); rescuer not the one whose proposal for this survivor lapsed in the last 5 min unless no other is available; if another available rescuer is over 50% closer, the reason must say why |
+| `propose_assignment` | reducer | survivor `unassigned` with no `proposed` or `active` assignment; rescuer available; if a fresh rescuer with fewer active assignments is about as close, the reason must say why; no `unassigned` survivor in a strictly higher tier without a proposal (the error names it), except one with no eligible rescuer or whose own proposal was rejected in the last 60 s (logged once, so one stuck survivor never blocks the rest of the board); rescuer not the one whose proposal for this survivor lapsed in the last 5 min unless no other is available; if another available rescuer is over 50% closer, the reason must say why |
 | `delegate` | `post_agent_task` | `to_agent` and `kind` must be `comms_agent`/`brief_rescuer`; one open `brief_rescuer` per assignment |
 | `set_flag_status` | `set_audit_flag_status` | flag exists and is `open` |
 | `create_mission` | reducer | robot exists and is online; per-kind fields present; `search_cells` targets are not `searched`, belong to the run's site, and are not in another open mission; the robot has no other `proposed` or `queued` mission unless this one replaces it; target within `site.radius_m` plus 50 m of the site center; `hold` and `return_home` only if battery under 20% or a device is `FAILED` (the reason names it) |
@@ -639,15 +641,15 @@ The writer maps these fields to the module's `create_mission` argument list (`do
 },"required":["reason","flag_id","status"],"additionalProperties":false}
 ```
 
-Wake packet example:
+Wake packet example (each survivor lists only the rescuers the `propose_assignment` guard accepts, so the model and the mock policy never pick a lapsed rescuer; "next to search" lists only cells no open mission targets):
 
 ```
 WAKE: survivor #12 score_changed (tier 0)
 CHAIN: 1042
 TIME: 2026-11-08T03:14:05Z  RUN: #3 "demo 2"
-SURVIVORS (unassigned, priority order): #12 house 3 IMMEDIATE score 78, breathing 34/min conf 0.71, 8 m in from front door
+SURVIVORS (unassigned, priority order): #12 house 3 IMMEDIATE score 78, breathing 34/min conf 0.71, 8 m in from front door | candidates (fewest active, then nearest): Rescuer A 41 m NE, 0 active; Rescuer B 118 m E, 0 active | lapsed, do not propose: Rescuer D
 RESCUERS: Rescuer A available 41 m NE of #12; Rescuer B available 118 m E; Rescuer C busy (#9)
-CELLS: house 3 reported missing 2, found 1, unaccounted 1; 5 unsearched
+CELLS: house 3 reported missing 2, found 1, unaccounted 1; 5 unsearched or partly searched, 2 in open missions; next to search: #3 house 3, #4 house 4, #5 house 5
 ROBOT: dog1 online READY idle battery 71%
 OPEN FLAGS: none
 WATCHDOG: fires in 14 s if no proposal for #12

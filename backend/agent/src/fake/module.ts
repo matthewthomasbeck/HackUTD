@@ -23,6 +23,7 @@ import type {
   Role,
   SearchCell,
   Site,
+  Survivor,
   TaskPriority,
 } from "../types.ts";
 import type { MutableSource } from "./store.ts";
@@ -56,6 +57,7 @@ export class FakeModule {
   readonly calls: CallRecord[] = [];
   private tickHandle: TimerHandle | null = null;
   private watchdogDue = 0;
+  private sweepDue = 0;
   private alive = new Set<string>();
   private lastSimBeat = 0;
   private taskAttempts = new Map<number, number>();
@@ -264,6 +266,17 @@ export class FakeModule {
 
   logAgentAction(caller: string, tool: string, args: string, result: string, reason: string, step: number, model: string, chain: number): void {
     this.record(caller, "log_agent_action", [tool, args, result, reason, step, model, chain], () => {
+      // The live reducer's checks (index.ts log_agent_action, lib/text.ts).
+      if (args.length > 4000) throw new Error("args_json must be 0 to 4000 characters");
+      try {
+        JSON.parse(args);
+      } catch {
+        throw new Error("bad json in args_json");
+      }
+      if (result.length > 2000) throw new Error("result must be 0 to 2000 characters");
+      if (reason.length < 1 || reason.length > 500) throw new Error("reason must be 1 to 500 characters");
+      if (tool.length < 1 || tool.length > 40 || model.length < 1 || model.length > 40) throw new Error("name must be 1 to 40 characters");
+      this.checkText(args, result, reason);
       this.db.insert("agent_action", {
         run_id: this.runId(),
         chain_id: chain,
@@ -716,6 +729,25 @@ export class FakeModule {
       this.watchdogDue = now + this.watchdogS() * 1000;
       this.watchdogFired();
     }
+    // sweep every 10 s, with the unproposed-immediate backstop (CONTRACTS.md 8.2): an immediate
+    // survivor with no open proposal for UNPROPOSED_BACKSTOP_S gets a module proposal even while
+    // the orchestrator heartbeats.
+    if (now >= this.sweepDue) {
+      this.sweepDue = now + 10_000;
+      const backstopMs = this.watchdogS() * 1000; // UNPROPOSED_BACKSTOP_S: 30 s, 15 s in demo mode
+      this.proposeNearestForUrgent(
+        (s) => now - this.unproposedSince(s) >= backstopMs,
+        "backstop: no proposal for an immediate survivor",
+        "unproposed immediate backstop",
+      );
+    }
+  }
+
+  /** The start of the survivor's unattended period or its newest assignment row change (module unproposedSince). */
+  private unproposedSince(s: Survivor): number {
+    let latest = this.unattendedSince.get(s.id) ?? s.created_at;
+    for (const a of this.db.rows("assignment")) if (a.survivor_id === s.id && a.updated_at > latest) latest = a.updated_at;
+    return latest;
   }
 
   private safeBrief(audience: string, text: string, sid: number): void {
@@ -728,14 +760,20 @@ export class FakeModule {
 
   /** spacetimedb.md 7.4. */
   private watchdogFired(): void {
+    this.proposeNearestForUrgent(() => true, `watchdog: orchestrator silent ${this.watchdogS()} s`, null);
+  }
+
+  /** The module's proposeNearestForUrgent: the watchdog (every survivor due) and the sweep backstop. */
+  private proposeNearestForUrgent(due: (s: Survivor) => boolean, why: string, actionReason: string | null): void {
     const now = this.now();
     const open = this.db.rows("assignment").filter((a) => a.status === "proposed" || a.status === "active");
     const urgent = this.db
       .rows("survivor")
       .filter((s) => s.critical_level === "immediate" && s.status === "unassigned" && !open.some((a) => a.survivor_id === s.id && a.status === "proposed"))
+      .filter(due)
       .sort((a, b) => b.critical_score - a.critical_score || a.created_at - b.created_at || a.id - b.id);
     if (urgent.length === 0) return;
-    this.watchdogFires++;
+    if (!actionReason) this.watchdogFires++;
     let candidates = this.db
       .rows("participant")
       .filter((p) => p.role === "rescuer" && p.online && p.lat != null && p.lon != null && now - p.last_heartbeat <= 15_000)
@@ -748,7 +786,7 @@ export class FakeModule {
         .sort((a, b) => a.n - b.n || a.d - b.d || (a.p.identity < b.p.identity ? -1 : 1));
       const pick = ranked[0];
       candidates = candidates.filter((p) => p.identity !== pick.p.identity);
-      const reason = `watchdog: orchestrator silent ${this.watchdogS()} s, nearest free rescuer ${Math.round(pick.d)} m`;
+      const reason = `${why}, nearest free rescuer ${Math.round(pick.d)} m`;
       try {
         const a = this.propose(MODULE, s.id, pick.p.identity, reason);
         this.event("agent_watchdog_fallback", "assignment", a.id, reason);
@@ -761,7 +799,7 @@ export class FakeModule {
           tool: "propose_assignment",
           args_json: JSON.stringify({ survivor_id: s.id, rescuer_identity: pick.p.identity }),
           result: `ok: assignment_id=${a.id}`,
-          reason,
+          reason: actionReason ?? reason,
           created_at: now,
         });
       } catch (err) {

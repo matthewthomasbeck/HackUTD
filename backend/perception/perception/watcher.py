@@ -12,7 +12,12 @@ For each detection:
 Re-score timer, every rescore_interval_s (60 s): every survivor in unassigned, assigned, or
 en_route is scored, including survivors with no clip yet; set_critical_score is called only when
 perception.score.should_write() says the change is meaningful (or the survivor was never scored).
-A new survivor is scored at once. The last written values live in SQLite (score_writes).
+A new survivor is scored new_survivor_grace_s (2 s) after its insert, not at the next tick.
+The last written values live in SQLite (score_writes).
+
+A score another writer set (the simulator, or a later reducer call) is kept: the timer writes only
+when the survivor row still holds what this service last wrote, or nobody has scored it yet
+(critical_level unknown). A finished breathing job is new evidence and always writes (worker.py).
 
 Filtering happens in Python, not SQL: SQL cannot filter on enum or option columns.
 """
@@ -123,6 +128,30 @@ class RowCache:
         return run_id
 
 
+_SCORE_EPS = 1e-6
+
+
+def foreign_score(survivor: dict, prev: dict | None) -> str | None:
+    """Why the survivor's current score belongs to another writer and must be kept, else None.
+
+    The re-score timer adds no new evidence of its own (only waiting time), so it never replaces a
+    score another writer set: it writes only when nobody has scored the survivor yet, or the row
+    still holds what this service last wrote (perception.md section 7, re-score). A row without
+    the score columns (an old cache entry) has nothing to protect."""
+    level = survivor.get("critical_level")
+    if level is None:
+        return None
+    if prev is None:
+        return None if level == "unknown" else f"scored {level} by another writer"
+    try:
+        same = (level == prev["level"]
+                and abs(float(survivor.get("critical_score") or 0.0) - float(prev["score"])) <= _SCORE_EPS
+                and abs(float(survivor.get("score_confidence") or 0.0) - float(prev["confidence"])) <= _SCORE_EPS)
+    except (TypeError, ValueError, KeyError):
+        same = False
+    return None if same else "current score is not the one this service last wrote"
+
+
 class Watcher:
     def __init__(self, cfg: dict, store, stdb, worker, rows: RowCache):
         self.cfg = cfg
@@ -137,6 +166,7 @@ class Watcher:
         self._person_queued: set[int] = set()
         self._lock = threading.Lock()
         self._threads: list[threading.Thread] = []
+        self._kept_logged: set[tuple[int, str]] = set()
 
     # lifecycle
     def start(self) -> None:
@@ -198,14 +228,38 @@ class Watcher:
         if table == "detection" and op == "insert":
             self.handle_detection(row)
         elif is_new_survivor and self.rows.loaded:
-            self.rescore_one(row)
+            self.score_new_survivor(int(row["id"]))
 
     def poll_once(self) -> None:
         new_dets, new_survs = self.rows.refresh()
         for d in sorted(new_dets, key=lambda r: int(r["id"])):
             self.handle_detection(d)
         for s in new_survs:
-            self.rescore_one(s)
+            self.score_new_survivor(int(s["id"]))
+
+    def score_new_survivor(self, survivor_id: int) -> None:
+        """Score a new survivor after new_survivor_grace_s, from its latest row. The wait lets a
+        writer that creates and scores a survivor in one step (the simulator) score it first, so
+        this service does not write a default score that is replaced a moment later."""
+        grace = float(self.cfg["score"].get("new_survivor_grace_s", 0) or 0)
+
+        def run() -> None:
+            if self._stop.is_set():
+                return
+            row = self.rows.survivors.get(int(survivor_id))
+            if row is None:
+                return
+            try:
+                self.rescore_one(row)
+            except Exception:  # noqa: BLE001
+                log.exception("score of new survivor %s failed", survivor_id)
+
+        if grace <= 0:
+            run()
+            return
+        t = threading.Timer(grace, run)
+        t.daemon = True
+        t.start()
 
     def _poll_loop(self) -> None:
         interval = float(self.cfg["stdb"].get("poll_interval_s", 2))
@@ -232,6 +286,13 @@ class Watcher:
         if new is None:
             return False
         prev = self.store.get_score_write(sid)
+        kept = foreign_score(survivor, prev)
+        if kept:
+            key = (sid, kept)
+            if key not in self._kept_logged:
+                self._kept_logged.add(key)
+                log.info("survivor %s: %s; kept until a new breathing result", sid, kept)
+            return False
         if not score_mod.should_write(prev, new, cfg=self.cfg["score"]):
             return False
         with self.worker.write_lock:
