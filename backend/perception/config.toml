@@ -1,8 +1,8 @@
 # Perception service config (docs/specs/perception.md).
 # Load order: this file, then .env, then PERCEPTION_<SECTION>_<KEY> environment overrides
 # (for example PERCEPTION_BREATHING_MIN_FPS=12). See perception/config.py.
-# Every [breathing] and [score] value is an untuned default from the spec tables.
-# Tune them on the recorded teammate clips (perception.md section 10) and say here which clips.
+# Values follow the spec defaults except for the documented A2 lighting threshold below.
+# Robot-camera tuning still needs recorded teammate clips (perception.md section 10).
 
 [server]
 host = "0.0.0.0"
@@ -69,7 +69,13 @@ snr_detect_db = 6
 half_tol_bpm = 6
 flow_tol_bpm = 4
 bg_ratio_max = 0.5
-flicker_c_max = 0.5
+# A2, 2026-11-08: 0.5 -> 0.6, developed only on VRWi M14 resting 030s/060s
+# (operator and pose ROI), with all 15 synthetic cases as regression constraints.
+# 030s: the original gate hid 14.2/min vs belt 14.39; 060s stays correct.
+# Frozen before A2 evaluation of 090s/120s. All four appeared in A1 already;
+# one subject and two evaluation windows are weak evidence, not independent validation.
+# See testdata/public/quality-gates-development.json and docs/notes/2026-11-08-quality-gates.md.
+flicker_c_max = 0.6
 k_not_detected = 0.75
 
 [evm]

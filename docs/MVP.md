@@ -43,7 +43,7 @@ Only SpacetimeDB runs live: the Maincloud database `assess-0hw81` (dashboard htt
 Every rule, timer, and subscription in the module is real.
 The simulator scripts everything else in the judged demo: the robot (`sim-dog`), the find, the breathing result and critical score, and any rescuer actions.
 The Nemotron agents, the perception service, the real robot, and the real G2 hardware do not run live in the judged demo.
-They exist and are tested separately: the agents (136 primary tests and typecheck on `eric-cv-benchmark`, 2026-11-08, plus the eight mock scenarios and the earlier Brev real-model validation in `docs/notes/2026-11-08-brev-validation.md`), perception (770 primary tests on that branch), the robot foundation in `raspberrypi/robot/` (88 tests and the scripted mock lifecycle check), and the Pico firmware in `pico/`. These are local branch validation counts; rerun after merging further changes.
+They exist and are tested separately: the agents (136 primary tests and typecheck on `eric-cv-benchmark`, 2026-11-08, plus the eight mock scenarios and the earlier Brev real-model validation in `docs/notes/2026-11-08-brev-validation.md`), perception (770 primary tests on that branch), the robot foundation in `raspberrypi/robot/` (106 tests after merging `main`, and the scripted mock lifecycle check), and the Pico firmware in `pico/`. These are local branch validation counts; rerun after merging further changes.
 The dashboard and the glasses view (on the G2 or the fallback page) are real clients that render live from SpacetimeDB subscriptions of the scripted data.
 
 The judged story is short and ends at the find:

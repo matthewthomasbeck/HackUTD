@@ -35,11 +35,11 @@ acceptance. Steps combining code and an unverified live check are split below.
 | Task | Finished | Still open |
 | --- | --- | --- |
 | E0 | Brev setup, both models' tool/JSON smoke tests, configuration and recorded results | Post results to the team; repeat smoke on judging day |
-| E1 | Public data preparation and 140 comparison runs in the reference implementation | Port the public benchmark to the primary pipeline; broaden scene coverage and check robot-camera compatibility |
+| E1 | Public data preparation and 140 comparison runs in the reference implementation; public benchmark ported to the primary pipeline (PR #11) | Broaden scene coverage (covered, dark, robot camera) and check robot-camera compatibility |
 | E2 | Media service, storage, job queue, endpoint tests, primary environment lock | Pi upload over the team network |
-| E3 | Video/ROI/PIC pipeline, quality gates, worker, watcher, HTTP client/helper, synthetic tests, local database/helper smoke and captured SQL fixture | Primary public-data evaluation and tuning; robot capture |
-| E4 | Score formula, confidence caps, ordered writes and re-score logic | Primary E1 results/score batch; live dashboard and waiting-time demonstration |
-| E5 | Person/pose/box code and still-image output | Live service health, full E1 ROI review and dashboard display; real YOLO smoke currently recorded for the reference version |
+| E3 | Video/ROI/PIC pipeline, quality gates, worker, watcher, HTTP client/helper, synthetic tests, local database/helper smoke and captured SQL fixture; primary public-data evaluation (PR #11); A2 gate audit with frozen development/evaluation split and a small lighting threshold change, no evaluation gain | Robot capture; broader independent labelled validation |
+| E4 | Score formula, confidence caps, ordered writes and re-score logic; every public window scored (PR #11) | Score the team's own E1 clips; live dashboard and waiting-time demonstration |
+| E5 | Person/pose/box code and still-image output; primary YOLO pose loads and the public ROI review found and fixed the hidden-hips chest box (PR #11) | ROI review on the team's own and robot-camera clips; dashboard display of the image fields |
 | E6 | Shared runner, schemas, tested guards, task handling, budgets, dry runs, upstream binding acceptance, three local identities, actual task/log round trips, full G8 identity policy (callsigns only) | Complete runtime/simulator dry-run chain; verify Maincloud identities/roles |
 | E7 | Orchestrator, auditor, comms, mock scenarios and recorded real Brev chains | Intermittent native-chain failure; live scenario harness, two-process integration, dashboard/glasses acknowledgement |
 | E8 | Transcription engines/endpoint/fallback code, question fixtures and template answer path | Model-generated rescuer answers, hosted Riva verification, full glasses voice loop |
@@ -94,7 +94,7 @@ Setup and initial inputs are complete as noted below. Continue with the open int
 
 - [x] Prepare 16 MPSC-RR video windows, 15 synthetic cases and four VRWi windows with independent dual-belt reference checks in `backend/perception/codex-reference/`.
 - [x] Compare the reference PIC implementation with the external baseline configurations; retain all 140 runs and the limitations.
-- [ ] Adapt the same dataset/benchmark inputs to the primary `backend/perception/` API and record its results separately.
+- [x] Adapt the same dataset/benchmark inputs to the primary `backend/perception/` API and record its results separately. Done 2026-11-08 (PR #11): `scripts/benchmark_public.py`, `testdata/public/primary-results.json`, and the "primary" table in `docs/research/breathing-repos.md`.
 - [ ] Confirm the robot's actual image quality, lighting and still-camera behavior during integration with Camille and Matthew.
 
 Public inputs replace recording a new development dataset. They do not prove
@@ -512,7 +512,7 @@ Checklist:
 - [x] 2. `tests/test_score.py`: each level rule, the hand-checked example (`not_detected`, `v = 0.2`, `t = 15` gives 84.0), the 0.3 cap, never `minor`, reason limits, and the banned-words test.
 - [x] 3. Call `set_critical_score` right after `report_breathing` in `worker.py`; skip it if `report_breathing` failed.
 - [x] 4. Re-score timer in `watcher.py` with the meaningful-change rule and the `score_writes` table; new survivors scored at once with `no breathing clip yet`.
-- [ ] 5. Add a `--score` flag to `analyze_clip.py` (assumes `t = 0`, `d = 0.8` unless given) and run every E1 clip.
+- [ ] 5. Add a `--score` flag to `analyze_clip.py` (assumes `t = 0`, `d = 0.8` unless given) and run every E1 clip. The flag exists, and every public and synthetic window was scored with reasons on 2026-11-08 (A3, PR #11); the team's own E1 clips are not recorded yet.
 - [ ] 6. With the simulator, leave a survivor unassigned for 5 minutes and watch the score rise with `waiting 5 min`.
 
 Done when: a score appears on the dashboard with its reasons for each E1 clip.
@@ -574,11 +574,11 @@ pytest -q tests/test_roi.py
 
 Checklist:
 
-- [ ] 1. Download the pose weights on good internet and check that `GET /health` shows `yolo: loaded`.
+- [x] 1. Download the pose weights on good internet and check that `GET /health` shows `yolo: loaded`. `data/weights/yolo26n-pose.pt` is present and loads in the primary `.venv` (direct load checked 2026-11-08, A3).
 - [x] 2. Pose branch in `roi.py`: run on the 5 sample frames, best box per frame, medians of box and keypoints, chest ROI from shoulders and hips (perception.md 4 step 2).
 - [x] 3. Box branch (upright, lying, other) and the `k` table; visibility from the keypoint fraction (perception.md 5), none when no person is found.
 - [x] 4. Still path: when a detection with `camera_image_url` arrives, run YOLO on it, save `det<id>_person.jpg`, and store the result for `GET /breathing/detection/<id>`.
-- [ ] 5. Run all E1 clips again; check that `roi.jpg` puts the green chest box on the chest for lying and sitting clips, and fix the factors in config if not.
+- [ ] 5. Run all E1 clips again; check that `roi.jpg` puts the green chest box on the chest for lying and sitting clips, and fix the factors in config if not. Public clips reviewed 2026-11-08 (A3, PR #11): seated and front clips on chest after the hidden-hips axis fix in `roi.py`; the MPSC-RR lying clips stay off chest (filmed from above, head out of frame) and the factors were not changed. The team's own E1 clips are not recorded yet.
 - [ ] 6. Send Cayden the image URL fields and confirm where the dashboard's survivor detail shows them.
 
 Done when: the box is drawn on the dashboard image for the E1 clips.

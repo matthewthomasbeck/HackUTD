@@ -65,7 +65,7 @@ G8 callsign handling were fixed on 2026-11-08 (`tasks/eric-remaining.md`).
 Intermittent real-model chain failures remain open. Brev is the intended model deployment.
 
 Local validation on `eric-cv-benchmark`, 2026-11-08: 136 primary agent tests and
-typecheck, 770 primary perception tests, and 88 robot tests passed. The isolated robot
+typecheck, 770 primary perception tests, and 106 robot tests (after merging `main`) passed. The isolated robot
 executable check also verified hold, latched e-stop, rejected restart, reset and clean
 SIGINT shutdown (`notes/2026-11-08-r1-scripted-mock-check.md`). These are branch
 snapshots, not proof of live hardware integration; rerun after merging further changes.

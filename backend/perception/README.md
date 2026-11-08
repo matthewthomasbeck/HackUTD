@@ -42,7 +42,24 @@ curl http://localhost:8080/health
 
 `config.toml` holds every section (`server`, `paths`, `media`, `stdb`, `breathing`, `evm`, `score`, `terrain`, `stt`).
 `perception.config.load_config()` reads it, then `.env` (the names in `.env.example`), then `PERCEPTION_<SECTION>_<KEY>` overrides, for example `PERCEPTION_SCORE_RR_HIGH=32`.
-The `[breathing]` and `[score]` values are the spec defaults and are untuned.
+Values follow the spec defaults except `flicker_c_max=0.6`, selected in A2 on
+VRWi M14 resting 030s/060s and constrained by the 15 synthetic cases. The two
+reserved windows showed no improvement. Evidence is limited to one subject,
+and robot-camera performance is unverified. See
+[the gate audit](../../docs/notes/2026-11-08-quality-gates.md).
+
+To reproduce A2 after preparing the A1 public clips, from this directory:
+
+```sh
+.venv/bin/python scripts/audit_quality_gates.py develop --out-dir data/a2-repeat
+.venv/bin/python scripts/audit_quality_gates.py evaluate --out-dir data/a2-repeat
+```
+
+Development refuses to overwrite its frozen choice; evaluation reads that choice
+without reselection. The committed `testdata/public/quality-gates-*.json` files
+retain each window's gate diagnostics and results. Gate bypass runs are diagnostic
+only and never become service settings. Python calls without an explicit config
+retain the original baseline fallback of 0.5; the CLI and service load `config.toml`.
 
 ## Endpoints
 

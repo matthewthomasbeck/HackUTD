@@ -462,6 +462,13 @@ Result JSON (`result.json`, also returned by the read endpoints):
 
 The defaults are untuned starting points (inference); tune them on the recorded teammate clips in section 10, and write the final values in `config.toml` with a comment saying which clips they were tuned on.
 
+A2 (2026-11-08): the service config now uses `flicker_c_max=0.6`, selected on
+VRWi M14 resting 030s/060s plus the 15 synthetic regression cases. The table and
+Python fallback defaults above remain the original baseline. Evaluation uses
+090s/120s with no further selection. All four were already reported in A1;
+this is a temporal split of one subject, not independent validation. See
+`docs/notes/2026-11-08-quality-gates.md` for the frozen experiment and limits.
+
 ### Re-scan rule
 
 A newer clip for the same survivor replaces the older result, except that an `unknown` result never replaces an earlier `detected` or `not_detected`.
@@ -470,7 +477,7 @@ A `detected` result after an earlier `not_detected` replaces it (START re-triage
 
 ## 5. Visibility estimate (approximate)
 
-Implementation note (2026-11-08): the local E3 implementation adds three
+Reference implementation note (2026-11-08): `backend/perception/codex-reference/` adds three
 configurable nuisance safeguards without changing any shared message or reducer:
 `flicker_min_std=0.5` gray levels ignores negligible whole-frame variation;
 background PIC subtracts the uniform per-frame mean so global flicker is not
@@ -479,8 +486,10 @@ at least `bg_flow_min_px=0.1` pixels and concentration at least
 `bg_flow_concentration_min=0.35` independently rejects camera sway. The original
 frequency-only flicker check rejected clean synthetic chest motion, and PIC-only
 background rejection missed some sway. Known-frequency and nuisance tests now
-pass. These thresholds have not been tuned on the held-out public sensor clips
-or validated on the robot camera. See `docs/research/breathing-repos.md`.
+pass in that separate implementation. These safeguards are not present in the
+primary `perception/breathing.py`; its gates are the frequency/concentration and
+background PIC ratio checks above. Reference test results do not validate the
+primary pipeline or robot camera. See `docs/research/breathing-repos.md`.
 
 `visibility_pct` is approximate and the dashboard should say so.
 
