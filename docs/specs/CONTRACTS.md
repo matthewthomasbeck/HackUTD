@@ -1,6 +1,7 @@
 # Shared contracts
 
-Status: FINAL, version 8.1 (2026-11-07). Changes need a team decision.
+Status: FINAL, version 8.2 (2026-11-08). Changes need a team decision.
+Version 8.2 adds one item approved by Cayden on 2026-11-08: the unproposed-immediate backstop in the sweep.
 Version 8.1 adds four team-approved items: the person-check image, clearing a possible-duplicate flag, the terrain hint to the robot, and (agent-internal) the mock model switch.
 
 Every component spec in `docs/specs/` must use these names, types, and formats.
@@ -315,11 +316,12 @@ Each schedule table runs its scheduled reducer when a row comes due, and the red
 | `agent_watchdog` | the orchestrator | no orchestrator `agent_heartbeat` for `AGENT_WATCHDOG_S` | deterministic fallback inside the module: for each unassigned `immediate` survivor with no open proposal, propose the nearest rescuer with the fewest active assignments (free rescuers first); logged as `agent_watchdog_fallback` and an `agent_action` with `agent = module`, `model = rules` |
 
 A private sweep every 10 s re-checks all of these from the data and repairs a missing timer row.
-The sweep files no audit flags: "too long unattended" belongs to the escalation timer (alerts people) and the watchdog (assigns when the orchestrator is silent).
+The sweep is also a backstop for a live but stuck orchestrator: any unassigned `immediate` survivor with no open proposal for `UNPROPOSED_BACKSTOP_S` gets the same deterministic fallback proposal as the watchdog, even while the orchestrator heartbeats (logged the same way, with `agent_action.reason = "unproposed immediate backstop"`).
+The sweep files no audit flags: "too long unattended" belongs to the escalation timer (alerts people), the watchdog (assigns when the orchestrator is silent), and the backstop (assigns when the orchestrator is alive but has not proposed).
 Scheduled reducers are private, but the database owner can call them for tests.
 The 2 s disconnect grace exists because every HTTP reducer call connects and disconnects; a closed WebSocket meets it almost at once, an HTTP call never does.
 
-Module constants (in `spacetimedb.md`): `AGENT_WATCHDOG_S` 30 s (15 s in demo mode), `AGENT_TASK_LEASE_S` 30 s, `AGENT_TASK_MAX_ATTEMPTS` 3, rescuer heartbeat 15 s, robot heartbeat 5 s, sweep 10 s, unattended headline 60 s.
+Module constants (in `spacetimedb.md`): `AGENT_WATCHDOG_S` 30 s (15 s in demo mode), `UNPROPOSED_BACKSTOP_S` 30 s (15 s in demo mode), `AGENT_TASK_LEASE_S` 30 s, `AGENT_TASK_MAX_ATTEMPTS` 3, rescuer heartbeat 15 s, robot heartbeat 5 s, sweep 10 s, unattended headline 60 s.
 
 The dashboard headline is "Critical survivors unattended over 60 s: 0": the count of `immediate`, `unassigned` survivors whose unattended period (from their `escalation_timer` row) is over 60 s.
 A pending proposal does not count as attended.

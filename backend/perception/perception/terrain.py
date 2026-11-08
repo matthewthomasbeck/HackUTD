@@ -34,7 +34,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 
 log = logging.getLogger("perception.terrain")
@@ -376,21 +376,36 @@ def _enc_opt(value) -> dict:
     return {"none": []} if value is None else {"some": value}
 
 
-def _write_db(robot_id, lat, lon, cls, conf, action, image_url, observed_at_iso) -> None:
-    from perception import stdb  # lazy: written by another module
+TIMESTAMP_FIELD = "__timestamp_micros_since_unix_epoch__"
 
-    args = [
+
+def terrain_args(robot_id, lat, lon, cls, conf, action, image_url, observed_at: datetime) -> list:
+    """report_terrain(robot_id, lat, lon, terrain_class, confidence, source, action, image_url,
+    observed_at) as positional SATS-JSON, matching the module: lat and lon are plain f64,
+    image_url is option(string), observed_at is option(Timestamp)."""
+    micros = int(round(observed_at.timestamp() * 1_000_000))
+    return [
         robot_id,
-        _enc_opt(lat),
-        _enc_opt(lon),
+        float(lat),
+        float(lon),
         _enc_enum(cls),
-        conf,
+        float(conf),
         "camera_model",
         _enc_enum(action),
-        image_url,
-        _enc_opt(observed_at_iso),
+        _enc_opt(image_url),
+        _enc_opt({TIMESTAMP_FIELD: micros}),
     ]
-    stdb.call("report_terrain", args)
+
+
+def _write_db(client, robot_id, lat, lon, cls, conf, action, image_url, observed_at: datetime) -> None:
+    """Call report_terrain through the service's StdbClient (app.state.stdb)."""
+    if client is None:
+        raise RuntimeError("no SpacetimeDB client on app.state.stdb")
+    if lat is None or lon is None:
+        # The module needs a position; a frame without one is still used for the hint.
+        log.debug("report_terrain skipped for %s: no lat and lon on the frame", robot_id)
+        return
+    client.call("report_terrain", terrain_args(robot_id, lat, lon, cls, conf, action, image_url, observed_at))
 
 
 def _build_router():
@@ -398,6 +413,7 @@ def _build_router():
 
     @r.post("/terrain")
     def post_terrain(
+        request: Request,
         file: UploadFile = File(...),
         robot_id: str = Form(...),
         observed_at: str = Form(...),
@@ -486,8 +502,8 @@ def _build_router():
 
         if s["terrain_write_db"] and hint_on:
             try:
-                obs_iso = obs.isoformat().replace("+00:00", "Z")
-                _write_db(robot_id, lat, lon, cls, conf, SUGGESTED_ACTION[cls], saved.get("url"), obs_iso)
+                client = getattr(request.app.state, "stdb", None)
+                _write_db(client, robot_id, lat, lon, cls, conf, SUGGESTED_ACTION[cls], saved.get("url"), obs)
             except Exception as exc:
                 log.warning("report_terrain failed: %s", exc)
 

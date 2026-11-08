@@ -1,6 +1,6 @@
 # Devpost draft: Rubble Search
 
-Status: early draft for C6, 2026-11-07.
+Status: draft for C6, updated 2026-11-08.
 This is not a submission-ready entry; replace each `TBD` only with evidence from an integrated run.
 
 ## Inspiration
@@ -19,8 +19,12 @@ The robot does not diagnose a person, and the system does not claim to see throu
 
 ### SpacetimeDB
 
-SpacetimeDB is intended to hold the shared operational state and enforce assignments, leases, escalation, and the agent watchdog in reducers and scheduled tables.
-The module skeleton currently publishes to a local SpacetimeDB server and has generated TypeScript bindings; the full reducer set, Maincloud deployment, and end-to-end guarantees are still `TBD`.
+SpacetimeDB is the whole backend: there is no separate web server or API layer.
+The module holds every survivor, search cell, robot, mission, assignment, briefing, agent task, and event, and its reducers enforce the survivor state machine, roles, and the rule that no one is labelled dead.
+Every timer is a schedule-table row inside the database: assignment and proposal leases, rescuer and robot heartbeats, two-level escalation, the agent watchdog, and a sweep that repairs missing timers.
+If no agent proposes a rescuer in time, the watchdog assigns the nearest one itself, so the "no one overlooked" guarantee holds with every agent down.
+A dropped glasses connection releases its assignment after a 2 s grace, and per-rescuer views (`my_assignment`, `my_briefing`, `my_survivor`) give each pair of glasses only its own rows.
+A 62-check smoke suite runs against a local SpacetimeDB server; Maincloud deployment is still `TBD`.
 
 ### Nemotron agents
 
@@ -34,8 +38,9 @@ Robot detection, breathing results, model performance, thermal range, and hardwa
 
 ### G2 glasses
 
-The glasses interface is planned to show a critical-survivor count, an acknowledgement prompt, and a map or direction arrow for an accepted assignment.
-The plugin and fallback page are under development; live SpacetimeDB connection, real-lens behavior, and rescuer navigation are `TBD`.
+The glasses show a critical-survivor count, an acknowledgement prompt, and a map or direction arrow for an accepted assignment.
+A glasses service holds one SpacetimeDB connection per rescuer and pushes live changes to the Even Hub plugin and to a fallback web page drawn like the lens.
+Against a local server, a proposal reaches the glasses, an accept moves the survivor to assigned, and closing the glasses connection releases the assignment; real-lens behavior is `TBD`.
 
 ## Challenges
 
@@ -44,8 +49,9 @@ The project also has to distinguish a live human or robot action from simulator 
 
 ## Accomplishments
 
-The project has a locked MVP, shared table and message contracts, component specifications, a local SpacetimeDB module skeleton, generated bindings, a glasses plugin scaffold, a token draft, and sourced slide research.
-Local plugin tests and the production build pass; integrated behavior and performance evidence are still `TBD`.
+The SpacetimeDB module, the coordinator dashboard, the glasses service, plugin, and fallback page, and the simulator are built, and each has passing tests.
+Without the robot and without any agent, the simulator drives the full flow: a finding, a database watchdog assignment, a rescuer accept, and a resolution, with the headline "Critical survivors unattended over 60 s" at 0.
+Performance and scale numbers are still `TBD` until a measured integrated run.
 
 ## What we learned
 
@@ -53,7 +59,7 @@ Local plugin tests and the production build pass; integrated behavior and perfor
 
 ## What's next
 
-Finish the module and simulator, connect the robot and perception pipeline, show the live agent handoff on the dashboard, and verify the glasses flow with both the fallback page and real G2 hardware.
+Connect the robot and perception pipeline, show the live agent handoff on the dashboard, and verify the glasses flow with both the fallback page and real G2 hardware.
 Measure each reported result and publish the final demo video and source repository before submission.
 
 ## Built with

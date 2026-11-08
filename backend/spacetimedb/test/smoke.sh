@@ -144,6 +144,13 @@ call_ok "${COMMS_TOKEN}" claim_agent_task "[${TASK_ID}]"
 [[ "$(sql_count "${SIM_TOKEN}" "SELECT id FROM event_log WHERE kind = 'agent_task_expired'")" -ge 1 ]]
 printf 'PASS claimed agent task returns to open after lease expiry\n'
 
+# Several sweeps ran during the lease wait; each escalation level fires once per unattended period.
+for kind in escalation escalation_commander; do
+  fired="$(sql_count "${SIM_TOKEN}" "SELECT id FROM event_log WHERE kind = '${kind}' AND entity_id = ${SURVIVOR2_ID}")"
+  if [[ "${fired}" != 1 ]]; then printf 'FAIL %s fired %s times for survivor %s, expected 1\n' "${kind}" "${fired}" "${SURVIVOR2_ID}"; exit 1; fi
+done
+printf 'PASS sweep does not re-fire escalation levels\n'
+
 [[ "$(sql_count "${SIM_TOKEN}" "SELECT robot_id FROM robot WHERE robot_id = 'simdog' AND online = false")" == 1 ]]
 [[ "$(sql_count "${SIM_TOKEN}" "SELECT id FROM event_log WHERE kind = 'robot_offline'")" -ge 1 ]]
 printf 'PASS sweep marks a stale robot offline\n'
@@ -156,6 +163,8 @@ new_identity; RESCUER4_TOKEN="${TOKEN}"; RESCUER4_IDENTITY="${IDENTITY}"
 call_ok "${RESCUER4_TOKEN}" register_participant '["rescuer4",{"rescuer":[]}]'
 call_ok "${RESCUER4_TOKEN}" participant_update_position '[32.993,-96.75]'
 
+# Survivor 2 is still an unattended IMMEDIATE; downgrade it so the backstop does not give it rescuer 3 or 4 first.
+call_ok "${PERCEPTION_TOKEN}" set_critical_score "[${SURVIVOR2_ID},{\"delayed\":[]},40,0.8,[\"stable on recheck\"]]"
 node "${HERE}/test/connect-session.cjs" "ws://127.0.0.1:${PORT}" "${DATABASE}" "${RESCUER3_TOKEN}" >"${TEMP_DIR}/ws3.log" 2>&1 & WS3_PID=$!
 node "${HERE}/test/connect-session.cjs" "ws://127.0.0.1:${PORT}" "${DATABASE}" "${RESCUER4_TOKEN}" >"${TEMP_DIR}/ws4.log" 2>&1 & WS4_PID=$!
 for _ in $(seq 1 50); do grep -q CONNECTED "${TEMP_DIR}/ws3.log" && grep -q CONNECTED "${TEMP_DIR}/ws4.log" && break; sleep 0.1; done
@@ -204,6 +213,22 @@ wait_for_rows "${RESCUER4_TOKEN}" "SELECT id FROM my_assignment WHERE id > ${R4_
 [[ "$(sql_count "${RESCUER3_TOKEN}" "SELECT id FROM my_assignment WHERE id > ${R3_ASSIGNMENT} AND survivor_id = ${SURVIVOR4_ID}")" == 1 ]]
 [[ "$(sql_count "${RESCUER4_TOKEN}" "SELECT id FROM my_assignment WHERE id > ${R4_ASSIGNMENT} AND survivor_id = ${SURVIVOR5_ID}")" == 1 ]]
 printf 'PASS watchdog repeats deterministic nearest-rescuer proposals\n'
+
+# Backstop: the orchestrator stays alive but never proposes, and the module still proposes within the demo window.
+for id in $(sql_value "${SIM_TOKEN}" "SELECT id FROM assignment WHERE survivor_id = ${SURVIVOR4_ID} OR survivor_id = ${SURVIVOR5_ID}" | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8"))[0].rows.map(r=>r[0]).join(" ")'); do
+  curl -sS -o /dev/null -X POST "${SERVER}/v1/database/${DATABASE}/call/release_assignment" -H "Authorization: Bearer ${RESCUER3_TOKEN}" -H 'Content-Type: application/json' -d "[${id}]"
+  curl -sS -o /dev/null -X POST "${SERVER}/v1/database/${DATABASE}/call/release_assignment" -H "Authorization: Bearer ${RESCUER4_TOKEN}" -H 'Content-Type: application/json' -d "[${id}]"
+done
+call_ok "${PERCEPTION_TOKEN}" set_critical_score "[${SURVIVOR4_ID},{\"delayed\":[]},40,0.8,[\"stable on recheck\"]]"
+call_ok "${PERCEPTION_TOKEN}" set_critical_score "[${SURVIVOR5_ID},{\"delayed\":[]},40,0.8,[\"stable on recheck\"]]"
+( while true; do curl -sS -o /dev/null -X POST "${SERVER}/v1/database/${DATABASE}/call/agent_heartbeat" -H "Authorization: Bearer ${ORCHESTRATOR_TOKEN}" -H 'Content-Type: application/json' -d '[]'; sleep 2; done ) & ORCH_HB_PID=$!
+call_ok "${SIM_TOKEN}" report_detection '["simdog",0,{"thermal":[]} ,"smoke6",32.9925,-96.751,true,"backstop sector",{"some":35.4},0.95,{"none":[]},{"none":[]},{"none":[]},{"none":[]}]'
+SURVIVOR6_ID="$(sql_value "${SIM_TOKEN}" 'SELECT id FROM survivor WHERE lon < -96.7505' | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8"))[0].rows[0][0]')"
+call_ok "${PERCEPTION_TOKEN}" set_critical_score "[${SURVIVOR6_ID},{\"immediate\":[]},93,0.9,[\"breathing slow\"]]"
+wait_for_rows "${SIM_TOKEN}" "SELECT id FROM agent_action WHERE reason = 'unproposed immediate backstop'" 1 35
+[[ "$(sql_count "${SIM_TOKEN}" "SELECT id FROM assignment WHERE survivor_id = ${SURVIVOR6_ID}")" == 1 ]]
+kill "${ORCH_HB_PID}" 2>/dev/null || true; wait "${ORCH_HB_PID}" 2>/dev/null || true
+printf 'PASS backstop proposes for an unproposed IMMEDIATE while the orchestrator is alive\n'
 kill "${HB3_PID}" "${HB4_PID}" "${WS3_PID}" "${WS4_PID}" 2>/dev/null || true
 wait "${HB3_PID}" "${HB4_PID}" "${WS3_PID}" "${WS4_PID}" 2>/dev/null || true
 

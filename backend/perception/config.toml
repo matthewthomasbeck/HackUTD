@@ -21,7 +21,7 @@ download_timeout_s = 30                     # clip_url download when the URL is 
 
 [stdb]
 uri = "https://maincloud.spacetimedb.com"   # .env STDB_URI overrides
-database = "hackutd-rubble"                 # .env STDB_DATABASE overrides
+database = "assess-0hw81"                 # .env STDB_DATABASE overrides
 token = ""                                  # .env STDB_TOKEN; empty means data/identity.json
 participant_name = "perception"
 timeout_s = 5

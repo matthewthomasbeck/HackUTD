@@ -54,6 +54,27 @@ const greedyOrchestrator: MockPolicy = (req) => {
     calls.push({ name: "delegate", arguments: { reason: `brief ${pick[1]} on #${sid}`, to_agent: "comms_agent", kind: "brief_rescuer", priority: m[2] === "IMMEDIATE" ? "critical" : "high", survivor_id: sid } });
     if (calls.length >= 8) break;
   }
+  // A robot named idle in the WAKE line gets a search mission over the next unsearched cells in
+  // the CELLS line (up to 3, distinct per robot), as a rule-following model would.
+  const wakeLine = p.split("\n").find((l) => l.startsWith("WAKE:")) ?? "";
+  const robotLine = p.split("\n").find((l) => l.startsWith("ROBOT:")) ?? "";
+  const cellLine = p.split("\n").find((l) => l.startsWith("CELLS:")) ?? "";
+  const freeCells = [...cellLine.matchAll(/#(\d+) ([^,;]+)/g)].map((m) => ({ id: Number(m[1]), label: m[2].trim() }));
+  for (const m of wakeLine.matchAll(/robot ([a-z0-9_-]+) idle/g)) {
+    const id = m[1];
+    if (!new RegExp(`(^|[ ;])${id} online READY idle`).test(robotLine)) continue;
+    const pick = freeCells.splice(0, 3);
+    if (!pick.length || calls.length >= 8) break;
+    calls.push({
+      name: "create_mission",
+      arguments: {
+        reason: `${id} idle; search ${pick.map((c) => c.label).join(", ")}`,
+        robot_id: id,
+        kind: "search_cells",
+        target_cell_ids: pick.map((c) => c.id),
+      },
+    });
+  }
   return calls.length ? { tool_calls: calls } : { content: "No available rescuer for the waiting survivors." };
 };
 

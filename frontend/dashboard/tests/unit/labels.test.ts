@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { breathingLabel, resolutionLabel, survivorStatusLabel } from '../../src/model/labels';
+import { breathingLabel, resolutionLabel, RUN_NAME_MAX, runName, survivorStatusLabel } from '../../src/model/labels';
 
 describe('labels', () => {
   it('uses the specified breathing copy', () => {
@@ -16,5 +16,14 @@ describe('labels', () => {
     expect(resolutionLabel('duplicate')).toBe('RESOLVED: duplicate');
     const copy = JSON.stringify(['unassigned', 'assigned', 'en_route', 'reached', 'resolved'].map(survivorStatusLabel));
     expect(copy).not.toMatch(/dead|deceased|expectant|no pulse/i);
+  });
+
+  it('builds run names the module accepts, keeping the time', () => {
+    const at = new Date(2026, 10, 8, 9, 5, 7);
+    const long = runName('Demo: tornado damage, Richardson TX (simulated)', at);
+    expect(long.length).toBeLessThanOrEqual(RUN_NAME_MAX);
+    expect(long.endsWith(at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))).toBe(true);
+    expect(runName('Smoke site', at).startsWith('Smoke site · ')).toBe(true);
+    expect(runName('  ', at).startsWith('Run · ')).toBe(true);
   });
 });

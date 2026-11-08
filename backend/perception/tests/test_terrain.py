@@ -142,16 +142,15 @@ def api(monkeypatch, tmp_path):
     monkeypatch.setattr(perception, "media", fake_media, raising=False)
 
     calls = []
-    fake_stdb = types.ModuleType("perception.stdb")
-    fake_stdb.call = lambda reducer, args: calls.append((reducer, args))
-    monkeypatch.setitem(sys.modules, "perception.stdb", fake_stdb)
-    monkeypatch.setattr(perception, "stdb", fake_stdb, raising=False)
+    # The service's StdbClient lives on app.state.stdb; only its call() is used here.
+    fake_client = types.SimpleNamespace(call=lambda reducer, args: calls.append((reducer, args)))
 
     monkeypatch.setattr(terrain, "classify_detailed", lambda image, cfg=None: ("debris", 0.72, "zero_shot"))
     terrain.reset_state()
     terrain.configure({"terrain_frames_csv": str(tmp_path / "frames.csv")})
 
     app = FastAPI()
+    app.state.stdb = fake_client
     app.include_router(terrain.router)
     client = TestClient(app)
     yield types.SimpleNamespace(client=client, saved=saved, calls=calls, tmp=tmp_path)
@@ -218,13 +217,30 @@ def test_db_write_only_when_configured(api):
     terrain.configure(
         {"terrain_hint_enabled": True, "terrain_write_db": True, "terrain_frames_csv": str(api.tmp / "frames.csv")}
     )
-    assert post(api).status_code == 200
+    obs = now_iso()
+    assert post(api, observed_at=obs, lat="32.98", lon="-96.75").status_code == 200
     assert len(api.calls) == 1
     reducer, args = api.calls[0]
     assert reducer == "report_terrain"
-    assert args[0] == "dog1" and args[5] == "camera_model"
-    assert args[3] == {"debris": []} and args[6] == {"slow": []}
+    # report_terrain(robot_id, lat: f64, lon: f64, terrain_class, confidence, source, action,
+    # image_url: option(string), observed_at: option(Timestamp)) on HEAD's module.
     assert len(args) == 9
+    assert args[0] == "dog1"
+    assert args[1] == 32.98 and args[2] == -96.75
+    assert args[3] == {"debris": []} and args[5] == "camera_model" and args[6] == {"slow": []}
+    assert set(args[7]) == {"some"} and args[7]["some"].startswith("http://test/media/")
+    micros = args[8]["some"]["__timestamp_micros_since_unix_epoch__"]
+    expected = datetime.fromisoformat(obs.replace("Z", "+00:00")).timestamp() * 1_000_000
+    assert isinstance(micros, int) and abs(micros - expected) < 2
+    json.dumps(args)  # plain JSON for the HTTP call
+
+
+def test_db_write_skipped_without_position(api):
+    terrain.configure(
+        {"terrain_hint_enabled": True, "terrain_write_db": True, "terrain_frames_csv": str(api.tmp / "frames.csv")}
+    )
+    assert post(api).status_code == 200
+    assert api.calls == []  # the module needs lat and lon
 
 
 def test_latest_and_frames_csv(api):
@@ -298,6 +314,8 @@ def tiny_embed(images):
 
 
 def test_train_terrain_end_to_end_synthetic(tmp_path):
+    # scikit-learn is a terrain extra (commented out in requirements.txt until section 9 starts).
+    pytest.importorskip("sklearn")
     img_dir, labels = make_dataset(tmp_path)
     train = load_train_module()
     out, report_path = tmp_path / "terrain_model.joblib", tmp_path / "report.json"

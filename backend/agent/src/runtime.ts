@@ -14,6 +14,14 @@ import type { Change, TaskPriority } from "./types.ts";
 import type { World } from "./world.ts";
 
 const PRIO: Record<TaskPriority, number> = { critical: 0, high: 1, normal: 2 };
+/**
+ * register_participant retry delays in seconds, then the last one forever. Outside demo mode the
+ * module rejects an agent role until a coordinator calls grant_role(identity, role), so the runner
+ * keeps retrying slowly instead of needing a restart.
+ */
+export const REGISTER_BACKOFF_S = [2, 4, 8, 15, 30];
+/** Rejections that mean "register again": the participant row is missing or the role is not granted yet. */
+const REREGISTER = /not registered|role not granted/i;
 export const TIER0_STALL_MS = 8000;
 
 export class AgentRuntime {
@@ -24,6 +32,10 @@ export class AgentRuntime {
   private firstPendingAt: number | null = null;
   private flushTimer: TimerHandle | null = null;
   private hbTimer: TimerHandle | null = null;
+  private regTimer: TimerHandle | null = null;
+  private regAttempt = 0;
+  /** True after register_participant succeeded; heartbeats wait for it. */
+  registered = false;
   private localTimers = new Set<TimerHandle>();
   private running = false;
   private stopped = true;
@@ -74,18 +86,43 @@ export class AgentRuntime {
 
   async start(): Promise<void> {
     this.stopped = false;
-    try {
-      await this.actions.registerParticipant(this.agent.name, this.agent.role);
-    } catch (err) {
-      this.deps.log.warn(this.agent.name, `register_participant failed: ${(err as Error).message}`);
-    }
+    await this.register();
     this.unsub = this.world.onChange((c) => this.handleChange(c));
     this.scheduleHeartbeat(0);
     this.startupScan();
   }
 
+  /** register_participant, retried with REGISTER_BACKOFF_S on failure (never a tight loop). */
+  private async register(): Promise<void> {
+    if (this.stopped) return;
+    try {
+      await this.actions.registerParticipant(this.agent.name, this.agent.role);
+      if (this.regAttempt > 0) this.deps.log.info(this.agent.name, `registered as ${this.agent.role} after ${this.regAttempt} retries`);
+      this.registered = true;
+      this.regAttempt = 0;
+    } catch (err) {
+      this.registered = false;
+      const msg = (err as Error).message;
+      const delay = REGISTER_BACKOFF_S[Math.min(this.regAttempt, REGISTER_BACKOFF_S.length - 1)];
+      this.regAttempt++;
+      const hint = /role not granted/i.test(msg) ? `; a coordinator must call grant_role(<this identity>, ${this.agent.role})` : "";
+      this.deps.log.warn(this.agent.name, `register_participant failed: ${msg}${hint}; retry in ${delay} s`);
+      this.scheduleRegister(delay * 1000);
+    }
+  }
+
+  private scheduleRegister(ms: number): void {
+    if (this.stopped || this.regTimer != null) return;
+    this.regTimer = this.deps.clock.setTimeout(() => {
+      this.regTimer = null;
+      void this.register();
+    }, ms);
+  }
+
   stop(): void {
     this.stopped = true;
+    if (this.regTimer != null) this.deps.clock.clearTimeout(this.regTimer);
+    this.regTimer = null;
     this.unsub?.();
     this.unsub = null;
     const clock = this.deps.clock;
@@ -126,12 +163,18 @@ export class AgentRuntime {
   }
 
   private async heartbeat(): Promise<void> {
-    if (this.stopped || !this.shouldHeartbeat()) return;
+    if (this.stopped || !this.registered || !this.shouldHeartbeat()) return;
     try {
       await this.actions.agentHeartbeat();
       this.memory.lastHeartbeatAt = this.deps.clock.now();
     } catch (err) {
-      this.deps.log.warn(this.agent.name, `agent_heartbeat failed: ${(err as Error).message}`);
+      const msg = (err as Error).message;
+      this.deps.log.warn(this.agent.name, `agent_heartbeat failed: ${msg}`);
+      // The participant row is gone (for example after a republish): register again.
+      if (REREGISTER.test(msg)) {
+        this.registered = false;
+        this.scheduleRegister(0);
+      }
     }
   }
 

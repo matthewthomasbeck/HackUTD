@@ -196,6 +196,16 @@ def test_reasons_earlier_result_kept():
     assert r["reasons"][-2] == "latest clip unclear, earlier result kept"
 
 
+def test_many_reasons_truncate_to_six_and_keep_triage_last():
+    # Rate unknown, mostly buried, waiting, thermal missing, earlier result kept: 7 candidate
+    # reasons. set_critical_score rejects more than 6, so the list stops at 6 and the last
+    # one is still "needs human triage".
+    r = compute_score("detected", None, 0.7, 20.0, 10.0, None, True)
+    assert len(r["reasons"]) == 6
+    assert r["reasons"][-1] == LAST_REASON
+    assert r["reasons"].count(LAST_REASON) == 1
+
+
 def _all_outputs():
     gate_reasons = (
         None,
@@ -219,7 +229,7 @@ def _all_outputs():
 def test_reason_limits_everywhere():
     for r in _all_outputs():
         reasons = r["reasons"]
-        assert 1 <= len(reasons) <= 8
+        assert 1 <= len(reasons) <= 6  # the module rejects more than 6 score reasons
         assert reasons[-1] == LAST_REASON
         assert reasons.count(LAST_REASON) == 1
         for s in reasons:

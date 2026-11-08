@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { CORRECTION, runCycle } from "../src/loop.ts";
 import { dispatch } from "../src/tools/dispatch.ts";
+import { parsePayload } from "../src/world.ts";
 import { ctxFor, fakeWorld, postAndClaim, RESCUER, survivorAt } from "./helpers.ts";
 
 describe("dispatch round trip (agent.md 13 step 4)", () => {
@@ -14,7 +15,9 @@ describe("dispatch round trip (agent.md 13 step 4)", () => {
     expect(r.ok).toBe(true);
     const task = h.store.rows("agent_task").find((t) => t.kind === "brief_rescuer")!;
     expect(task.chain_id).toBe(chain);
-    expect(JSON.parse(task.payload_json)).toMatchObject({ chain_id: chain, survivor_id: sid, rescuer_identity: RESCUER.A });
+    // On the wire ids are decimal strings (the module's payload_json convention); parsePayload gives numbers back.
+    expect(JSON.parse(task.payload_json)).toMatchObject({ chain_id: String(chain), survivor_id: String(sid), rescuer_identity: RESCUER.A });
+    expect(parsePayload(task.payload_json)).toMatchObject({ chain_id: chain, survivor_id: sid, rescuer_identity: RESCUER.A });
     h.module.claimAgentTask(h.identity("comms_agent"), task.id);
     h.module.completeAgentTask(h.identity("comms_agent"), task.id, "done", JSON.stringify({ briefing_id: 1, text: "x", fallback: false }));
     expect(h.store.get("agent_task", task.id)?.status).toBe("done");
@@ -128,5 +131,21 @@ describe("runtime heartbeat policy (agent.md 8.1)", () => {
     const cycles = h.store.rows("agent_action").filter((a) => a.agent === "orchestrator" && a.tool === "cycle_summary");
     expect(cycles.length).toBe(1);
     h.stop();
+  });
+});
+
+describe("orchestrator packet reads payload ids as decimal strings", () => {
+  it("shows a posted brief for a pending proposal", async () => {
+    const { orchestratorPacket } = await import("../src/agents/orchestrator.ts");
+    const { World } = await import("../src/world.ts");
+    const { h } = fakeWorld();
+    const sid = survivorAt(h, 3);
+    h.module.proposeAssignment(h.identity("orchestrator"), sid, RESCUER.A, "IMMEDIATE");
+    const a = h.store.rows("assignment").at(-1)!;
+    // Ids as the module and payloadJson write them.
+    h.module.postAgentTask(h.identity("orchestrator"), "comms_agent", "brief_rescuer", JSON.stringify({ chain_id: "0", assignment_id: String(a.id), survivor_id: String(sid), rescuer_identity: RESCUER.A, why: "w" }), "critical", "brief", 0);
+    const ctx = ctxFor(h, "orchestrator");
+    const packet = orchestratorPacket(new World(h.store, h.clock), ctx.input, ctx);
+    expect(packet).toContain(`assignment #${a.id}, by orchestrator, brief posted`);
   });
 });

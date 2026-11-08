@@ -9,7 +9,7 @@ import { reviewChecks, ruleChecksLine, rulesVerdict, type ReviewPayload } from "
 import { logAction } from "../tools/dispatch.ts";
 import type { ToolName } from "../tools/schemas.ts";
 import type { AgentTask } from "../types.ts";
-import { parseJson, type World } from "../world.ts";
+import { parsePayload, type World } from "../world.ts";
 import { AUDITOR_PROMPT } from "./prompts.ts";
 
 export const AUDITOR_TOOLS: ToolName[] = ["get_board", "get_survivor", "list_rescuers", "submit_review"];
@@ -24,7 +24,7 @@ const reviewTasks: WakeRule = (c, w, self) => {
 
 function payloadOf(t: AgentTask | null): ReviewPayload | null {
   if (!t) return null;
-  const p = parseJson<ReviewPayload>(t.payload_json);
+  const p = parsePayload<ReviewPayload>(t.payload_json);
   return p && p.assignment_id && p.survivor_id && p.rescuer_identity ? p : null;
 }
 

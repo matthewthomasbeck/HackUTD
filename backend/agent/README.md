@@ -88,6 +88,28 @@ The original Super model returned 404 for our key and Nano 30B reached end of li
 Set `TOOL_MODE_SUPER` and `TOOL_MODE_NANO` in `.env` from the result; it is a config change, not a code change.
 `NANO_THINKING_OFF=1` sends `chat_template_kwargs: {"enable_thinking": false}` to Nano, only if step 3 shows the hosted API honors it.
 
+## Registration and roles
+
+Each agent connects with its own identity (token in `STDB_TOKEN_DIR/<agent>.token`) and calls `register_participant`:
+
+| Agent | `name` | `role` |
+| --- | --- | --- |
+| Orchestrator | `orchestrator` | `agent` |
+| Comms agent | `comms_agent` | `agent` |
+| Auditor | `auditor` | `auditor` |
+
+In demo mode, or before any site exists, the module accepts these roles directly.
+Otherwise a coordinator or commander must first call `grant_role(identity, role)` for each identity, with the role from the table; the identity hex is in the startup log line `identity <hex>`.
+For example, signed in as a coordinator: `spacetime call <db> grant_role 0x<hex> '{"agent":[]}'` (use `'{"auditor":[]}'` for the auditor).
+Until the grant, `register_participant` fails with `role not granted`, and the runner retries after 2, 4, 8, 15, then every 30 s, so no restart is needed.
+Heartbeats wait until registration succeeds, and an `agent_heartbeat` rejected with `not registered` starts registration again.
+
+### Environment names
+
+`STDB_URI` and `STDB_DATABASE` follow `docs/specs/CONTRACTS.md`.
+The agents use `STDB_TOKEN_DIR` (agent-internal) instead of the contract's `STDB_TOKEN`, because one process holds three identities, one token file each; see the proposed contract change in `docs/specs/agent.md`.
+Use an `http://` or `https://` (or `ws://`) URI; the perception service shares the same `STDB_URI` and needs `http(s)://`.
+
 ## Switches
 
 From agent.md 3.2: `DRY_RUN`, `LLM_MODE`, `ENABLE_AUDITOR_MODEL`, `ENABLE_COMMS_MODEL`, `ENABLE_QUESTIONS`, `ENABLE_VISION`, `ENABLE_SITREP`, `RPM_BUDGET`, `DEBOUNCE_MS`, `MAX_WAIT_MS`.

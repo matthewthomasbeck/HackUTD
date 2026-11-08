@@ -35,39 +35,41 @@ File: `backend/sim/demo-site.json`, committed.
 The sim, the dashboard e2e tests, the robot bridge (demo anchor), and the glasses service (rescuer start point) all read this one file.
 
 All positions are meter offsets from the site center (`east_m`, `north_m`), so moving the whole demo is a change to two numbers.
+The center is 7716 Worthing St, Dallas TX 75252 (house 3), and each house sits on a real building footprint from OpenStreetMap (`backend/glasses-service/site/worthing.geojson`): houses 1 to 5 on Worthing St, houses 6 to 10 on Benchmark Dr, and 11 and 12 north of Worthing.
+The houses are about 17 m apart, so cells are 15 m.
 `src/geo.ts` converts offsets with `lat = center_lat + north_m / 111320` and `lon = center_lon + east_m / (111320 * cos(center_lat in radians))`, accurate to well under a meter over 500 m.
 `npm run sim -- coords` prints every named point with its `lat` and `lon`.
 
 ```json
 {
   "site": {
-    "name": "Demo: tornado damage, Richardson TX (simulated)",
-    "center_lat": 32.9857,
-    "center_lon": -96.7502,
+    "name": "Demo: tornado, Dallas TX (simulated)",
+    "center_lat": 32.9968745,
+    "center_lon": -96.7704708,
     "radius_m": 483,
     "demo_mode": true,
     "require_mission_approval": true
   },
-  "cell_size_m": 30,
+  "cell_size_m": 15,
   "houses": [
-    { "label": "house 1",  "east_m": -120, "north_m": 140 },
-    { "label": "house 2",  "east_m": -60,  "north_m": 140 },
-    { "label": "house 3",  "east_m": 0,    "north_m": 140, "demo_pile": true },
-    { "label": "house 4",  "east_m": 60,   "north_m": 140, "view_blocked": true },
-    { "label": "house 5",  "east_m": 120,  "north_m": 140 },
-    { "label": "house 6",  "east_m": -120, "north_m": 70 },
-    { "label": "house 7",  "east_m": -60,  "north_m": 70 },
-    { "label": "house 8",  "east_m": 0,    "north_m": 70 },
-    { "label": "house 9",  "east_m": 60,   "north_m": 70 },
-    { "label": "house 10", "east_m": 120,  "north_m": 70 },
-    { "label": "apartments 11", "east_m": -60, "north_m": 0 },
-    { "label": "house 12", "east_m": 60,   "north_m": 0 }
+    { "label": "house 1", "east_m": -33.5, "north_m": 0.8 },
+    { "label": "house 2", "east_m": -17.2, "north_m": 1.3 },
+    { "label": "house 3", "east_m": 1.2, "north_m": 0.7, "demo_pile": true },
+    { "label": "house 4", "east_m": 18.2, "north_m": 0.5, "view_blocked": true },
+    { "label": "house 5", "east_m": 36.7, "north_m": 0.0 },
+    { "label": "house 6", "east_m": -35.3, "north_m": -42.5 },
+    { "label": "house 7", "east_m": -16.3, "north_m": -38.9 },
+    { "label": "house 8", "east_m": 1.9, "north_m": -40.2 },
+    { "label": "house 9", "east_m": 18.1, "north_m": -41.6 },
+    { "label": "house 10", "east_m": 36.1, "north_m": -42.5 },
+    { "label": "apartments 11", "east_m": -5.0, "north_m": 45.9 },
+    { "label": "house 12", "east_m": 25.5, "north_m": 47.7 }
   ],
   "scale_lots": { "pitch_m": 60, "label_prefix": "lot", "exclude_within_m": 40 },
-  "demo_anchor": { "label": "house 3 front door", "east_m": 0, "north_m": 125 },
+  "demo_anchor": { "label": "house 3 front door", "east_m": 1.2, "north_m": -14.3 },
   "robots": {
     "real": { "robot_id": "dog1" },
-    "sim":  { "robot_id": "sim-dog", "home": { "east_m": 0, "north_m": -40 } },
+    "sim":  { "robot_id": "sim-dog", "home": { "east_m": 0, "north_m": -20 } },
     "fleet_size": 4
   },
   "rescuers": [
@@ -79,8 +81,8 @@ All positions are meter offsets from the site center (`east_m`, `north_m`), so m
   ],
   "extra_sim_rescuers": 36,
   "hidden_survivors": [
-    { "house": "house 4",  "east_m": 56,  "north_m": 144, "note": "front room", "level": "delayed", "breathing": "detected", "rate_bpm": 18, "visibility_pct": 70 },
-    { "house": "house 10", "east_m": 124, "north_m": 66,  "note": "under stairs", "level": "immediate", "breathing": "not_detected", "visibility_pct": 15 }
+    { "house": "house 4",  "east_m": 16.2, "north_m": 3.5, "note": "front room", "level": "delayed", "breathing": "detected", "rate_bpm": 18, "visibility_pct": 70 },
+    { "house": "house 10", "east_m": 34.1, "north_m": -39.5, "note": "under stairs", "level": "immediate", "breathing": "not_detected", "visibility_pct": 15 }
   ],
   "family_report": { "house": "house 4", "kind": "missing", "count": 2, "name_or_unit": "family of 2", "source": "family", "note": "both were home" },
   "scale": {
@@ -328,6 +330,9 @@ A timeline is a JSON list of steps, run in order:
 ```json
 [
   { "at": "0:00", "cmd": "run start Judging" },
+  { "cmd": "rescuers start" },
+  { "cmd": "hidden" },
+  { "cmd": "robot start" },
   { "at": "0:20", "cmd": "scale 300" },
   { "say": "Approve the search of house 3 on Screen A, point at Screen B" },
   { "await": "survivor_in", "house": "house 3", "timeout_s": 120, "else": "robot replay house3" },
@@ -350,6 +355,10 @@ A timeline is a JSON list of steps, run in order:
 
 - `at` is time from the timeline start; `after_s` is time after the previous step.
 - `await` waits for a condition seen in the subscription (`survivor_in`, `assignment_for`, `released`, `person_report`, `mission_for`, `watchdog_fallback`, `audit_flag`, `status`, or `key` for Enter), with a timeout and an optional fallback command or cue.
+  `survivor_in` and `assignment_for` pass on the current state; `released`, `person_report`, `watchdog_fallback`, and `audit_flag` pass only on rows that appear after the step starts; `mission_for` takes `house` and an optional `status`; `status` passes when the headline is at most the step's `status` value (default 0).
+- A `cmd` or `else` that fails prints the error and the timeline continues, so a missing glasses service (`walk`) never stops the run.
+  The unit tests check that every `cmd` and `else` in `timelines/` is a known command.
+- The first three steps start the loops the timeline needs (sim rescuers, the hidden survivors, `sim-dog`); they change nothing when the console already runs them, except that `hidden` re-arms the hidden survivors.
 - `say` prints a large cue line in the console for the presenter.
 - With the same seed and timeline, the simulated parts happen the same way every time, which the video needs.
 - `--dry` prints the steps with computed times without connecting.

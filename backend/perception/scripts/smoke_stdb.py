@@ -39,6 +39,16 @@ def first_row_raw(raw) -> dict:
     return {"schema": stmt.get("schema"), "first_row": (stmt.get("rows") or [None])[0]}
 
 
+def json_line(line: str) -> dict | None:
+    """One helper stdout line as a dict; None for anything else (the SDK prints log lines such as
+    "INFO Connecting to SpacetimeDB WS..." on stdout too)."""
+    try:
+        event = json.loads(line)
+    except ValueError:
+        return None
+    return event if isinstance(event, dict) else None
+
+
 def check_helper(cfg: dict, token: str, survivor_id: int, trigger) -> bool:
     script = BASE_DIR / cfg["stdb"]["helper_script"]
     node = shutil.which("node")
@@ -54,8 +64,10 @@ def check_helper(cfg: dict, token: str, survivor_id: int, trigger) -> bool:
         deadline = time.monotonic() + 15
         while time.monotonic() < deadline:  # wait for the subscription to apply
             try:
-                event = json.loads(lines.get(timeout=1))
+                event = json_line(lines.get(timeout=1))
             except queue.Empty:
+                continue
+            if event is None:
                 continue
             if event.get("status") == "connected":
                 break
@@ -66,8 +78,10 @@ def check_helper(cfg: dict, token: str, survivor_id: int, trigger) -> bool:
         start = time.monotonic()
         while time.monotonic() - start < 2.0:
             try:
-                event = json.loads(lines.get(timeout=0.1))
+                event = json_line(lines.get(timeout=0.1))
             except queue.Empty:
+                continue
+            if event is None:
                 continue
             if event.get("table") == "survivor" and event.get("op") == "update" \
                     and int(event["row"].get("id", 0)) == survivor_id:

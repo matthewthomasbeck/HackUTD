@@ -258,7 +258,7 @@ Do not copy the bindings into the bridge folder.
 
 ```
 cd raspberrypi/bridge
-cp .env.example .env    # STDB_URI=ws://localhost:3000, STDB_DATABASE=hackutd-rubble, BRIDGE_SOCKET=/tmp/robot/bridge.sock, MEDIA_URL=http://localhost:8080
+cp .env.example .env    # STDB_URI=ws://localhost:3000, STDB_DATABASE=assess-0hw81, BRIDGE_SOCKET=/tmp/robot/bridge.sock, MEDIA_URL=http://localhost:8080
 npm run dev
 ```
 
@@ -751,7 +751,7 @@ import { DbConnection, tables } from '../../../backend/spacetimedb-bindings';
 
 const conn = DbConnection.builder()
   .withUri(env.STDB_URI)            // ws://localhost:3000 local, or https://maincloud.spacetimedb.com
-  .withDatabaseName(env.STDB_DATABASE)    // hackutd-rubble (spacetimedb.md section 1.4)
+  .withDatabaseName(env.STDB_DATABASE)    // assess-0hw81 (spacetimedb.md section 1.4)
   .withToken(loadToken())           // undefined on first run creates a new identity
   .onConnect((conn, identity, token) => { saveToken(token); onConnected(conn, identity); })
   .onConnectError((_ctx, err) => scheduleReconnect(err))

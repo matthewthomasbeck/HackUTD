@@ -77,10 +77,12 @@ The service imports them only when needed, so it starts without them: a breathin
 
 Writes go over HTTP from Python (`POST /v1/database/<db>/call/<reducer>`).
 On startup the service creates or loads its identity (`data/identity.json`) and calls `register_participant("perception", perception)`.
-Outside demo mode that needs a coordinator's `grant_role` first; if it is rejected, the log shows the identity hex, and the media server keeps working.
+Outside demo mode that needs a coordinator's `grant_role(<identity>, perception)` first.
+Until then the log shows the identity hex, the service retries every 2, 4, 8, 15, then 30 s, and the media server keeps working; no restart is needed after the grant.
+If a later write is rejected with `not registered` or `role not granted`, the service registers again.
 Argument order follows `docs/specs/spacetimedb.md` section 8.5:
 `report_breathing(survivor_id, breathing, rate_bpm, confidence, visibility_pct, display_url)` and `set_critical_score(survivor_id, level, score, confidence, reasons)`.
-Check it against `spacetime describe hackutd-rubble reducers --json` before the first real call.
+Check it against `spacetime describe assess-0hw81 reducers --json` before the first real call.
 
 `tests/fixtures/sql_sample_not_captured.json` is hand-written from the spec, not captured from a real server.
 Run `python scripts/smoke_stdb.py --save-fixture` once the module is published, and point `tests/test_stdb.py` at the captured file.
@@ -89,6 +91,7 @@ Run `python scripts/smoke_stdb.py --save-fixture` once the module is published, 
 
 ```bash
 cd stdb-helper && npm install && npm run build
+npm test                 # builds, then node --test test/
 ```
 
 The helper imports the generated bindings from `backend/spacetimedb-bindings/` (`spacetimedb.md` section 1.6).

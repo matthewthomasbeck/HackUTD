@@ -1,4 +1,4 @@
-import type { DemoSiteConfig } from './config.ts';
+import { extraRescuerNumber, type DemoSiteConfig } from './config.ts';
 import { offsetToLatLon } from './geo.ts';
 import { mulberry32 } from './rng.ts';
 import type { SimActor, SimPool } from './pool.ts';
@@ -29,14 +29,13 @@ export function generateScaleLots(config: DemoSiteConfig): ScaleLot[] {
 export function generateExtraRescuerStarts(config: DemoSiteConfig): Array<{ key: string; name: string; lat: number; lon: number }> {
   const starts = [];
   const random = mulberry32(config.scale.seed);
-  const baseNumber = config.rescuers.length + 1;
   for (let index = 0; index < config.extra_sim_rescuers; index += 1) {
     const angle = random() * Math.PI * 2;
     const radius = config.site.radius_m * Math.sqrt(random()) * 0.8;
     const east_m = Math.cos(angle) * radius;
     const north_m = Math.sin(angle) * radius;
     const point = offsetToLatLon({ lat: config.site.center_lat, lon: config.site.center_lon }, { east_m, north_m });
-    const number = baseNumber + index;
+    const number = extraRescuerNumber(config, index);
     starts.push({ key: `r${number}`, name: `R${number} (sim)`, ...point });
   }
   return starts;

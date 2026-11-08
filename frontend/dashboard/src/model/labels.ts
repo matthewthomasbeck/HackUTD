@@ -33,3 +33,13 @@ export function resolutionLabel(resolutionValue: string | { tag: string }): stri
   };
   return `RESOLVED: ${labels[resolution] ?? 'unknown'}`;
 }
+
+// start_run accepts names of 1 to 40 characters (the module's checkName), so the site name is shortened to fit the time.
+export const RUN_NAME_MAX = 40;
+export function runName(siteName: string, at: Date): string {
+  const time = at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const suffix = ` · ${time}`;
+  const room = RUN_NAME_MAX - suffix.length;
+  const site = siteName.trim() || 'Run';
+  return `${site.length > room ? `${site.slice(0, room - 1).trimEnd()}…` : site}${suffix}`;
+}

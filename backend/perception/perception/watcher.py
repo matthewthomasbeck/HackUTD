@@ -293,7 +293,15 @@ class Watcher:
                     if not line:
                         continue
                     try:
-                        self.handle_event(json.loads(line))
+                        event = json.loads(line)
+                    except ValueError:
+                        # The SDK prints its own log lines ("INFO Connecting to SpacetimeDB WS...") on stdout.
+                        log.debug("helper log line: %s", line[:200])
+                        continue
+                    if not isinstance(event, dict):
+                        continue
+                    try:
+                        self.handle_event(event)
                     except Exception:  # noqa: BLE001
                         log.exception("bad helper line: %s", line[:200])
                 self._proc.wait()

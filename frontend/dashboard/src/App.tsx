@@ -18,6 +18,7 @@ import { useReplayControls } from './data/ReplaySource';
 import { enumTagToContract } from './stdb/enums';
 import { timestampToMs } from './stdb/time';
 import { formatReplayTime } from './replay/player';
+import { runName } from './model/labels';
 import { mapCellActionCommand } from './model/mapActions';
 import type { DashboardConfig } from './stdb/connection';
 
@@ -100,7 +101,7 @@ export default function App({ config }: { config: DashboardConfig }) {
   };
   const startRun = async () => {
     if (!connection || !board.site) return;
-    try { await connection.reducers.startRun({ siteId: board.site.id, name: `${board.site.name} · ${new Date().toLocaleTimeString()}` }); showToast('Run recording started.'); }
+    try { await connection.reducers.startRun({ siteId: board.site.id, name: runName(board.site.name, new Date()) }); showToast('Run recording started.'); }
     catch (error) { showToast(error instanceof Error ? error.message : String(error)); }
   };
   const endRun = async () => {

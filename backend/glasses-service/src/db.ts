@@ -6,8 +6,14 @@ import type { ReducerApi } from './actions.js';
 
 type Row = Record<string, unknown>;
 type Query = unknown;
+export interface TableLike {
+  iter(): Iterable<Row>;
+  onInsert?(callback: (...args: unknown[]) => void): void;
+  onUpdate?(callback: (...args: unknown[]) => void): void;
+  onDelete?(callback: (...args: unknown[]) => void): void;
+}
 export interface ConnectionLike {
-  db: Record<string, { iter(): Iterable<Row> }>;
+  db: Record<string, TableLike>;
   reducers?: ReducerApi;
   subscriptionBuilder(): SubscriptionBuilderLike;
   disconnect(): void;
@@ -61,6 +67,8 @@ const VIEW_QUERIES: Array<{ name: string; table: Query; fallback?: (identityHex:
   { name: 'my_survivor', table: tables.mySurvivor },
   { name: 'critical_open', table: tables.criticalOpen },
 ];
+// Every table accessor the snapshot reads, including the base tables used by view fallbacks.
+const WATCHED_TABLES = ['myAssignment', 'assignment', 'myBriefing', 'briefing', 'mySurvivor', 'criticalOpen', 'participant', 'site', 'robot', 'survivor'];
 const BASE_QUERIES: Array<{ name: string; table: Query }> = [
   { name: 'participant', table: tables.participant },
   { name: 'site', table: tables.site },
@@ -144,6 +152,8 @@ export class ReadOnlyDbSession {
   private readonly registrationComplete = new Set<string>();
   private readonly makeBuilder: () => ConnectionBuilderLike;
   private disposed = false;
+  private emitQueued = false;
+  private readonly watchedConnections = new WeakSet<ConnectionLike>();
 
   constructor(private readonly options: DbSessionOptions) {
     this.makeBuilder = options.makeBuilder ?? (() => DbConnection.builder() as unknown as ConnectionBuilderLike);
@@ -167,6 +177,7 @@ export class ReadOnlyDbSession {
       this.identityHex = identity.toHexString().toLowerCase();
       this.status = 'connected';
       void persistToken(this.options.rescuer, savedToken, this.options.config.tokenDirectory).catch((err: unknown) => this.options.onError?.(asError(err)));
+      this.watchRows(connection);
       this.subscribe(connection);
       this.emit();
     };
@@ -306,6 +317,27 @@ export class ReadOnlyDbSession {
         this.emit();
       });
     this.subscriptions.push(builder.subscribe(query));
+  }
+
+  // Row callbacks fire once per changed row; coalesce them so one transaction sends one snapshot.
+  private watchRows(connection: ConnectionLike): void {
+    if (this.watchedConnections.has(connection)) return;
+    this.watchedConnections.add(connection);
+    const changed = () => {
+      this.lastMessageAt = Date.now();
+      if (this.emitQueued) return;
+      this.emitQueued = true;
+      setImmediate(() => {
+        this.emitQueued = false;
+        if (!this.disposed) this.emit();
+      });
+    };
+    for (const accessor of WATCHED_TABLES) {
+      const table = connection.db[accessor];
+      table?.onInsert?.(changed);
+      table?.onUpdate?.(changed);
+      table?.onDelete?.(changed);
+    }
   }
 
   private emit(): void { this.options.onChange(this.snapshot()); }

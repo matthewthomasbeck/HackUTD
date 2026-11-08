@@ -4,7 +4,7 @@
 
 import type { Wake } from "./agent-types.ts";
 import type { AgentTask } from "./types.ts";
-import { parseJson, type World } from "./world.ts";
+import { parsePayload, type World } from "./world.ts";
 
 export function survivorChain(w: World, survivorId: number): number {
   const ev = w
@@ -20,7 +20,7 @@ export function survivorChain(w: World, survivorId: number): number {
 
 export function taskChain(w: World, t: AgentTask): number {
   if (t.chain_id) return t.chain_id;
-  const p = parseJson<{ chain_id?: number; survivor_id?: number }>(t.payload_json);
+  const p = parsePayload<{ chain_id?: number; survivor_id?: number }>(t.payload_json);
   if (p?.chain_id) return p.chain_id;
   if (p?.survivor_id) return survivorChain(w, p.survivor_id);
   return 0;

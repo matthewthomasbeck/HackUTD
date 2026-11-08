@@ -4,10 +4,10 @@
   "description": "",
   "scripts": {
     "build": "spacetime build",
-    "publish:cloud": "spacetime publish hackutd-rubble -p . --server maincloud --yes",
-    "publish:local": "spacetime publish hackutd-rubble -p . --server local --yes",
+    "publish:cloud": "spacetime publish assess-0hw81 -p . --server maincloud --yes",
+    "publish:local": "spacetime publish assess-0hw81 -p . --server local --yes",
     "generate": "spacetime generate --lang typescript --out-dir ../spacetimedb-bindings --module-path .",
-    "logs:cloud": "spacetime logs hackutd-rubble --server maincloud -f",
+    "logs:cloud": "spacetime logs assess-0hw81 --server maincloud -f",
     "test": "bash test/smoke.sh"
   },
   "keywords": [],

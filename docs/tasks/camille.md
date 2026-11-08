@@ -372,7 +372,7 @@ Files to create:
 
 Config keys:
 - Robot: `bridge.socket`, `bridge.heartbeat_hz`, `bridge.position_hz`, `bridge.outbox`, `site.*`, `location.force_demo`, `home.*`, `heading.*`, `odometry.scale`.
-- Bridge `.env`: `STDB_URI`, `STDB_DATABASE` (`hackutd-rubble`), `ROBOT_ID` (`dog1`), `BRIDGE_SOCKET`, `MEDIA_URL`, `BRIDGE_TOKEN_FILE`, `SPOOL_FILE`, `SPOOL_MAX_MB`, `MEDIA_RETRIES`, `CLAIM_INTERVAL_MS`, `STDB_MODE`.
+- Bridge `.env`: `STDB_URI`, `STDB_DATABASE` (`assess-0hw81`), `ROBOT_ID` (`dog1`), `BRIDGE_SOCKET`, `MEDIA_URL`, `BRIDGE_TOKEN_FILE`, `SPOOL_FILE`, `SPOOL_MAX_MB`, `MEDIA_RETRIES`, `CLAIM_INTERVAL_MS`, `STDB_MODE`.
 
 Run (robot.md 3.4):
 
@@ -380,7 +380,7 @@ Run (robot.md 3.4):
 spacetime start                      # or Cayden's command from specs/spacetimedb.md
 cd raspberrypi/bridge && cp .env.example .env && npm run dev
 cd raspberrypi/robot && ./build/robot --config config/robot.laptop.yaml
-spacetime sql hackutd-rubble "SELECT * FROM robot"
+spacetime sql assess-0hw81 "SELECT * FROM robot"
 ```
 
 Checklist:

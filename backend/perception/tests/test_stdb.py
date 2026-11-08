@@ -14,7 +14,7 @@ from perception.stdb import (StdbClient, StdbRejected, StdbUnavailable, decode_r
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "sql_sample_not_captured.json").read_text())
 URI = "http://stdb.test"
-DB = "hackutd-rubble"
+DB = "assess-0hw81"
 T0 = 1794107722000000
 
 
@@ -199,3 +199,17 @@ def test_decode_integer_tag_and_plain_timestamp():
     ts = {"Product": {"elements": [{"name": {"some": "__timestamp_micros_since_unix_epoch__"},
                                     "algebraic_type": {"I64": []}}]}}
     assert decode_value(T0, ts) == micros_to_iso(T0)
+
+
+def test_smoke_script_skips_non_json_helper_lines():
+    # The SpacetimeDB SDK prints log lines on the helper's stdout; the smoke test must skip them.
+    import importlib.util
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parent.parent / "scripts" / "smoke_stdb.py"
+    spec = importlib.util.spec_from_file_location("smoke_stdb", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.json_line("ℹ️ INFO Connecting to SpacetimeDB WS...") is None
+    assert mod.json_line("[1, 2]") is None
+    assert mod.json_line('{"status": "connected"}') == {"status": "connected"}

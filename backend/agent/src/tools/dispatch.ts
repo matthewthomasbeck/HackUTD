@@ -18,7 +18,7 @@ import {
 import { safeJson } from "../log.ts";
 import { survivorChain } from "../chain.ts";
 import { reviewConsistency, type ReviewPayload } from "../rules.ts";
-import { parseJson } from "../world.ts";
+import { parsePayload } from "../world.ts";
 import * as reads from "./reads.ts";
 import { SCHEMAS, type ToolName } from "./schemas.ts";
 import * as writes from "./writes.ts";
@@ -82,7 +82,7 @@ const IMPL: Record<ToolName, ToolImpl> = {
     guard: (c, a) => {
       const g = guardSubmitReview(c, a);
       if (g) return g;
-      const payload = parseJson<ReviewPayload>(c.input.task?.payload_json ?? "");
+      const payload = parsePayload<ReviewPayload>(c.input.task?.payload_json ?? "");
       return payload && payload.assignment_id && payload.rescuer_identity ? reviewConsistency(c.world, payload, a) : null;
     },
     run: writes.submitReview,

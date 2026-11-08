@@ -19,15 +19,22 @@ Its older files (produced water, leak detection, inspection robots, images) were
 `docs/PROJECT.md` has the proposed platform, glasses view, and the accounts and keys list.
 `docs/IDEAS.md` and `docs/notes/` are the history of the ideation phase (the grid outage idea led until this pivot), so do not treat them as current decisions.
 
-Code has landed in the SpacetimeDB module, simulator foundation, and glasses plugin.
+As of 2026-11-08, code has landed in the SpacetimeDB module (`backend/spacetimedb/`, with bindings in `backend/spacetimedb-bindings/`), the simulator (`backend/sim/`), the glasses service (`backend/glasses-service/`), the glasses plugin and fallback page (`frontend/glasses/`), and the dashboard (`frontend/dashboard/`).
+Eric's agents (`backend/agent/`) and perception service (`backend/perception/`) are merged, with the integration fixes from 2026-11-08.
+The robot program foundation (state machine, safety gate, threads, mocks) is in `raspberrypi/robot/` and the first Pico sensor firmware is in `pico/`, but the Node.js bridge to SpacetimeDB is not pushed yet, so the sim robot stands in for the robot on the board.
+The Maincloud database is `assess-0hw81` (owned by Cayden's `spacetime login`); the local fallback server uses the same name, and clients set `STDB_URI` and `STDB_DATABASE`.
+Open work and per-task status are in `docs/tasks/cayden.md` and `docs/TASKS.md`.
 Run the module typecheck and build with `cd backend/spacetimedb && npx tsc --noEmit -p . && spacetime build`.
 Run the module smoke suite with `cd backend/spacetimedb && npm test`.
-Run the glasses plugin checks with `cd frontend/glasses && npm test && npm run build`.
-Run the glasses service checks with `cd backend/glasses-service && npm test && npx tsc --noEmit`.
 Run the simulator checks with `cd backend/sim && npm test && npx tsc --noEmit`.
+Run the glasses service checks with `cd backend/glasses-service && npm test && npx tsc --noEmit`.
+Run the glasses plugin checks with `cd frontend/glasses && npm test && npm run build`.
+Run the dashboard checks with `cd frontend/dashboard && npm test && npm run build`.
+Run the agent checks with `cd backend/agent && npm test && npx tsc --noEmit`.
+Run the perception checks with `cd backend/perception && python -m pytest`.
+How to run each part is in `backend/README.md` and `frontend/README.md`; integration commands remain in the specs in `docs/specs/`.
 The robot main program is in `raspberrypi/robot/` (C++17, CMake): the state machine, safety gate, threads (main, movement, vision), control socket, and mocks (task R1).
 Build and test it with `cmake -B build && cmake --build build -j && ctest --test-dir build --output-on-failure` inside `raspberrypi/robot/`, and run it on a laptop with `./build/robot --config config/robot.laptop.yaml`; `raspberrypi/README.md` has the dependencies and the `robotctl` commands.
-Component run and integration commands remain in their specs in `docs/specs/`.
 
 Primary perception and agents are in `backend/perception/` and `backend/agent/`.
 Run `.venv/bin/python -m pytest -q` from `backend/perception/`.

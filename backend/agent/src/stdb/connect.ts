@@ -3,11 +3,9 @@
 // runner typechecks and its tests pass before the bindings exist; a missing folder fails with a
 // clear message. Only this folder and world.ts may touch binding shapes.
 //
-// UNCONFIRMED until the bindings exist (each is isolated here):
-// - reducer argument key spelling: reducerArgs() sends both snake_case and camelCase keys;
-// - enum argument shape { tag } and enum tag spelling on rows (convert.ts);
-// - Identity.fromString for propose_assignment (present in the spacetimedb 2.14 SDK);
-// - optional arguments as undefined (post_briefing survivor_id and kind, create_mission targets).
+// Checked against the published module on 2026-11-08: reducerArgs() key spelling, enum arguments
+// as { tag: <binding variant name> } (convert.ts toEnum), Identity.fromString for
+// propose_assignment, and optional arguments as undefined.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -167,9 +165,9 @@ export class LiveConnection implements Actions, TableSource {
         continue;
       }
       // Row callbacks before onApplied are ignored (half-loaded state).
-      tbl.onInsert?.((_ctx: any, row: any) => this.ready && this.emit({ table: t, op: "insert", row: fromBinding(row) as any }));
-      tbl.onUpdate?.((_ctx: any, old: any, row: any) => this.ready && this.emit({ table: t, op: "update", row: fromBinding(row) as any, old: fromBinding(old) as any }));
-      tbl.onDelete?.((_ctx: any, row: any) => this.ready && this.emit({ table: t, op: "delete", row: fromBinding(row) as any }));
+      tbl.onInsert?.((_ctx: any, row: any) => this.ready && this.emit({ table: t, op: "insert", row: fromBinding(row, t) as any }));
+      tbl.onUpdate?.((_ctx: any, old: any, row: any) => this.ready && this.emit({ table: t, op: "update", row: fromBinding(row, t) as any, old: fromBinding(old, t) as any }));
+      tbl.onDelete?.((_ctx: any, row: any) => this.ready && this.emit({ table: t, op: "delete", row: fromBinding(row, t) as any }));
     }
     conn
       .subscriptionBuilder()
@@ -205,7 +203,7 @@ export class LiveConnection implements Actions, TableSource {
   rows<T extends TableName>(table: T): TableRows[T][] {
     const tbl = this.conn?.db?.[ACCESSOR[table]];
     if (!tbl || !this.ready) return [];
-    return [...tbl.iter()].map((r: unknown) => fromBinding(r) as TableRows[T]);
+    return [...tbl.iter()].map((r: unknown) => fromBinding(r, table) as TableRows[T]);
   }
 
   onChange(cb: (c: Change) => void): () => void {

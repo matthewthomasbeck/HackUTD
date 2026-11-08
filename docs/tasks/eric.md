@@ -113,7 +113,7 @@ Anything marked UNCONFIRMED must pass a smoke test before code depends on it.
 | Local speech-to-text | `faster-whisper`, model size `small.en` | `STT_ENGINE=whisper_local`, `WHISPER_MODEL` | Fallback, no network; weights download on first use |
 | Person and chest model | `yolo26n-pose.pt`, fallback `yolo11n-pose.pt` (Ultralytics) | `[breathing] yolo_model` in `config.toml` | Use the fallback if the first name fails to load |
 | Terrain baseline | `openai/clip-vit-base-patch32` (Hugging Face `transformers`) | `terrain.py` | Should have |
-| SpacetimeDB | database `hackutd-rubble` on Maincloud (`https://maincloud.spacetimedb.com`) or a local server (`http://<laptop-a-ip>:3000`) | `STDB_URI`/`STDB_DATABASE` (perception), `STDB_URI`/`STDB_DATABASE` (agents) | The Maincloud name is not confirmed free; Cayden announces the final name |
+| SpacetimeDB | database `assess-0hw81` on Maincloud (`https://maincloud.spacetimedb.com`) or a local server (`http://<laptop-a-ip>:3000`) | `STDB_URI`/`STDB_DATABASE` (perception), `STDB_URI`/`STDB_DATABASE` (agents) | The Maincloud name is not confirmed free; Cayden announces the final name |
 
 ## Code folders you own
 
@@ -399,7 +399,7 @@ Algorithm summary (full detail in perception.md section 4; follow it exactly):
 8. Decision rules 1 to 6 in perception.md 4 step 8; `not_detected` and `unknown` never above 0.3 confidence; `rate_bpm` only for `detected`.
 9. Re-scan rule: an `unknown` never replaces an earlier `detected` or `not_detected`.
 
-SpacetimeDB write path (perception.md section 8): `POST {STDB_URI}/v1/identity` once, save to `data/identity.json`; `register_participant` with `["perception", {"perception": []}]`; `POST {STDB_URI}/v1/database/{STDB_DATABASE}/call/report_breathing` with a JSON array body and `Authorization: Bearer <token>`; enums as `{"detected": []}`, options as `{"some": x}` or `{"none": []}`; check the argument order with `spacetime describe hackutd-rubble reducers --json` before the first call.
+SpacetimeDB write path (perception.md section 8): `POST {STDB_URI}/v1/identity` once, save to `data/identity.json`; `register_participant` with `["perception", {"perception": []}]`; `POST {STDB_URI}/v1/database/{STDB_DATABASE}/call/report_breathing` with a JSON array body and `Authorization: Bearer <token>`; enums as `{"detected": []}`, options as `{"some": x}` or `{"none": []}`; check the argument order with `spacetime describe assess-0hw81 reducers --json` before the first call.
 
 Commands:
 
@@ -448,7 +448,7 @@ Prompt for your coding agent:
 Read docs/specs/perception.md sections 3, 4 (all steps, the result JSON, the [breathing] config table,
 the re-scan rule), 8 (8.1 to 8.6), and 10 (unit tests and the synthetic clip table), and the
 report_breathing row in the "Reducers" table of docs/specs/CONTRACTS.md. Check the argument order against
-docs/specs/spacetimedb.md and `spacetime describe hackutd-rubble reducers --json`; spacetimedb.md wins.
+docs/specs/spacetimedb.md and `spacetime describe assess-0hw81 reducers --json`; spacetimedb.md wins.
 In backend/perception/, implement video.py, roi.py (operator, center, background ROI, ROI checks, roi.jpg;
 leave pose and box as stubs that return None), breathing.py, worker.py, stdb.py, watcher.py,
 scripts/make_synthetic.py, scripts/analyze_clip.py (prints the result JSON; --roi and --debug flags; no database),
@@ -666,7 +666,7 @@ Done when: dry-run mode logs a full chain against the local SpacetimeDB and the 
 Tests with pass criteria:
 
 - `npm run typecheck` and `npm test` pass (priority, guards, parse, budget, chain, templates).
-- `DRY_RUN=1 LLM_MODE=mock`: the console and trace show, for one simulator survivor, a wake, a proposal, a `brief_rescuer` task, a `review`, and a briefing, all with the same `chain_id`, and the SpacetimeDB tables are unchanged (`spacetime sql hackutd-rubble "SELECT * FROM agent_task"` shows no new rows).
+- `DRY_RUN=1 LLM_MODE=mock`: the console and trace show, for one simulator survivor, a wake, a proposal, a `brief_rescuer` task, a `review`, and a briefing, all with the same `chain_id`, and the SpacetimeDB tables are unchanged (`spacetime sql assess-0hw81 "SELECT * FROM agent_task"` shows no new rows).
 - Tool-calling smoke test: `npm run smoke:llm` still passes with the runner's real `llm/client.ts` (not only the script's own client).
 - `DRY_RUN=log`: `agent_action` rows appear with result `dry_run: not executed`, and nothing else changes.
 

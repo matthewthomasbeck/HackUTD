@@ -1040,7 +1040,15 @@ If the clock runs short, stop at step 9 and apply the cut order in section 11.
 
 ## Proposed contract changes
 
-Proposed contract changes: none open (merged into CONTRACTS.md version 8.1).
+Open (PROPOSED, needs a team decision before it goes into CONTRACTS.md):
+
+1. `STDB_TOKEN_DIR` for the agent runner.
+   CONTRACTS.md section "SpacetimeDB environment variables" gives every component `STDB_TOKEN` (one identity token).
+   The agent runner holds three identities in one process (orchestrator, comms agent, auditor), so it reads `STDB_TOKEN_DIR` instead and keeps one token file per agent (`<dir>/<agent>.token`).
+   Proposal: add `STDB_TOKEN_DIR` to that line as the agent runner's agent-internal replacement for `STDB_TOKEN`.
+   Until then it is documented in `backend/agent/README.md`.
+
+Earlier changes were merged into CONTRACTS.md version 8.1.
 
 ## Sources
 

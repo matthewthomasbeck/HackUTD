@@ -9,7 +9,7 @@ import { continueMission } from "../rules.ts";
 import { dispatch } from "../tools/dispatch.ts";
 import type { ToolName } from "../tools/schemas.ts";
 import type { AgentTask, Assignment, AuditFlag, Detection, EventLog, Mission, PersonReport, Robot, SearchCell, Survivor } from "../types.ts";
-import { iso, type World } from "../world.ts";
+import { iso, parsePayload, type World } from "../world.ts";
 import { ORCHESTRATOR_PROMPT } from "./prompts.ts";
 
 export const ORCHESTRATOR_TOOLS: ToolName[] = [
@@ -165,7 +165,7 @@ export function orchestratorPacket(w: World, input: CycleInput, ctx: CycleCtx): 
       "PENDING PROPOSALS: " +
         pending
           .map((a) => {
-            const brief = tasks.some((t) => t.kind === "brief_rescuer" && t.payload_json.includes(`"assignment_id":${a.id}`));
+            const brief = tasks.some((t) => t.kind === "brief_rescuer" && parsePayload<{ assignment_id?: number }>(t.payload_json)?.assignment_id === a.id);
             return `#${a.survivor_id} to ${w.callsign(a.rescuer_identity)} (assignment #${a.id}, by ${a.created_by}, brief ${brief ? "posted" : "none"})`;
           })
           .join("; "),

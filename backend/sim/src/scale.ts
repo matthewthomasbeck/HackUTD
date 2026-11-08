@@ -6,6 +6,7 @@ import { mulberry32 } from './rng.ts';
 import { logInjection } from './inject.ts';
 import type { SimActor, SimPool } from './pool.ts';
 
+export const SCALE_HOLD_REASON = 'Scale survivor reporting';
 export type ScaleLevel = 'immediate' | 'delayed' | 'minor' | 'unknown';
 export interface PlannedScaleSurvivor {
   east_m: number;
@@ -150,12 +151,12 @@ async function ensureHoldMissions(sim: SimActor, pool: SimPool, robotIds: string
     const robot = pool.get(robotId);
     let mission = Array.from(sim.connection.db.mission.iter()).find((row) => row.robotId === robotId && row.kind.tag === 'Hold' && row.status.tag !== 'Done' && row.status.tag !== 'Failed' && row.status.tag !== 'Cancelled');
     if (!mission) {
-      await sim.connection.reducers.createMission({ robotId, kind: MissionKind.Hold, targetCellIds: [], targetLat: undefined, targetLon: undefined, reason: 'Scale survivor reporting', chainId: 0n });
-      mission = await waitForValue(sim, () => Array.from(sim.connection.db.mission.iter()).find((row) => row.robotId === robotId && row.kind.tag === 'Hold' && row.reason === 'Scale survivor reporting'));
+      await sim.connection.reducers.createMission({ robotId, kind: MissionKind.Hold, targetCellIds: [], targetLat: undefined, targetLon: undefined, reason: SCALE_HOLD_REASON, chainId: 0n });
+      mission = await waitForValue(sim, () => Array.from(sim.connection.db.mission.iter()).find((row) => row.robotId === robotId && row.kind.tag === 'Hold' && row.reason === SCALE_HOLD_REASON));
     }
     if (mission.status.tag === 'Queued') {
       await robot.connection.reducers.claimNextMission({ robotId });
-      mission = await waitForValue(sim, () => Array.from(sim.connection.db.mission.iter()).find((row) => row.id === mission!.id && (row.status.tag === 'Leased' || row.status.tag === 'Active')));
+      mission = await waitForValue(sim, () => Array.from(sim.connection.db.mission.iter()).find((row) => row.robotId === robotId && (row.status.tag === 'Leased' || row.status.tag === 'Active')));
     }
     result.set(robotId, mission.id);
   }
@@ -214,4 +215,52 @@ async function waitForValue<T>(actor: SimActor, read: () => T | undefined, timeo
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   throw new Error(`Timed out waiting for SpacetimeDB state after ${timeoutMs} ms`);
+}
+
+export async function addDuplicatePairs(config: DemoSiteConfig, pool: SimPool, count = config.scale.duplicate_pairs): Promise<number> {
+  if (!Number.isInteger(count) || count < 0) throw new Error('n must be a non-negative integer');
+  const sim = pool.get('sim');
+  const robotIds = Array.from({ length: config.robots.fleet_size }, (_, index) => `${config.robots.sim.robot_id}-${index + 2}`);
+  const prefix = `${config.scale_lots.label_prefix} `;
+  const detections = Array.from(sim.connection.db.detection.iter());
+  const candidates = Array.from(sim.connection.db.survivor.iter())
+    .filter((row) => row.status.tag !== 'Resolved' && row.possibleDuplicateOf === 0n && (row.houseLabel ?? '').startsWith(prefix))
+    .sort((a, b) => Number(a.id - b.id));
+  if (candidates.length < count) throw new Error(`dupes needs ${count} scale survivors; run scale first`);
+  await logInjection(sim, 'dupes', String(count));
+  const missionIds = await ensureHoldMissions(sim, pool, robotIds);
+  const random = mulberry32(config.scale.seed + 77);
+  const lastHeartbeat = new Map<string, number>();
+  const lastPosition = new Map<string, number>();
+  for (let index = 0; index < count; index += 1) {
+    const original = candidates.splice(Math.floor(random() * candidates.length), 1)[0]!;
+    const firstRobot = detections.find((row) => row.id === original.firstDetectionId)?.robotId;
+    const robotId = robotIds.find((id) => id !== firstRobot) ?? robotIds[0]!;
+    const robot = pool.get(robotId);
+    const angle = random() * Math.PI * 2;
+    const distance = 5 + random();
+    const point = {
+      lat: original.lat + (Math.sin(angle) * distance) / 111_320,
+      lon: original.lon + (Math.cos(angle) * distance) / (111_320 * Math.cos((original.lat * Math.PI) / 180)),
+    };
+    await keepRobotOnline(config, robot, point, lastHeartbeat, lastPosition);
+    const clientRef = `dupe_${Date.now()}_${index + 1}`;
+    await robot.connection.reducers.reportDetection({
+      robotId,
+      missionId: missionIds.get(robotId) ?? 0n,
+      source: DetectionSource.Thermal,
+      clientRef,
+      ...point,
+      gpsFix: false,
+      locationNote: original.locationNote || 'near another finding',
+      maxTempC: 33,
+      thermalConfidence: 0.7,
+      thermalImageUrl: undefined,
+      cameraImageUrl: undefined,
+      breathingClipUrl: undefined,
+      observedAt: undefined,
+    });
+    await waitForValue(sim, () => Array.from(sim.connection.db.detection.iter()).find((row) => row.clientRef === clientRef && row.survivorId !== 0n));
+  }
+  return count;
 }

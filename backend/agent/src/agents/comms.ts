@@ -9,7 +9,7 @@ import { answerTemplate, briefingTemplate, navTemplate, nudgeTemplate } from "..
 import { dispatch } from "../tools/dispatch.ts";
 import type { ToolName } from "../tools/schemas.ts";
 import type { AgentTask, Assignment, BriefingPriority, Survivor } from "../types.ts";
-import { parseJson, type World } from "../world.ts";
+import { parsePayload, type World } from "../world.ts";
 import { COMMS_PROMPT } from "./prompts.ts";
 import { survivorDisplay } from "../tools/reads.ts";
 
@@ -19,7 +19,7 @@ const TEMPLATE_ONLY = new Set(["nudge", "watchdog_brief"]);
 
 function taskWake(w: World, t: AgentTask, self: string): Wake | null {
   if (t.to_agent !== self || t.status !== "open") return null;
-  const p = parseJson<{ survivor_id?: number; assignment_id?: number }>(t.payload_json) ?? {};
+  const p = parsePayload<{ survivor_id?: number; assignment_id?: number }>(t.payload_json) ?? {};
   return { key: `task:agent_task:${t.id}`, kind: "task", priority: t.priority, at: w.now(), note: `${t.kind} #${t.id}`, task: t, survivorId: p.survivor_id, assignmentId: p.assignment_id, chainId: t.chain_id };
 }
 
@@ -35,7 +35,7 @@ const tasksForMe: WakeRule = (c, w, self) => {
 function hasBriefTask(w: World, a: Assignment): boolean {
   return w.raw("agent_task").some((t) => {
     if (t.kind !== "brief_rescuer") return false;
-    const p = parseJson<{ assignment_id?: number; survivor_id?: number }>(t.payload_json);
+    const p = parsePayload<{ assignment_id?: number; survivor_id?: number }>(t.payload_json);
     return p?.assignment_id === a.id || (p?.survivor_id === a.survivor_id && t.created_at >= a.created_at);
   });
 }
@@ -78,7 +78,7 @@ interface Target {
 
 function targetOf(w: World, input: CycleInput): Target | null {
   const t = input.task;
-  const p = t ? parseJson<Record<string, any>>(t.payload_json) ?? {} : {};
+  const p = t ? parsePayload<Record<string, any>>(t.payload_json) ?? {} : {};
   const wk = input.wakes[0];
   const aid: number | undefined = p.assignment_id || wk?.assignmentId;
   const a = aid ? w.assignment(aid) ?? w.raw("assignment").find((x) => x.id === aid) ?? null : null;
@@ -183,7 +183,7 @@ export function commsConfig(cfg: Config): AgentConfig {
           return;
         }
         // E8 extension point: the model answer for answer_rescuer goes here; until then, the template.
-        const p = parseJson<Record<string, any>>(t!.payload_json) ?? {};
+        const p = parsePayload<Record<string, any>>(t!.payload_json) ?? {};
         const s = p.survivor_id ? w.survivor(p.survivor_id) : null;
         const cell = s?.cell_id ? w.cell(s.cell_id) : null;
         const place = s ? w.placeOf(s) : cell?.label ?? "site";

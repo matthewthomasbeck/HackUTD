@@ -67,6 +67,14 @@ function requireRecord(value: unknown, path: string): Record<string, unknown> {
   return value;
 }
 
+// The module's checkName accepts 1 to 40 characters for site names and cell labels.
+const MODULE_NAME_MAX = 40;
+function requireName(value: unknown, path: string): string {
+  const name = requireString(value, path);
+  if (name.length > MODULE_NAME_MAX) throw new Error(`${path} must be at most ${MODULE_NAME_MAX} characters (module limit)`);
+  return name;
+}
+
 function requireNumber(value: unknown, path: string, min = -Infinity): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < min) {
     throw new Error(`${path} must be a finite number${Number.isFinite(min) ? ` >= ${min}` : ''}`);
@@ -85,6 +93,11 @@ function validateOffset(value: unknown, path: string): void {
   requireNumber(offset.north_m, `${path}.north_m`);
 }
 
+// Extra sim rescuers continue the numbering after the named sim rescuers (R1 to R4, then R5 on); real rescuers are not numbered.
+export function extraRescuerNumber(config: DemoSiteConfig, index: number): number {
+  return config.rescuers.filter((rescuer) => !rescuer.real).length + index + 1;
+}
+
 export function validateDemoConfig(value: unknown): asserts value is DemoSiteConfig {
   const root = requireRecord(value, 'config');
   const site = requireRecord(root.site, 'site');
@@ -93,14 +106,14 @@ export function validateDemoConfig(value: unknown): asserts value is DemoSiteCon
   requireNumber(site.center_lon, 'site.center_lon', -180);
   if ((site.center_lon as number) > 180) throw new Error('site.center_lon must be between -180 and 180');
   requireNumber(site.radius_m, 'site.radius_m', 0);
-  requireString(site.name, 'site.name');
+  requireName(site.name, 'site.name');
   if (typeof site.demo_mode !== 'boolean') throw new Error('site.demo_mode must be a boolean');
   if (typeof site.require_mission_approval !== 'boolean') throw new Error('site.require_mission_approval must be a boolean');
   requireNumber(root.cell_size_m, 'cell_size_m', 0);
   if (!Array.isArray(root.houses) || root.houses.length === 0) throw new Error('houses must be a non-empty array');
   root.houses.forEach((item, index) => {
     const house = requireRecord(item, `houses[${index}]`);
-    requireString(house.label, `houses[${index}].label`);
+    requireName(house.label, `houses[${index}].label`);
     requireNumber(house.east_m, `houses[${index}].east_m`);
     requireNumber(house.north_m, `houses[${index}].north_m`);
   });

@@ -33,6 +33,21 @@ Items marked UNCONFIRMED are not verified by a spec or a test; check them once a
 - The demo is indoors with fixed coordinates from `backend/sim/demo-site.json`; real GPS only in the video.
 - Slides, the dashboard, the fallback page, and the video graphics all follow design control in `docs/DESIGN.md`.
 
+### Build status (2026-11-08)
+
+- Module (C1): every reducer and view in `CONTRACTS.md` exists, and the bindings regenerate with no diff.
+  `npm test` passes 62 smoke checks, including one that each escalation level fires once per unattended period (a sweep bug that re-fired the commander escalation every 10 s was fixed on 2026-11-08).
+  Still open: smoke coverage of `spacetimedb.md` 18.2 scenarios 3, 4, 7, 8, 16, 18, and 20, and the negative cases in 1, 5, 6, and 14.
+- Maincloud: database `assess-0hw81`, owned by Cayden's `spacetime login`, published 2026-11-08 from branch `codex/cayden-workstreams-2026-11-07`; scenarios 1 to 5 passed there, then it was republished with `--delete-data=always` and is empty.
+- Simulator (C3): `npm test` passes 20 tests; live `timeline` runs are implemented for `e2e`, `judge`, and `video` (the `stress` timeline has not been run: it needs 120 rescuers and status sampling).
+  The demo site is 7716 Worthing St, Dallas TX 75252 (house 3), with houses on real OSM building footprints and 15 m cells.
+- Glasses service (G2): `npm test` passes 47 tests.
+  Checked live against a local server: a proposal reaches the glasses, accept moves the survivor to `assigned`, and closing the glasses socket releases the assignment.
+- Glasses plugin (G3): `npm test` passes 26 tests; every check on the real G2 is still HUMAN-ONLY.
+- Dashboard (C2): `npm test` passes 30 tests; the Playwright specs are not written.
+- Agents and perception (Eric): merged locally from `team/eric` into `integration/eric-agents` with 15 integration fixes; the chain (orchestrator proposes, auditor reviews once, comms agent briefs, an idle robot gets a search mission) ran live against the module with `LLM_MODE=mock`, not yet with a real Nemotron key.
+- Robot: the program foundation (state machine, safety gate, threads, mocks) is in `raspberrypi/robot/` (task R1); the bridge to SpacetimeDB and the Pico firmware are not pushed yet, so the sim robot stands in.
+
 ### Known mismatches between specs (resolve in C4, announce the result)
 
 No open mismatches remain (2026-11-07).
@@ -54,7 +69,7 @@ Resolved by version 8 and 8.1 (no longer open):
 
 | Thing | Value |
 | --- | --- |
-| Maincloud database | `hackutd-rubble` at `https://maincloud.spacetimedb.com` (UNCONFIRMED that the name is free; if taken, add a suffix and update every `.env`) |
+| Maincloud database | `assess-0hw81` at `https://maincloud.spacetimedb.com` (published and checked 2026-11-08; dashboard https://spacetimedb.com/assess-0hw81) |
 | Local fallback server | `spacetime start --listen-addr 0.0.0.0:3000` on Laptop A, clients use `ws://<laptop-a-ip>:3000` |
 | Test server | `http://127.0.0.1:3917`, database `rubble-test` |
 | Glasses service | `0.0.0.0:8787` (`/glasses`, `/view`, `/phone`, `/healthz`) |
@@ -87,22 +102,24 @@ Goal: by minute 60, every teammate can pull bindings for a published module and 
 | 50 to 60 | Push, post the announcement below, confirm Eric, Camille, and Matthew can pull | start C1.3 (remaining tables) |
 
 - [ ] S1 (15 min) Accounts done: `spacetime login show` prints your identity, `HACKUTD2026` redeemed, "Scan QR" visible in the Even app.
-- [ ] S2 (10 min) Agent has created the folders from `CONTRACTS.md` "Components and where their code lives" and pushed.
-- [ ] S3 (25 min) Skeleton published locally and to Maincloud with every enum from `spacetimedb.md` section 3 and these core tables: `participant`, `site`, `search_cell`, `robot`, `detection`, `survivor`, `assignment`, `briefing`, `agent_task`, `event_log`, plus `register_participant`.
+- [x] S2 (10 min) Agent has created the folders from `CONTRACTS.md` "Components and where their code lives" and pushed.
+- [x] S3 (25 min) Skeleton published locally and to Maincloud with every enum from `spacetimedb.md` section 3 and these core tables: `participant`, `site`, `search_cell`, `robot`, `detection`, `survivor`, `assignment`, `briefing`, `agent_task`, `event_log`, plus `register_participant`.
 - [ ] S4 (10 min) Bindings in `backend/spacetimedb-bindings/` committed and pushed; announcement posted.
 
-Announcement to paste in the team chat (fill the two IPs):
+Status (2026-11-08): the full module is published to Maincloud as `assess-0hw81`, and the bindings are on the team `main`.
+S1 waits on two human checks (the `HACKUTD2026` credit and "Scan QR" in the Even app), and S4 waits on posting the announcement below.
+
+Announcement to paste in the team chat (fill the laptop IP):
 
 ```text
-SpacetimeDB skeleton is up (bindings v1).
-Maincloud: https://maincloud.spacetimedb.com, database hackutd-rubble.
+SpacetimeDB module is up on Maincloud: every table, reducer, and view in CONTRACTS.md.
+Maincloud: STDB_URI=https://maincloud.spacetimedb.com, STDB_DATABASE=assess-0hw81 (dashboard https://spacetimedb.com/assess-0hw81).
 Local fallback: ws://<laptop-a-ip>:3000, same database name.
 Bindings: backend/spacetimedb-bindings/ on main. Import from there; do not run spacetime generate yourself.
-Tables now: participant, site, search_cell, robot, detection, survivor, assignment, briefing, agent_task, event_log (columns per docs/specs/spacetimedb.md section 4).
-Reducers now: register_participant. More land through the day; I post "bindings vN" each time.
+The database is empty after the last --delete-data publish; run npm run sim -- setup in backend/sim to create the demo site.
 Enum values on the wire are spelled exactly as in CONTRACTS.md (CaseConversionPolicy.None). In the TS bindings, fields are camelCase and enum keys PascalCase; map tags in one helper and check it once against a live row.
 SQL cannot filter on enum columns; filter enums in your code.
-Expect data wipes (--delete-data) until checkpoint 1. Keep tokens in your .env, never in git (the repo is public).
+Expect another --delete-data wipe before judging. Keep tokens in your .env, never in git (the repo is public).
 ```
 
 ## Hand-offs by checkpoint
@@ -151,7 +168,7 @@ Steps:
 - [ ] C0.1 (10 min) Install the SpacetimeDB CLI, check the version, `spacetime login`, and redeem `HACKUTD2026` on the website from the leaflet QR code.
 - [ ] C0.2 (10 min) Update the Even app to 2.2.10 or later, take any glasses firmware update, sign in at https://hub.evenrealities.com with the same account, force-quit and reopen the app, and confirm "Scan QR" appears.
   Write down whether the phone is iOS or Android (open question in `glasses.md` section 10).
-- [ ] C0.3 (10 min) Let the agent create the folders (with `.gitkeep`) and the `.gitignore` entries, then create the Figma file and post its link.
+- [x] C0.3 (10 min) Let the agent create the folders (with `.gitkeep`) and the `.gitignore` entries, then create the Figma file and post its link.
 
 Done when: every account in `docs/TASKS.md` works for its owner.
 - `spacetime login show` prints your identity, and the Maincloud credit shows on the website.
@@ -280,21 +297,21 @@ cd backend/spacetimedb && npx tsc --noEmit -p . && spacetime build
 
 # local fallback server on Laptop A, then publish
 spacetime start --listen-addr 0.0.0.0:3000
-spacetime publish hackutd-rubble -p backend/spacetimedb --server local --yes
+spacetime publish assess-0hw81 -p backend/spacetimedb --server local --yes
 
 # Maincloud
-spacetime publish hackutd-rubble -p backend/spacetimedb --server maincloud --yes
+spacetime publish assess-0hw81 -p backend/spacetimedb --server maincloud --yes
 
 # breaking schema change (new column without .default(), type change)
-spacetime publish hackutd-rubble -p backend/spacetimedb --server maincloud --delete-data=always --yes
+spacetime publish assess-0hw81 -p backend/spacetimedb --server maincloud --delete-data=always --yes
 
 # bindings (commit the output)
 spacetime generate --lang typescript --out-dir backend/spacetimedb-bindings --module-path backend/spacetimedb
 
 # logs, quick checks
-spacetime logs hackutd-rubble --server maincloud -f
-spacetime describe hackutd-rubble --json
-spacetime sql hackutd-rubble "SELECT * FROM survivor" --server local
+spacetime logs assess-0hw81 --server maincloud -f
+spacetime describe assess-0hw81 --json
+spacetime sql assess-0hw81 "SELECT * FROM survivor" --server local
 
 # smoke tests (in-memory server on 3917)
 cd backend/spacetimedb && npm test
@@ -303,15 +320,18 @@ cd backend/spacetimedb && npm test
 Config: per-site timings in `spacetimedb.md` section 2.1 (demo: mission lease 15 s, assignment 30 s, proposal 30 s, escalation 45 s); constants in section 2.2 (`RESCUER_HEARTBEAT_S` 15, `ROBOT_HEARTBEAT_S` 5, `DISCONNECT_GRACE_S` 2, `ROBOT_DISCONNECT_GRACE_S` 5, `AGENT_WATCHDOG_S` 30 or 15 in demo, `MERGE_RADIUS_M` 4, `DUPLICATE_RADIUS_M` 10, and the rest).
 
 Steps:
-- [ ] C1.1 (15 min) Init the module (section 1.2), add the `package.json` scripts (section 1.6), set `CaseConversionPolicy.None`, publish an empty module locally and to Maincloud.
-- [ ] C1.2 (20 min) `schema.ts`: every enum (section 3) and the 10 core tables with their full columns and indexes (sections 4.1 and 4.2); add `register_participant` (section 8.1); publish both, generate bindings, push, post the announcement (S3, S4).
-- [ ] C1.3 (15 min) The remaining tables: `device_status`, `mission`, `run`, `audit_flag`, `agent_action`, `person_report`, the public schedule tables with `due_at` (section 4.3), the private tables (section 4.4); publish, regenerate, post "bindings v2".
-- [ ] C1.4 (15 min) `lib/`: roles and per-agent rules (5.1, 5.2), the survivor state machine (5.3), text and number checks with the death-word pattern (5.4), event log diff payloads (5.5), geometry (5.6), timer helpers (7.1).
+- [x] C1.1 (15 min) Init the module (section 1.2), add the `package.json` scripts (section 1.6), set `CaseConversionPolicy.None`, publish an empty module locally and to Maincloud.
+- [x] C1.2 (20 min) `schema.ts`: every enum (section 3) and the 10 core tables with their full columns and indexes (sections 4.1 and 4.2); add `register_participant` (section 8.1); publish both, generate bindings, push, post the announcement (S3, S4).
+- [x] C1.3 (15 min) The remaining tables: `device_status`, `mission`, `run`, `audit_flag`, `agent_action`, `person_report`, the public schedule tables with `due_at` (section 4.3), the private tables (section 4.4); publish, regenerate, post "bindings v2".
+- [x] C1.4 (15 min) `lib/`: roles and per-agent rules (5.1, 5.2), the survivor state machine (5.3), text and number checks with the death-word pattern (5.4), event log diff payloads (5.5), geometry (5.6), timer helpers (7.1).
   Review the transition table in 5.3 yourself; it is the "no one overlooked" core.
-- [ ] C1.5 (20 min) Lifecycle reducers with presence and the 2 s grace (section 6); participants, roles, site, cells (8.1, 8.2); robot path (8.3); perception (8.5); publish, post "bindings v3, robot and perception reducers ready" for Camille and Eric.
-- [ ] C1.6 (20 min) Assignments and the state machine (8.6), every timer (7.2), escalation levels 1 and 2, the watchdog fallback (7.4), the sweep (7.5).
-- [ ] C1.7 (15 min) Agent reducers (8.7), runs with the `run_started` snapshot (8.8, 14), the four views (11.2), `report_person` and the `unaccounted` event (10); publish, post "bindings v4, agent board and views ready".
+- [x] C1.5 (20 min) Lifecycle reducers with presence and the 2 s grace (section 6); participants, roles, site, cells (8.1, 8.2); robot path (8.3); perception (8.5); publish, post "bindings v3, robot and perception reducers ready" for Camille and Eric.
+- [x] C1.6 (20 min) Assignments and the state machine (8.6), every timer (7.2), escalation levels 1 and 2, the watchdog fallback (7.4), the sweep (7.5).
+- [x] C1.7 (15 min) Agent reducers (8.7), runs with the `run_started` snapshot (8.8, 14), the four views (11.2), `report_person` and the `unaccounted` event (10); publish, post "bindings v4, agent board and views ready".
 - [ ] C1.8 (20 min) `test/smoke.sh` scenarios 1 to 20 (18.2); fix failures; Maincloud check (18.3); record the counts from `spacetime describe` for slide 8.
+
+Status (2026-11-08): C1.1 to C1.7 are done, and the Maincloud check (scenarios 1 to 5, then `--delete-data=always`) passed.
+C1.8 stays open: `npm test` passes 62 checks, but scenarios 3, 4, 7, 8, 16, 18, and 20 are missing or partial, the negative cases in 1, 5, 6, and 14 are missing or partial, and the `spacetime describe` counts for slide 8 are not recorded yet.
 
 Done when: a skeleton with the core tables is published and announced (early), then the full test plan in `specs/spacetimedb.md` passes.
 - `npx tsc --noEmit -p .` and `spacetime build` succeed with no errors.
@@ -327,7 +347,7 @@ Read docs/specs/spacetimedb.md sections 0, 1, 3, 4.1, 4.2, and 8.1, and docs/spe
 Scope cuts that are final: no search agent (robot_agent), no beacon missions, no drone fields, no robot audio, no outcome table, no occupancy estimates, no robot_track, participant_track, or terrain_observation tables, no stale_cell_timer.
 Steps: run the init commands in section 1.2; add the package.json scripts in section 1.6; in src/schema.ts define every enum in section 3 and these tables with every column and index in section 4: participant, site, search_cell, robot, detection, survivor, assignment, briefing, agent_task, event_log; pass { CASE_CONVERSION_POLICY: CaseConversionPolicy.None } to schema(); in src/index.ts export default the schema, add init, onConnect, onDisconnect stubs, and register_participant exactly as section 8.1 describes.
 Follow the rules in section 1.7: id: 0n for autoInc inserts, ctx.timestamp and ctx.random only (never Date.now or Math.random), every export lives in src/index.ts.
-Then run npx tsc --noEmit -p . and spacetime build, publish to the local server (spacetime publish hackutd-rubble -p backend/spacetimedb --server local --yes), and generate bindings into backend/spacetimedb-bindings with the command in section 1.6.
+Then run npx tsc --noEmit -p . and spacetime build, publish to the local server (spacetime publish assess-0hw81 -p backend/spacetimedb --server local --yes), and generate bindings into backend/spacetimedb-bindings with the command in section 1.6.
 Do not publish to Maincloud and do not log in; I do that.
 Do not edit CONTRACTS.md; if a name in a spec seems wrong, list it for me instead.
 Show me schema.ts and the generated table list when done.
@@ -395,13 +415,15 @@ open "http://localhost:5173/fallback.html?rescuer=alex&ws=ws://localhost:8787/vi
 Config: `frontend/glasses/.env` `VITE_GLASSES_WS_URL=ws://<ip>:8787/glasses`; service `.env` from `glasses.md` 5.3 with `TILE_SOURCE=none` for this task.
 
 Steps:
-- [ ] G1.1 (15 min) Scaffold the plugin from the minimal template and the service package (commands above); multi-page `vite.config.ts` (`glasses.md` 3.1).
-- [ ] G1.2 (20 min) `protocol.ts`, `geo.ts` (5.7), and `select.ts` (5.6, 5.8) with unit tests: 39, 41, 59, 61 m in and out; arrived at 5 m and back at 8.1 m; octant 22.4 is N and 22.6 is NE.
-- [ ] G1.3 (20 min) `layouts.ts`: all seven layouts with the exact ids, sizes, and z values from section 4, `validateLayout()`, `toAscii()`, and `layouts.test.ts` (no banned words, every layout valid).
-- [ ] G1.4 (15 min) Service WebSocket server for `/view` and `/glasses` with a fake data source (a site, 3 survivors, one assignment) and the demo walker (5.9: `W`, arrow keys, `R`, 3 m/s).
-- [ ] G1.5 (20 min) `fallback.html`: container map from `page` messages, 576x288 canvas, green tint, 13 px per character and 27 px lines, brightness levels, normal mode at 2x with the side panel and buttons, record mode, `primary=1` heartbeats (section 6).
-- [ ] G1.6 (10 min) Arrow PNGs (5.10) and the `none` map (black with a 100 m grid) so every view draws.
+- [x] G1.1 (15 min) Scaffold the plugin from the minimal template and the service package (commands above); multi-page `vite.config.ts` (`glasses.md` 3.1).
+- [x] G1.2 (20 min) `protocol.ts`, `geo.ts` (5.7), and `select.ts` (5.6, 5.8) with unit tests: 39, 41, 59, 61 m in and out; arrived at 5 m and back at 8.1 m; octant 22.4 is N and 22.6 is NE.
+- [x] G1.3 (20 min) `layouts.ts`: all seven layouts with the exact ids, sizes, and z values from section 4, `validateLayout()`, `toAscii()`, and `layouts.test.ts` (no banned words, every layout valid).
+- [x] G1.4 (15 min) Service WebSocket server for `/view` and `/glasses` with a fake data source (a site, 3 survivors, one assignment) and the demo walker (5.9: `W`, arrow keys, `R`, 3 m/s).
+- [x] G1.5 (20 min) `fallback.html`: container map from `page` messages, 576x288 canvas, green tint, 13 px per character and 27 px lines, brightness levels, normal mode at 2x with the side panel and buttons, record mode, `primary=1` heartbeats (section 6).
+- [x] G1.6 (10 min) Arrow PNGs (5.10) and the `none` map (black with a 100 m grid) so every view draws.
 - [ ] G1.7 (10 min) Design-control screenshot check (below).
+
+Status (2026-11-08): G1.1 to G1.6 are done; the screenshot check against the Figma frames is open.
 
 Done when: it shows a simulated assignment and switches map to arrow at 40 m and back at 60 m.
 - `npx vitest run` in `backend/glasses-service` passes `geo`, `select`, and `layouts` tests.
@@ -454,7 +476,7 @@ Config (`glasses.md` 5.3):
 ```
 PORT=8787
 STDB_URI=https://maincloud.spacetimedb.com   # or ws://<laptop-a-ip>:3000 for the local fallback
-STDB_DATABASE=hackutd-rubble
+STDB_DATABASE=assess-0hw81
 TILE_SOURCE=esri-dark
 PERCEPTION_URL=http://localhost:8080
 PRIMARY_GRACE_MS=0
@@ -476,14 +498,19 @@ npx vitest run
 ```
 
 Steps:
-- [ ] G2.1 (15 min) `db.ts`: one `DbConnection` per session with that rescuer's saved token, `registerParticipant` as `rescuer` on first connect, open on the first primary socket, `conn.disconnect()` when the last primary socket closes (5.4).
-- [ ] G2.2 (15 min) Subscriptions: `my_assignment`, `my_briefing`, `my_survivor`, `critical_open`, `site`, `robot`, `survivor`; the fallback queries from `spacetimedb.md` 11.3; one enum tag helper checked once against a live row.
-- [ ] G2.3 (15 min) Heartbeats (forward plugin `heartbeat` as `rescuerHeartbeat()`, at most every 4 s, primary socket only) and positions (`participantUpdatePosition` on 2 m moves, every 2 to 5 s; demo walker through the same path).
-- [ ] G2.4 (15 min) `ack` calls `acceptAssignment` only for this rescuer's own `proposed` row; ack view countdown from `lease_expires_at`; released view with the four reason texts (4.7, 4.8); `SenderError` text on id 8 for 5 s, never retried.
-- [ ] G2.5 (20 min) Map: `esri-dark` tiles, `npm run tiles`, tone map, markers, `map_top` and `map_bot` split, sha1 diff, at most one redraw per 2 s (5.11).
-- [ ] G2.6 (15 min) Count line from `critical_open`, target and detail lines, briefing line with `!! ` and `! ` prefixes, escalation levels 1 and 2 (5.12).
-- [ ] G2.7 (15 min) HTTP endpoints with CORS (5.13) and the phone page buttons: Accept, Decline, Release, Mark reached, Resolve (confirm dialog with the four resolutions), Ask (hidden until voice questions exist).
+- [x] G2.1 (15 min) `db.ts`: one `DbConnection` per session with that rescuer's saved token, `registerParticipant` as `rescuer` on first connect, open on the first primary socket, `conn.disconnect()` when the last primary socket closes (5.4).
+- [x] G2.2 (15 min) Subscriptions: `my_assignment`, `my_briefing`, `my_survivor`, `critical_open`, `site`, `robot`, `survivor`; the fallback queries from `spacetimedb.md` 11.3; one enum tag helper checked once against a live row.
+- [x] G2.3 (15 min) Heartbeats (forward plugin `heartbeat` as `rescuerHeartbeat()`, at most every 4 s, primary socket only) and positions (`participantUpdatePosition` on 2 m moves, every 2 to 5 s; demo walker through the same path).
+- [x] G2.4 (15 min) `ack` calls `acceptAssignment` only for this rescuer's own `proposed` row; ack view countdown from `lease_expires_at`; released view with the four reason texts (4.7, 4.8); `SenderError` text on id 8 for 5 s, never retried.
+- [x] G2.5 (20 min) Map: `esri-dark` tiles, `npm run tiles`, tone map, markers, `map_top` and `map_bot` split, sha1 diff, at most one redraw per 2 s (5.11).
+- [x] G2.6 (15 min) Count line from `critical_open`, target and detail lines, briefing line with `!! ` and `! ` prefixes, escalation levels 1 and 2 (5.12).
+- [x] G2.7 (15 min) HTTP endpoints with CORS (5.13) and the phone page buttons: Accept, Decline, Release, Mark reached, Resolve (confirm dialog with the four resolutions), Ask (hidden until voice questions exist).
 - [ ] G2.8 (15 min) `session.test.ts` and `escalation.test.ts` (8.1), then the release checks below with the fallback page in `primary=1` mode.
+
+Status (2026-11-08): G2.1 to G2.7 are done, and both test files pass.
+Fixed on 2026-11-08: real-database subscriptions no longer crash (the SDK compat shim is gone), live row changes reach the glasses with one update per transaction, identical page and image messages are not resent, and the default rescuer is `cayden`.
+Checked live against a local server: a proposal reaches the glasses, accept moves the survivor to `assigned`, and closing the glasses socket releases the assignment.
+Still open in G2.8: the heartbeat-block release (about 15 s), the `/view` no-connection check, and the screenshot check.
 
 Done when: a ring tap (or a click on the fallback page) acknowledges an assignment and the dashboard shows it.
 - With `primary=1`, a coordinator `propose_assignment` from the dashboard shows the ack view with a countdown; a click accepts it and the dashboard shows `ASSIGNED to <name>, acknowledged`.
@@ -554,13 +581,16 @@ Config:
 
 Steps:
 - [ ] G3.1 (15 min) `bridge.ts` boot sequence (3.3): startup page with text ids 1 and 8 exactly once, serial from `getDeviceInfo()` (`"sim"` if null), then check it in the simulator with a screenshot.
-- [ ] G3.2 (20 min) `queue.ts` (3.4) and `input.ts` (3.5) with their tests: a missing `eventType` is a tap, double tap calls `shutDownPageContainer(1)`, images at least 110 ms apart, a page clears pending writes.
-- [ ] G3.3 (15 min) `socket.ts` (backoff 500 ms to 10 s, `LINK LOST - retrying` on id 8), `heartbeat.ts` (every 5 s), `app.json`.
+- [x] G3.2 (20 min) `queue.ts` (3.4) and `input.ts` (3.5) with their tests: a missing `eventType` is a tap, double tap calls `shutDownPageContainer(1)`, images at least 110 ms apart, a page clears pending writes.
+- [x] G3.3 (15 min) `socket.ts` (backoff 500 ms to 10 s, `LINK LOST - retrying` on id 8), `heartbeat.ts` (every 5 s), `app.json`.
 - [ ] G3.4 (15 min) Simulator checks from `glasses.md` 8.2 steps 2 to 6 with the automation API (wait about 4 s after start before sending input).
 - [ ] G3.5 (15 min) Network: hotspot, laptop IP into `.env` and `app.json`, firewall, then from the phone browser load `http://<ip>:5173` and `http://<ip>:8787/healthz`.
 - [ ] G3.6 (15 min) `evenhub qr --url ...`, scan, and confirm `RUBBLE SEARCH connecting...` and then the idle view on the lens.
 - [ ] G3.7 (20 min) Real lens pass (8.4 steps 2 to 5 and 7): fix `CHARS_PER_PX`, check dim levels 1 and 2, ring taps log source `ring`, temple taps `left` or `right`, map image update well under 1 s, lock the phone 10 s and recover.
 - [ ] G3.8 (15 min) Run the sim with a proposal for Cayden: count, ack, arrow, released after closing the app; photo the lens next to each Figma frame.
+
+Status (2026-11-08): the plugin code for G3.1 to G3.3 exists, and the `queue` and `input` tests pass.
+G3.1 and G3.4 still need the Even Hub simulator run, and G3.5 to G3.8 are HUMAN-ONLY (phone, hotspot, and the real G2).
 
 Done when: the real glasses show the live count and the arrow during a simulator run.
 - A ring tap on a proposal accepts it, and the service log shows source `ring`.
@@ -615,7 +645,7 @@ Config (`.env.example`):
 
 ```
 VITE_STDB_URI=https://maincloud.spacetimedb.com
-VITE_STDB_DATABASE=hackutd-rubble
+VITE_STDB_DATABASE=assess-0hw81
 VITE_STDB_URI_LOCAL=ws://<laptop A LAN IP>:3000
 VITE_TILE_SOURCE=esri-light
 VITE_CARTO_KEY=
@@ -639,12 +669,17 @@ Steps:
 - [x] C2.4 (20 min) Top bar (site, DEMO MODE, SCREEN label, REC, headline, presence), ranked survivor list, survivor detail with media and the resolve dialog.
 - [x] C2.5 (20 min) Agents panel: agent cards with status words, task board columns, action log bursts, chain per survivor with the auditor verdict and the "RULES FALLBACK" and "MODULE" chips; `A` opens it full screen.
 - [x] C2.6 (15 min) Leaflet map (`esri-light`, attribution, cells with partial never "clear", survivor shapes, robot chevron with terrain glyph, rescuer diamonds, legend); Timers tab with "SCHEDULE TABLE" chips; Assignments tab with release causes.
-- [x] C2.7 (15 min) Pipeline canvas (seven React Flow cards), Buildings panel with the person report form, transport bar live mode, Start run, End run, Sync test.
+- [x] C2.7 (15 min) Pipeline band (seven plain cards in `PipelineBand.tsx`; React Flow is not used), Buildings panel with the person report form, transport bar live mode, Start run, End run, Sync test.
 - [ ] C2.8 (15 min) Replay (fold `event_log` from the `run_started` snapshot) or hand it off; `sync.spec.ts` and `disconnect.spec.ts`; the screenshot check.
 
 Status (2026-11-07): C2.6 and C2.7 implementation and unit coverage are complete, and C2.8 replay has been implemented.
 The two-screen sync and disconnect Playwright checks still need a clean seeded local database.
 Priority, Stats, Map empty state, and Replay layouts were reviewed at 1920x1080.
+
+Status (2026-11-08): `npm test` passes 30 tests, and the Start run name now fits the module's 40-character limit.
+C2.8 stays open: `sync.spec.ts` and `disconnect.spec.ts` are not written, and the screenshot check is not done.
+Panels from `dashboard.md` that do not exist yet: robot health tab, audit flags panel, critical briefing banner, duplicates side by side with clear, commander view, and the runs sidebar.
+Another session is redesigning the dashboard UI, so this list says what is missing, not how it should look.
 
 Done when: two browser windows update at the same moment during a simulator run, and the screenshot check in `docs/DESIGN.md` passes.
 - `sync.spec.ts`: Screen A clicks "Approve" and Screen B shows `queued` within 1 s.
@@ -696,7 +731,7 @@ Outputs and who uses them:
 
 Files (`demo.md` "Stack and layout"): `backend/sim/{package.json,.env.example,demo-site.json}`, `timelines/*.json`, `assets/rehearsal/`, `assets/sim-thermal/`, `.tokens/` (git-ignored), `src/{cli,config,geo,rng,pool,guard,inject,setup,run,scale,simrobot,rescuers,failures,timeline,status}.ts`, `tests/`.
 
-Config (`.env.example`): `STDB_URI`, `STDB_DATABASE`, `STDB_URI`, `MODULE_PATH`, `MEDIA_BASE`, `PERCEPTION_BASE`, `GLASSES_BASE`.
+Config (`.env.example`): `STDB_URI`, `STDB_DATABASE` (`assess-0hw81`), optional `STDB_TOKEN`, `MODULE_PATH`, `MEDIA_BASE`, `PERCEPTION_BASE`, `GLASSES_BASE`.
 
 Commands:
 
@@ -712,13 +747,19 @@ npx vitest run
 ```
 
 Steps:
-- [ ] C3.1 (15 min) `demo-site.json` exactly as `demo.md` Part 1, `config.ts`, `geo.ts`, `rng.ts`, `coords`; commit and post it for Camille.
+- [x] C3.1 (15 min) `demo-site.json` exactly as `demo.md` Part 1, `config.ts`, `geo.ts`, `rng.ts`, `coords`; commit and post it for Camille.
   Move the center to a residential block near the venue on the dashboard map, then rerun `coords`.
-- [ ] C3.2 (15 min) `pool.ts` (one connection and saved token per identity), `guard.ts` (exit code 2 outside demo mode), `inject.ts` (`log_event` `sim_injection` with `{"command","target"}`), `setup.ts`, `run.ts`.
-- [ ] C3.3 (15 min) `scale.ts`: seeded points at least 12 m apart in scale lots, detections from fleet robots, breathing and scores (below 90), 15 per second, partial cells, 3 duplicate pairs.
-- [ ] C3.4 (15 min) `rescuers.ts`: heartbeats every 5 s, positions every 1 s, accept after 2 to 4 s, walk, reached within 5 m, resolve after 8 s; never drives Cayden.
-- [ ] C3.5 (15 min) `simrobot.ts`: claim missions, search cells, terrain reports, `hidden` survivors, house 4 `partially_searched`, `spawn`, `robot replay house3`.
-- [ ] C3.6 (15 min) `failures.ts` (`robot-offline`, `rescuer-silent`, `rescuer-drop`, `device`), `recover`, `imbalance`, `report`, `walk`, `status`, the console, `timeline.ts` with the four timelines, and `reset`.
+- [x] C3.2 (15 min) `pool.ts` (one connection and saved token per identity), `guard.ts` (exit code 2 outside demo mode), `inject.ts` (`log_event` `sim_injection` with `{"command","target"}`), `setup.ts`, `run.ts`.
+- [x] C3.3 (15 min) `scale.ts`: seeded points at least 12 m apart in scale lots, detections from fleet robots, breathing and scores (below 90), 15 per second, partial cells, 3 duplicate pairs.
+- [x] C3.4 (15 min) `rescuers.ts`: heartbeats every 5 s, positions every 1 s, accept after 2 to 4 s, walk, reached within 5 m, resolve after 8 s; never drives Cayden.
+- [x] C3.5 (15 min) `simrobot.ts`: claim missions, search cells, terrain reports, `hidden` survivors, house 4 `partially_searched`, `spawn`, `robot replay house3`.
+- [x] C3.6 (15 min) `failures.ts` (`robot-offline`, `rescuer-silent`, `rescuer-drop`, `device`), `recover`, `imbalance`, `report`, `walk`, `status`, the console, `timeline.ts` with the four timelines, and `reset`.
+
+Status (2026-11-08): C3.1 to C3.6 are done, and `npm test` passes 20 tests.
+One command dispatcher (`src/dispatch.ts`) serves the console, one-shot commands (`npm run sim -- <command>`), and timelines; `npm run sim -- help` prints the full list.
+The sim robot claims missions with `claim_next_mission`, walks, reports terrain, marks cells (house 4 `partially_searched`), and finds the `hidden` survivors; `robot replay house3` (`rr`), `imbalance`, and `dupes` work.
+Live `timeline` runs are implemented for `e2e`, `judge`, and `video`; `stress` has not been run (it needs 120 rescuers and status sampling).
+The site is "Demo: tornado, Dallas TX (simulated)", centered on 7716 Worthing St, Dallas TX 75252 (32.9968745, -96.7704708), which is house 3.
 
 Done when: one command runs the whole demo story with no hardware.
 - `npm run sim -- timeline judge`, with no robot, no glasses, and the agents stopped, reaches the end; every `await` either passes or runs its `else` fallback.
@@ -749,7 +790,7 @@ Pitfalls and fixes:
 - 300 survivors must not cause 300 Nemotron calls; tell Eric before the first `scale` so the orchestrator uses its deterministic path for the burst.
 - `reset` deletes every recorded run; screen-record any replay worth keeping first.
 - Never `reset` Maincloud during judging; between judges, end the run and start a new one.
-- The demo center (32.9857, -96.7502) is a placeholder near UT Dallas; houses should sit on houses on the map.
+- The demo center is 7716 Worthing St, Dallas TX (32.9968745, -96.7704708), and every house sits on a real building footprint (see `docs/specs/demo.md`).
 
 ## Phase 2: integrate
 
@@ -771,15 +812,19 @@ Outputs and who uses them:
 Commands (measure from the record, not by stopwatch):
 
 ```bash
-spacetime sql hackutd-rubble "SELECT * FROM run" --server maincloud
-spacetime sql hackutd-rubble "SELECT * FROM event_log WHERE run_id = <id>" --server maincloud
-spacetime sql hackutd-rubble "SELECT * FROM agent_action WHERE run_id = <id>" --server maincloud
+spacetime sql assess-0hw81 "SELECT * FROM run" --server maincloud
+spacetime sql assess-0hw81 "SELECT * FROM event_log WHERE run_id = <id>" --server maincloud
+spacetime sql assess-0hw81 "SELECT * FROM agent_action WHERE run_id = <id>" --server maincloud
 npm run sim -- status
 ```
 
 Steps:
 - [ ] C4.1 (15 min) Settle the "Known mismatches" with Eric and Camille in one short call; write each agreed change into the body of `CONTRACTS.md` (the section it belongs to), raise the version number in its status line, add one line to its History section, and post it.
 - [ ] C4.2 (15 min) Checkpoint 2: the sim creates a detection, perception scores it, the orchestrator proposes, the auditor reviews, the comms agent briefs, and the fallback page and the dashboard show it live.
+
+Status (2026-11-08): most of checkpoint 2 has run, but not as one recorded run.
+On the local branch `integration/eric-agents` (Eric's `team/eric` plus 15 integration fixes), the orchestrator proposed, the auditor reviewed once per proposal, the comms agent briefed, and an idle robot got a search mission, all live against the module with `LLM_MODE=mock`.
+Not yet checked: perception scoring a sim detection in that same run, a real Nemotron key, and one recorded run with the run id posted in the chat.
 - [ ] C4.3 (15 min) Checkpoint 3: Camille's bridge on mocks, then the real robot: `robot` row online, a mission claimed and done, a real detection and a breathing result.
 - [ ] C4.4 (15 min) Checkpoint 4: the real robot finds a teammate in dim light, the agents and the real G2 react, replay works; pull the measured seconds from `event_log`.
 
@@ -976,7 +1021,7 @@ Rules from `docs/DESIGN.md`: one idea per slide, at most one sentence plus a vis
   Needs: the headline at 0 after `scale 300`, and the measured disconnect release and watchdog seconds.
   For: State Farm.
 - [ ] 8. Built on SpacetimeDB: reducers as the whole backend, schedule tables as countdowns, lifecycle reducers, two screens in sync.
-  Needs: table, reducer, schedule table, and view counts from `spacetime describe hackutd-rubble --json`; the Timers tab screenshot; a photo of both screens.
+  Needs: table, reducer, schedule table, and view counts from `spacetime describe assess-0hw81 --json`; the Timers tab screenshot; a photo of both screens.
   For: SpacetimeDB.
 - [ ] 9. Results: measured numbers only.
   Needs: time from find to acknowledgement (C4 measure), breathing accuracy on our clips (Eric), thermal range (Matthew and Eric's range test); `TBD` until measured.
