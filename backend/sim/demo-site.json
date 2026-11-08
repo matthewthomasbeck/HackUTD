@@ -23,32 +23,14 @@
       "robot_id": "sim-dog",
       "home": { "east_m": 0, "north_m": -20 }
     },
-    "fleet_size": 4
+    "fleet_size": 1
   },
   "rescuers": [
     { "key": "cayden", "name": "Cayden", "real": true },
-    {
-      "key": "r1",
-      "name": "R1 (sim)",
-      "start": { "east_m": -150, "north_m": -60 }
-    },
-    {
-      "key": "r2",
-      "name": "R2 (sim)",
-      "start": { "east_m": 150, "north_m": -60 }
-    },
-    {
-      "key": "r3",
-      "name": "R3 (sim)",
-      "start": { "east_m": -200, "north_m": 200 }
-    },
-    {
-      "key": "r4",
-      "name": "R4 (sim)",
-      "start": { "east_m": 200, "north_m": 200 }
-    }
+    { "key": "r1", "name": "R1 (sim)", "start": { "east_m": -150, "north_m": -60 } },
+    { "key": "r2", "name": "R2 (sim)", "start": { "east_m": 150, "north_m": -60 } }
   ],
-  "extra_sim_rescuers": 36,
+  "extra_sim_rescuers": 0,
   "hidden_survivors": [
     { "house": "house 3", "east_m": 2.4, "north_m": 3.2, "note": "back bedroom, under debris", "level": "immediate", "breathing": "detected", "rate_bpm": 8, "visibility_pct": 35 },
     { "house": "house 4", "east_m": 16.2, "north_m": 3.5, "note": "front room", "level": "delayed", "breathing": "detected", "rate_bpm": 18, "visibility_pct": 70 },

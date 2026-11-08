@@ -93,7 +93,7 @@ function validateOffset(value: unknown, path: string): void {
   requireNumber(offset.north_m, `${path}.north_m`);
 }
 
-// Extra sim rescuers continue the numbering after the named sim rescuers (R1 to R4, then R5 on); real rescuers are not numbered.
+// Extra sim rescuers continue the numbering after the named sim rescuers (R1, R2, then R3 on); real rescuers are not numbered.
 export function extraRescuerNumber(config: DemoSiteConfig, index: number): number {
   return config.rescuers.filter((rescuer) => !rescuer.real).length + index + 1;
 }
