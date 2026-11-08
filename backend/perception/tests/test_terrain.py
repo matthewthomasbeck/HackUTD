@@ -314,6 +314,8 @@ def tiny_embed(images):
 
 
 def test_train_terrain_end_to_end_synthetic(tmp_path):
+    # scikit-learn is a terrain extra (commented out in requirements.txt until section 9 starts).
+    pytest.importorskip("sklearn")
     img_dir, labels = make_dataset(tmp_path)
     train = load_train_module()
     out, report_path = tmp_path / "terrain_model.joblib", tmp_path / "report.json"
