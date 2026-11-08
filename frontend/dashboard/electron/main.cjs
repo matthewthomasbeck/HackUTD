@@ -3,15 +3,19 @@
 // settings as URL parameters (the dashboard reads them in src/stdb/connection.ts and src/App.tsx), and adds a
 // Server menu to switch between Maincloud and a local SpacetimeDB server without rebuilding (venue Wi-Fi down).
 //
+// On the local server it also starts the demo services itself (electron/services.cjs) behind the launch animation, so
+// opening the app from the Dock is enough for Play demo; `--no-services` skips that (npm run demo already runs them).
+//
 // Settings, in order of precedence:
 //   1. Command-line flags: --db=cloud|local --local-uri=ws://HOST:3000 --glasses-page=URL --glasses-ws=URL --screen=A
 //   2. The saved file <userData>/underdog-settings.json (written by the Server menu)
-//   3. Defaults: Maincloud (the address baked in at build time from .env), local server ws://127.0.0.1:3000
-const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
+//   3. Defaults: the local server ws://127.0.0.1:3000 with the demo services (Maincloud is in the Server menu)
+const { app, BrowserWindow, Menu, dialog, shell, ipcMain } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
+const { DemoServices, repoRoot } = require('./services.cjs');
 
-const DEFAULTS = { db: 'cloud', localUri: 'ws://127.0.0.1:3000', glassesPage: '', glassesWs: '', screen: 'A' };
+const DEFAULTS = { db: 'local', localUri: 'ws://127.0.0.1:3000', glassesPage: '', glassesWs: '', screen: 'A' };
 const FLAG_NAMES = { db: 'db', localUri: 'local-uri', glassesPage: 'glasses-page', glassesWs: 'glasses-ws', screen: 'screen' };
 const settingsFile = () => path.join(app.getPath('userData'), 'underdog-settings.json');
 
@@ -35,6 +39,19 @@ function readFlags(argv) {
 }
 
 let settings = { ...DEFAULTS };
+let services = null; // DemoServices, made once the app is ready (its log path needs the ready app)
+const wantsServices = () => settings.db === 'local' && !process.argv.includes('--no-services');
+
+// Starts the demo services when the settings call for them, then runs next(); a failure is shown, and next() still runs
+// so the app opens (Play demo then says what is missing).
+function withServices(next) {
+  if (!wantsServices()) { services.stop(); next(); return; }
+  splashStatus('Starting the demo…');
+  services.start().then(next, (error) => {
+    next();
+    void dialog.showMessageBox({ type: 'warning', message: 'The demo services did not start', detail: error.message });
+  });
+}
 let window = null;
 let splashWindow = null;
 let dashboardReady = false;
@@ -90,7 +107,7 @@ function switchServer(db) {
   settings = { ...settings, db };
   save(settings);
   buildMenu();
-  load();
+  withServices(load);
 }
 
 function buildMenu() {
@@ -146,6 +163,14 @@ function createWindow() {
   load();
 }
 
+// A short note under the logo while the app waits for something (the demo services); a splash that is still loading
+// picks it up when it starts.
+let splashNote = '';
+function splashStatus(text) {
+  splashNote = text;
+  if (splashWindow && !splashWindow.isDestroyed()) void splashWindow.webContents.executeJavaScript(`window.setStatus?.(${JSON.stringify(text)})`).catch(() => {});
+}
+
 function createSplashWindow() {
   splashAnimationFinished = false;
   dashboardReady = false;
@@ -174,6 +199,7 @@ function createSplashWindow() {
     if (splash.isDestroyed()) return;
     splash.show();
     splash.webContents.executeJavaScript('window.startSplash()').catch(() => {});
+    if (splashNote) splashStatus(splashNote);
   });
   splash.webContents.once('did-fail-load', () => {
     splashAnimationFinished = true;
@@ -185,13 +211,20 @@ function createSplashWindow() {
   });
 }
 
+// One UnderDog at a time: a second launch (Dock, Spotlight, or a second build) brings the first one forward instead.
+if (!app.requestSingleInstanceLock()) app.quit();
+app.on('second-instance', () => { if (window) { if (window.isMinimized()) window.restore(); window.focus(); } });
+
 app.whenReady().then(() => {
   // The packaged app gets its Dock icon from the bundle; the development app (Electron.app) needs it set here.
   if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(path.join(__dirname, 'icon.png'));
   settings = { ...DEFAULTS, ...readSaved(), ...readFlags(process.argv) };
+  services = new DemoServices(repoRoot(__dirname, app.isPackaged), path.join(app.getPath('logs'), 'demo-services.log'));
   buildMenu();
+  // The board loads only after the services are ready: starting them wipes the local database, which would drop the
+  // dashboard's registration if it had already connected.
   createSplashWindow();
-  createWindow();
+  withServices(createWindow);
   app.on('activate', () => {
     if (!window) {
       createSplashWindow();
@@ -199,5 +232,7 @@ app.whenReady().then(() => {
     }
   });
 });
+
+app.on('will-quit', () => services?.stop());
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
