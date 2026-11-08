@@ -72,7 +72,7 @@ These roles may change.
 | Dual DC motor driver B | UART (TBC) | Pi | Motors 3 and 4 |
 | Pico | USB serial | Pi | Shows up as `/dev/ttyACM*`; use its `/dev/serial/by-id` path |
 | Camera (regular, not NoIR) | CSI ribbon (TBC) | Pi | Corrected 2026-11-07: a regular camera, with no IR illuminators, so it needs visible light. Model TBD. Capture through the libcamera C++ API |
-| Intel NCS2 (or Coral, TBD) | USB 3 | Pi | Both are USB accelerators. NCS2 is discontinued and newer OpenVINO releases dropped it; verify the toolchain on Debian 12 first |
+| Coral USB Edge TPU | USB 3 | Pi | The team has a Coral (Eric, 2026-11-08), used by the vision thread. NCS2 is dropped. Verify the Edge TPU C++ runtime (libedgetpu plus TensorFlow Lite) on Debian 12 first |
 | IMU | I2C | Pico | Model and address TBD |
 | Thermal camera | I2C | Pico | Model and address TBD. This is the heat sensor |
 | ADS1115 ADC | I2C | Pico | Default address 0x48. Reads 4 FSRs (force sensors) on A0 to A3 through divider resistors. They are not foot pads (Cayden, 2026-11-07); where they are mounted and what force they measure is TBD |
@@ -216,10 +216,13 @@ Hardware watchdog: call `watchdog_enable()` at boot and feed it once per loop.
 
 | Thread | Job |
 | --- | --- |
-| Main | Init, then the state machine loop at a fixed rate |
-| Pico reader | Blocking read on `/dev/pico`. Parses frames, writes each sensor into a mutex-guarded latest-value slot with a timestamp |
-| Camera capture | libcamera frames into a latest-frame slot |
-| Inference (optional) | NCS2/Coral on the latest frame |
+| Main | Orchestrator: init, then the state machine loop at a fixed rate. Each tick it drains `/dev/pico` without blocking, reads the newest camera frame and detections, decides every move, and hands the gated command to the movement thread |
+| Movement | The only writer to the Maestros and DC drivers, so the main loop never waits on a motor port. Stops the wheels on its own if the main loop stops sending commands (dead-man) |
+| Vision | Runs the Coral Edge TPU model (OpenCV preprocessing) on the newest camera frame and publishes detections |
+| Camera capture | libcamera's own delivery thread writes frames into a latest-frame slot |
+
+Updated 2026-11-08 (Eric): three threads of ours (main, movement, vision), and the Coral is the accelerator the team has.
+Code: `raspberrypi/robot/src/main.cpp`, `src/motion/movement_thread.*`, `src/vision/vision_thread.*`.
 
 Rules:
 
@@ -361,7 +364,7 @@ protocol/
 - What the servos move, and whether the DC motors are the drivetrain.
 - DC driver model and interface (UART or PWM + direction).
 - IMU and thermal camera models and addresses.
-- NCS2 or Coral.
+- The Coral model (what it detects) and the Edge TPU runtime on Debian 12.
 - Battery and rail voltages.
 - SAFE_STOP physical behavior.
 - Operator interface: how start and stop are triggered.

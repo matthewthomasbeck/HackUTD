@@ -12,3 +12,6 @@ dist/
 **/.tokens/
 spacetime.json
 spacetime.local.json
+
+# C++ build output
+build/

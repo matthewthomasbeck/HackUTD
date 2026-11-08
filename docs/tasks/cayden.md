@@ -46,7 +46,7 @@ Items marked UNCONFIRMED are not verified by a spec or a test; check them once a
 - Glasses plugin (G3): `npm test` passes 26 tests; every check on the real G2 is still HUMAN-ONLY.
 - Dashboard (C2): `npm test` passes 30 tests; the Playwright specs are not written.
 - Agents and perception (Eric): merged locally from `team/eric` into `integration/eric-agents` with 15 integration fixes; the chain (orchestrator proposes, auditor reviews once, comms agent briefs, an idle robot gets a search mission) ran live against the module with `LLM_MODE=mock`, not yet with a real Nemotron key.
-- Robot (Camille): `raspberrypi/` and `pico/` hold only READMEs, and the bridge is not pushed; the sim robot stands in.
+- Robot: the program foundation (state machine, safety gate, threads, mocks) is in `raspberrypi/robot/` (task R1); the bridge to SpacetimeDB and the Pico firmware are not pushed yet, so the sim robot stands in.
 
 ### Known mismatches between specs (resolve in C4, announce the result)
 

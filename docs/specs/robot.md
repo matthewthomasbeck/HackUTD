@@ -302,14 +302,14 @@ macOS has no `/run`, which is why the laptop config uses `/tmp/robot/`.
 
 `READY=1` tells systemd that startup has finished, and `WATCHDOG=1` is the keep-alive ping when `WatchdogSec=` is set ([sd_notify](https://www.freedesktop.org/software/systemd/man/latest/sd_notify.html)).
 
-### 4.2 Threads (from `docs/ROBOT.md`, PROPOSED)
+### 4.2 Threads (from `docs/ROBOT.md`, updated 2026-11-08)
 
 | Thread | Job |
 | --- | --- |
-| Main | Init, then the fixed-rate loop |
-| Pico reader | Blocking read on `/dev/pico`, parse frames, write latest-value slots with timestamps |
-| Pico writer | Heartbeat at `pico.heartbeat_hz` and queued commands (or done in the reader thread with a non-blocking write) |
-| Camera | libcamera request loop, latest frame slot, feeds the clip writer when recording |
+| Main | Init, then the fixed-rate loop. Drains `/dev/pico` each tick with non-blocking reads (parse frames, write latest-value slots, send heartbeats); there is no separate Pico reader thread |
+| Movement | `MovementThread` at `movement.rate_hz`: the only writer to both Maestros and both DC drivers; applies the newest gated command; dead-man stop after `movement.command_timeout_ms` |
+| Vision | `VisionThread`: newest camera frame -> OpenCV preprocessing -> Coral Edge TPU model -> latest detections slot |
+| Camera | libcamera's request loop (its own thread), latest frame slot, feeds the clip writer when recording |
 | Clip writer | Writes gray frames to an `ffmpeg` child process stdin |
 | GPS | Reads gpsd JSON lines, writes the latest fix slot |
 | Bridge I/O | `poll()` on the bridge socket and the control socket, drains outgoing queues, parses incoming lines into an inbox slot |
@@ -321,6 +321,7 @@ Rules:
 - The bridge inbox is a small bounded queue of parsed messages (mission, cancel), because each one matters; capacity 16, oldest dropped with a log line.
 - Every slot value carries the steady-clock time it was written.
   Data older than its timeout is stale.
+- Every worker thread stamps a heartbeat each pass. If the movement thread's heartbeat is older than `workers.stall_ms`, the main loop raises `worker_stalled` (ACTIVE goes to SAFE_STOP) and stops feeding the systemd watchdog.
 
 ### 4.3 Main loop (order from `docs/ROBOT.md`)
 
@@ -359,7 +360,7 @@ Skip the NCS2: OpenVINO 2023.0 dropped it and the last line that supports it has
 The robot program does not run a camera person detector.
 The thermal blob gives the candidate, and the camera still goes to the laptop, where the perception service can run a detector.
 A Pi CPU detector is a later fallback behind an `IPersonDetector` interface with a `none` default; do not build it this weekend unless the laptop path fails.
-The Coral is not in the photo inventory, so it is also not in the init order.
+Update 2026-11-08 (Eric): the team has a Coral USB Edge TPU, so `coral` is an optional device in the init order and the vision thread (section 4.2) runs a model on it. What the model detects is open; the thermal path above stays the primary person finder.
 
 ## 5. State machine
 

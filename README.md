@@ -33,7 +33,7 @@ The team's code repo is https://github.com/matthewthomasbeck/HackUTD.
 | `frontend/dashboard/` | Coordinator dashboard | Built; some panels still open |
 | `frontend/glasses/` | Even Hub plugin, fallback page, phone page | Built; not yet checked on the real G2 |
 | `frontend/design-tokens/` | Shared CSS tokens | Built |
-| `raspberrypi/`, `pico/` | Robot program, bridge, and firmware (Camille) | Not pushed yet; the sim robot stands in |
+| `raspberrypi/`, `pico/` | Robot program, bridge, and firmware (Camille) | Robot program foundation in `raspberrypi/robot/` (state machine, safety gate, mocks); the bridge and Pico firmware are not pushed yet, so the sim robot stands in |
 
 How to run each part is in `backend/README.md` and `frontend/README.md`.
 Every client reads `STDB_URI` and `STDB_DATABASE` (`assess-0hw81`); browser apps read `VITE_STDB_URI` and `VITE_STDB_DATABASE`.

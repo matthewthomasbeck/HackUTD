@@ -21,7 +21,7 @@ Its older files (produced water, leak detection, inspection robots, images) were
 
 As of 2026-11-08, code has landed in the SpacetimeDB module (`backend/spacetimedb/`, with bindings in `backend/spacetimedb-bindings/`), the simulator (`backend/sim/`), the glasses service (`backend/glasses-service/`), the glasses plugin and fallback page (`frontend/glasses/`), and the dashboard (`frontend/dashboard/`).
 Eric's agents (`backend/agent/`) and perception service (`backend/perception/`) arrive with the merge of the local branch `integration/eric-agents`.
-The robot folders (`raspberrypi/`, `pico/`) hold only READMEs, so the sim robot stands in for the robot.
+The robot program foundation (state machine, safety gate, threads, mocks) is in `raspberrypi/robot/`, but the Node.js bridge to SpacetimeDB and the Pico firmware are not pushed yet, so the sim robot stands in for the robot on the board.
 The Maincloud database is `assess-0hw81` (owned by Cayden's `spacetime login`); the local fallback server uses the same name, and clients set `STDB_URI` and `STDB_DATABASE`.
 Open work and per-task status are in `docs/tasks/cayden.md` and `docs/TASKS.md`.
 Run the module typecheck and build with `cd backend/spacetimedb && npx tsc --noEmit -p . && spacetime build`.
@@ -33,6 +33,8 @@ Run the dashboard checks with `cd frontend/dashboard && npm test && npm run buil
 Run the agent checks with `cd backend/agent && npm test && npx tsc --noEmit`.
 Run the perception checks with `cd backend/perception && python -m pytest`.
 How to run each part is in `backend/README.md` and `frontend/README.md`; integration commands remain in the specs in `docs/specs/`.
+The robot main program is in `raspberrypi/robot/` (C++17, CMake): the state machine, safety gate, threads (main, movement, vision), control socket, and mocks (task R1).
+Build and test it with `cmake -B build && cmake --build build -j && ctest --test-dir build --output-on-failure` inside `raspberrypi/robot/`, and run it on a laptop with `./build/robot --config config/robot.laptop.yaml`; `raspberrypi/README.md` has the dependencies and the `robotctl` commands.
 
 This is the team repo, https://github.com/matthewthomasbeck/HackUTD (public, branch `main`).
 The planning docs live in `docs/`, next to the code folders.

@@ -17,6 +17,9 @@ Items marked PROPOSED were unassigned in the MVP; confirm or move them at the ne
 | Eric Lee | Computer vision and models: breathing check, thermal confirmation, critical score, media server, speech-to-text for rescuer questions from the glasses, terrain camera model; the Nemotron agents (PROPOSED) | `backend/perception/`, `backend/agent/` | `tasks/eric.md` |
 | Cayden Hutcheson | G2 glasses; extra work: SpacetimeDB module and contracts, dashboard, simulator, design control, slides and pitch, integration (all PROPOSED except glasses) | `frontend/glasses/`, `backend/glasses-service/`, `backend/spacetimedb/`, `frontend/dashboard/`, `backend/sim/` | `tasks/cayden.md` |
 
+Eric took over R1 (state machine, safety gate, main loop) and the C++ build skeleton from R0 that it needs on 2026-11-07.
+Those task descriptions stay in `tasks/camille.md` (R0 and R1).
+
 Cayden's PROPOSED list is the largest.
 If it is too much, move the simulator or the dashboard to whoever finishes first, and say so in the team chat.
 
@@ -58,7 +61,7 @@ Confirm the submission time and judging time, then write clock times into this t
 
 - Checkpoint 1: the module half is done.
   The module is published locally and on Maincloud as `assess-0hw81`, with bindings in `backend/spacetimedb-bindings/` and 62 passing smoke checks.
-  The robot half is open: `raspberrypi/` and `pico/` hold only READMEs, and Camille's bridge is not pushed, so no bridge heartbeat has reached the module yet.
+  The robot half is open: the robot program foundation is in `raspberrypi/robot/` (task R1), but the bridge to SpacetimeDB and the Pico firmware are not pushed, so no bridge heartbeat has reached the module yet.
 - Checkpoint 2: the whole flow with no robot runs in the simulator, but it is not marked passed.
   The sim robot finds survivors, and the dashboard and the glasses service show changes live.
   With Eric's agents merged locally (`integration/eric-agents`) and `LLM_MODE=mock`, the orchestrator proposed, the auditor reviewed, and the comms agent briefed against the live module.
