@@ -1,4 +1,7 @@
 // One serialized, coalescing write queue for every display call (glasses.md 3.4).
+// It also keeps the current view (the last page plus every text and image written since), so the display can be
+// turned off and back on without the service resending anything.
+import { BLANK_PAGE } from './bridge';
 import type { DisplayBridge } from './bridge';
 import type { ContainerMsg, PageMsg } from './protocol';
 
@@ -23,6 +26,11 @@ export interface WriteQueue {
   setLayout(containers: ContainerMsg[]): void;
   /** Resolves when the queue is empty and the worker is idle. */
   idle(): Promise<void>;
+  /** Blank the display. Later writes only update the kept view until wake(). */
+  sleep(): void;
+  /** Redraw the kept view: its page, then the texts and images written since it. */
+  wake(): void;
+  isAsleep(): boolean;
 }
 
 type Slot = { name: string; kind: 'text' | 'image' };
@@ -41,14 +49,31 @@ export function createWriteQueue(bridge: DisplayBridge, opts: QueueOptions = {})
   let lastImageStart = -Infinity;
   let running = false;
   let idleWaiters: Array<() => void> = [];
+  // The view to restore on wake: the last page and the writes since it, newest per container.
+  let viewPage: PageMsg | null = null;
+  const viewWrites = new Map<string, Op>();
+  let asleep = false;
 
   function setLayout(containers: ContainerMsg[]): void {
+    viewPage = { type: 'page', containers };
+    viewWrites.clear();
+    applyLayout(containers);
+  }
+
+  function applyLayout(containers: ContainerMsg[]): void {
     currentIds = new Map(containers.map((c) => [c.id, { name: c.name, kind: c.kind }]));
     lastText.clear();
     for (const c of containers) if (c.kind === 'text') lastText.set(c.id, c.content ?? '');
   }
 
   function enqueue(op: Op): void {
+    if (op.kind === 'page') {
+      viewPage = op.msg;
+      viewWrites.clear();
+    } else {
+      viewWrites.set(`${op.kind}:${op.id}`, op);
+    }
+    if (asleep) return;
     if (op.kind === 'page') {
       pending.clear(); // a new layout makes old writes useless
       pending.set('page', op);
@@ -75,7 +100,7 @@ export function createWriteQueue(bridge: DisplayBridge, opts: QueueOptions = {})
         await sleep(rebuildRetryMs);
         ok = await bridge.rebuild(op.msg);
       }
-      if (ok) setLayout(op.msg.containers);
+      if (ok) applyLayout(op.msg.containers);
       else log(`rebuild failed twice (${op.msg.layout ?? 'page'})`);
       return;
     }
@@ -126,5 +151,22 @@ export function createWriteQueue(bridge: DisplayBridge, opts: QueueOptions = {})
     return new Promise((r) => idleWaiters.push(r));
   }
 
-  return { enqueue, setLayout, idle };
+  function blank(): void {
+    if (asleep) return;
+    asleep = true;
+    pending.clear();
+    pending.set('page', { kind: 'page', msg: BLANK_PAGE });
+    void kick();
+  }
+
+  function restore(): void {
+    if (!asleep) return;
+    asleep = false;
+    pending.clear();
+    if (viewPage) pending.set('page', { kind: 'page', msg: viewPage });
+    for (const [key, op] of viewWrites) pending.set(key, op);
+    void kick();
+  }
+
+  return { enqueue, setLayout, idle, sleep: blank, wake: restore, isAsleep: () => asleep };
 }

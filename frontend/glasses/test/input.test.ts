@@ -9,11 +9,14 @@ function setup(ackId: number | null = null) {
   const sent: PluginMsg[] = [];
   const shutdowns: number[] = [];
   const life: string[] = [];
+  let displayOff = false;
   const handle = createInputHandler({
     send: (m) => sent.push(m),
     isOpen: () => true,
     shutdown: (mode) => shutdowns.push(mode),
     getAckId: () => ackId,
+    isDisplayOff: () => displayOff,
+    setDisplayOff: (off) => { displayOff = off; life.push(off ? 'display off' : 'display on'); },
     onForeground: () => life.push('foreground'),
     onExit: () => life.push('exit'),
     now: () => clock,
@@ -117,5 +120,41 @@ describe('input mapping', () => {
     const t = setup();
     t.fire(ev({ audioEvent: { audioPcm: new Uint8Array(4) } }));
     expect(t.sent).toEqual([]);
+  });
+
+  it('tap then long press turns the display off instead of asking', () => {
+    const t = setup();
+    t.fire(ev({ sysEvent: { eventSource: EventSourceType.TOUCH_EVENT_FROM_RING } }));
+    t.fire(ev({ sysEvent: { eventType: OsEventTypeList.LONG_PRESS_EVENT, eventSource: EventSourceType.TOUCH_EVENT_FROM_RING } }), 800);
+    t.fire(ev({ sysEvent: { eventType: OsEventTypeList.LONG_PRESS_RELEASE_EVENT, eventSource: EventSourceType.TOUCH_EVENT_FROM_RING } }));
+    expect(t.sent).toEqual([{ type: 'input', source: 'ring', event: 'tap' }]);
+    expect(t.life).toEqual(['display off']);
+  });
+
+  it('a long press long after a tap still asks', () => {
+    const t = setup();
+    t.fire(ev({ sysEvent: { eventSource: EventSourceType.TOUCH_EVENT_FROM_RING } }));
+    t.fire(ev({ sysEvent: { eventType: OsEventTypeList.LONG_PRESS_EVENT, eventSource: EventSourceType.TOUCH_EVENT_FROM_RING } }), 2000);
+    expect(t.sent.map((m) => (m.type === 'input' ? m.event : m.type))).toEqual(['tap', 'long_press']);
+    expect(t.life).toEqual([]);
+  });
+
+  it('while off, a tap only turns the display on and never acks', () => {
+    const t = setup(42);
+    t.fire(ev({ sysEvent: { eventType: OsEventTypeList.SCROLL_TOP_EVENT } }));
+    t.fire(ev({ sysEvent: { eventSource: EventSourceType.TOUCH_EVENT_FROM_RING } })); // acks 42
+    t.fire(ev({ sysEvent: { eventType: OsEventTypeList.LONG_PRESS_EVENT, eventSource: EventSourceType.TOUCH_EVENT_FROM_RING } }));
+    const before = t.sent.length;
+    t.fire(ev({ sysEvent: { eventSource: EventSourceType.TOUCH_EVENT_FROM_RING } }));
+    expect(t.sent.length).toBe(before);
+    expect(t.life).toEqual(['display off', 'display on']);
+  });
+
+  it('double tap still exits while the display is off', () => {
+    const t = setup();
+    t.fire(ev({ sysEvent: { eventSource: EventSourceType.TOUCH_EVENT_FROM_RING } }));
+    t.fire(ev({ sysEvent: { eventType: OsEventTypeList.LONG_PRESS_EVENT } }));
+    t.fire(ev({ sysEvent: { eventType: OsEventTypeList.DOUBLE_CLICK_EVENT } }));
+    expect(t.shutdowns).toEqual([1]);
   });
 });

@@ -273,6 +273,14 @@ A service `{"type":"exit"}` message calls `bridge.shutDownPageContainer(0)`.
 Never put a product action on double tap.
 Long press is not guaranteed because the OS may use it for its menu ([Device APIs](https://hub.evenrealities.com/docs/build/device-apis)), so every long-press action also has a scroll gesture.
 
+Display off (Cayden, 2026-11-08): a tap, then a long press within 1.5 s (`DISPLAY_OFF_WINDOW_MS` in `src/plugin/input.ts`), blanks the glasses while the app, the socket, and GPS keep running.
+The SDK has no screen-off call, so the plugin rebuilds a page with only the blank capture layer (`BLANK_PAGE` in `src/plugin/bridge.ts`), which the G2 shows as nothing.
+That long press is not sent, so it does not start a voice question; the tap before it is handled as a normal tap (it still accepts a task on the ack view).
+While the display is off, the write queue keeps the latest page and every text and image written since, and draws nothing.
+The next tap, long press, or scroll only turns the display back on and redraws that view; it is not sent and never accepts a task.
+Double tap still exits.
+The service does not know the display is off; this is plugin-only.
+
 ### 3.6 WebSocket and reconnect
 
 - Backoff: 500 ms, 1 s, 2 s, 4 s, 8 s, then 10 s forever, each plus 0 to 250 ms random jitter.
