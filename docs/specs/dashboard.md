@@ -105,6 +105,11 @@ The coordinator dashboard is a desktop app (Cayden, 2026-11-08).
 The page itself is unchanged, so the web dashboard (`npm run dev`) and its tests keep working.
 On desktop launch, a separate centered, transparent splash window (`electron/splash.html`) plays all 12 frames of the backflip (`electron/assets/backflip.png`, `Loading.gif` with its black background removed, 100 ms per frame), then fades to `Logo.png` placed over the last frame's dog, while the dashboard loads hidden.
 The dashboard appears after the GIF and logo hold finish and the map is ready, with a 10 second readiness fallback.
+On the local server the app starts the demo services itself (Cayden, 2026-11-08), so opening it from the Dock or Spotlight is enough for Play demo: `electron/services.cjs` runs `scripts/demo.mjs --services` from the repo the app was built from (`electron/repo.json`, written by `scripts/stamp-repo.mjs` when packaging), with the PATH of the user's login shell, because an app opened from the Dock cannot see Homebrew's `node`, `npm`, or `spacetime`.
+The splash shows "Starting the demo…" and the board loads only once the services report ready (a few seconds, or about a minute when the module has to compile), because starting them wipes the local database; quitting the app stops them.
+Their output goes to `~/Library/Logs/UnderDog/demo-services.log`, and a failure is shown in a dialog while the app still opens.
+Only one run of the services is alive at a time (`.demo.pid`), and only one UnderDog: a second launch brings the first window forward.
+`npm run demo` passes `--no-services` to the app, since it runs the services itself; on Maincloud the app starts nothing.
 
 ### Play demo (2026-11-08)
 
@@ -145,7 +150,7 @@ Run-time settings, in order of precedence:
 1. Command-line flags: `--db=cloud|local`, `--local-uri=ws://HOST:3000`, `--glasses-page=URL`, `--glasses-ws=URL`, `--screen=A`.
    For the packaged app: `open -n UnderDog.app --args --db=local --local-uri=ws://127.0.0.1:3000`.
 2. The settings file `underdog-settings.json` in the app's user data folder, written by the Server menu ("Open settings file…" shows it).
-3. Defaults: Maincloud (`VITE_STDB_URI` and `VITE_STDB_DATABASE`, baked in at build time from `.env`), local server `ws://127.0.0.1:3000`.
+3. Defaults: the local server `ws://127.0.0.1:3000` with the demo services (since 2026-11-08); Maincloud (`VITE_STDB_URI` and `VITE_STDB_DATABASE`, baked in at build time from `.env`) is in the Server menu.
 
 - Server menu: "Maincloud (judging)" and "Local server (address)" switch the database at run time and reload, so a venue Wi-Fi failure needs no rebuild.
   The dashboard reads the address from `?uri=` (`src/stdb/connection.ts`), which overrides the build-time value.

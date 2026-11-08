@@ -18,12 +18,16 @@
       #logo { position: absolute; opacity: 0; transition: opacity 180ms ease; }
       body.finished #logo { opacity: 1; }
       body.finished #dog { opacity: 0; transition: opacity 180ms ease; }
+      #status { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); padding: 6px 14px; border-radius: 999px; background: rgb(10 7 24 / 0.82); color: #fff;
+        font: 600 13px/1.2 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; white-space: nowrap; opacity: 0; transition: opacity 200ms ease; }
+      #status.on { opacity: 1; }
       @media (prefers-reduced-motion: reduce) { body, #logo, body.finished #dog { transition: none; } }
     </style>
   </head>
   <body>
     <div id="dog"></div>
     <img id="logo" src="assets/Logo.png" alt="" />
+    <div id="status" role="status"></div>
     <script>
       const FRAMES = 12;
       const FRAME_MS = 100;
@@ -87,6 +91,8 @@
       };
 
       window.fadeSplash = () => document.body.classList.add('leaving');
+      // A note under the logo while the app waits (electron/main.cjs splashStatus); the colors match the night bar.
+      window.setStatus = (text) => { const status = document.getElementById('status'); status.textContent = text; status.classList.toggle('on', Boolean(text)); };
     </script>
   </body>
 </html>
