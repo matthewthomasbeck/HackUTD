@@ -39,6 +39,8 @@ export class RescuerRunner {
   }
 
   hold(key: string): void { this.held.add(key); }
+  isHeld(key: string): boolean { return this.held.has(key); }
+  unhold(key: string): void { this.held.delete(key); }
   releaseHolds(): void { this.held.clear(); }
 
   injectedKeys(): string[] { return [...new Set([...this.paused, ...this.dropped])]; }
@@ -63,13 +65,13 @@ export class RescuerRunner {
     }
   }
 
+  // Each sim rescuer runs two loops: one accepts every new proposal within accept_delay_s, and
+  // one walks to its active assignments one at a time. Splitting them keeps a short demo
+  // proposal lease from lapsing while the rescuer is still walking to an earlier survivor.
   private async runActor(actor: SimActor, signal: AbortSignal): Promise<void> {
     const start = this.startPoint(actor.key);
     if (!start) return;
     if (!this.positions.has(actor.key)) this.positions.set(actor.key, start);
-    const random = mulberry32(this.config.scale.seed + actor.key.split('').reduce((seed, char) => seed * 31 + char.charCodeAt(0), 0));
-    let lastPosition = 0;
-    const completed = new Set<string>();
     let heartbeatBusy = false;
     await actor.connection.reducers.rescuerHeartbeat({});
     const heartbeatTimer = setInterval(() => {
@@ -80,59 +82,100 @@ export class RescuerRunner {
         .finally(() => { heartbeatBusy = false; });
     }, this.config.timing.rescuer_heartbeat_ms);
     try {
-    while (!signal.aborted) {
-      if (this.paused.has(actor.key)) {
-        await delay(200, signal);
-        continue;
-      }
-      const now = Date.now();
-      if (now - lastPosition >= this.config.timing.position_ms) {
-        await actor.connection.reducers.participantUpdatePosition(this.positions.get(actor.key)!);
-        lastPosition = now;
-      }
-      const assignment = this.held.has(actor.key) ? undefined : Array.from(actor.connection.db.myAssignment.iter()).find((row) => (
-        sameIdentity(row.rescuerIdentity, actor.identity) && row.status.tag === 'Proposed' && !completed.has(row.id.toString())
-      ));
-      if (assignment) {
-        const assignmentId = assignment.id;
-        completed.add(assignmentId.toString());
-        const [minimum, maximum] = this.config.timing.accept_delay_s;
-        await delay(minimum * 1000 + Math.floor(random() * (maximum - minimum + 1)) * 1000, signal);
-        if (signal.aborted || this.paused.has(actor.key)) continue;
-        try {
-          await actor.connection.reducers.acceptAssignment({ assignmentId });
-          await actor.connection.reducers.startEnRoute({ assignmentId });
-        } catch (error) {
-          completed.delete(assignmentId.toString());
-          console.warn(`Rescuer ${actor.name} could not accept assignment ${assignmentId}: ${errorText(error)}`);
-          continue;
-        }
-        const survivor = await waitForValue(actor, () => Array.from(actor.connection.db.mySurvivor.iter()).find((row) => row.id === assignment.survivorId), 10_000);
-        if (!survivor) throw new Error(`Survivor ${assignment.survivorId} disappeared from the subscription`);
-        await this.walkTo(actor, { lat: survivor.lat, lon: survivor.lon }, signal);
-        if (signal.aborted) return;
-        try { await actor.connection.reducers.markReached({ survivorId: survivor.id }); }
-        catch (error) { console.warn(`Rescuer ${actor.name} could not mark reached: ${errorText(error)}`); }
-        if (this.config.timing.auto_resolve_sim_rescues) {
-          await delay(this.config.timing.on_scene_s * 1000, signal);
-          if (signal.aborted) return;
-          try { await actor.connection.reducers.resolveSurvivor({ survivorId: survivor.id, resolution: Resolution.Rescued, note: 'simulated rescuer reached the person' }); }
-          catch (error) { console.warn(`Rescuer ${actor.name} could not resolve survivor: ${errorText(error)}`); }
-        }
-        await this.walkTo(actor, start, signal);
-        lastPosition = 0;
-      } else {
-        await delay(200, signal);
-      }
-    }
+      await Promise.all([this.acceptLoop(actor, signal), this.workLoop(actor, start, signal)]);
     } finally {
       clearInterval(heartbeatTimer);
     }
   }
 
-  private async walkTo(actor: SimActor, target: LatLon, signal: AbortSignal): Promise<void> {
-    const speed = 1.4 * this.config.timing.speedup;
+  private async acceptLoop(actor: SimActor, signal: AbortSignal): Promise<void> {
+    const random = mulberry32(this.config.scale.seed + actor.key.split('').reduce((seed, char) => seed * 31 + char.charCodeAt(0), 0));
+    const handled = new Set<string>();
     while (!signal.aborted) {
+      if (!this.paused.has(actor.key) && !this.held.has(actor.key)) {
+        const proposals = Array.from(actor.connection.db.myAssignment.iter()).filter((row) => (
+          sameIdentity(row.rescuerIdentity, actor.identity) && row.status.tag === 'Proposed' && !handled.has(row.id.toString())
+        ));
+        for (const proposal of proposals) {
+          handled.add(proposal.id.toString());
+          const [minimum, maximum] = this.config.timing.accept_delay_s;
+          const wait = minimum * 1000 + Math.floor(random() * (maximum - minimum + 1)) * 1000;
+          void this.acceptAfter(actor, proposal.id, wait, signal).then((deferred) => { if (deferred) handled.delete(proposal.id.toString()); });
+        }
+      }
+      await delay(200, signal);
+    }
+  }
+
+  // Returns true when a pause or hold started during the wait, so the proposal is picked up again later.
+  private async acceptAfter(actor: SimActor, assignmentId: bigint, wait: number, signal: AbortSignal): Promise<boolean> {
+    await delay(wait, signal);
+    if (signal.aborted) return false;
+    if (this.paused.has(actor.key) || this.held.has(actor.key)) return true;
+    const row = Array.from(actor.connection.db.myAssignment.iter()).find((item) => item.id === assignmentId);
+    if (row?.status.tag !== 'Proposed') return false;
+    try {
+      await actor.connection.reducers.acceptAssignment({ assignmentId });
+      await actor.connection.reducers.startEnRoute({ assignmentId });
+    } catch (error) {
+      console.warn(`Rescuer ${actor.name} could not accept assignment ${assignmentId}: ${errorText(error)}`);
+    }
+    return false;
+  }
+
+  private async workLoop(actor: SimActor, start: LatLon, signal: AbortSignal): Promise<void> {
+    const worked = new Set<string>();
+    let lastPosition = 0;
+    let atHome = true;
+    const nextActive = () => this.held.has(actor.key) ? undefined : Array.from(actor.connection.db.myAssignment.iter())
+      .filter((row) => sameIdentity(row.rescuerIdentity, actor.identity) && row.status.tag === 'Active' && !worked.has(row.id.toString()))
+      .sort((a, b) => Number(a.id - b.id))[0];
+    while (!signal.aborted) {
+      if (this.paused.has(actor.key)) {
+        await delay(200, signal);
+        continue;
+      }
+      const assignment = nextActive();
+      if (!assignment) {
+        if (!atHome) {
+          await this.walkTo(actor, start, signal, () => nextActive() === undefined);
+          atHome = distanceMeters(this.positions.get(actor.key)!, start) <= 5;
+          lastPosition = Date.now();
+          continue;
+        }
+        if (Date.now() - lastPosition >= this.config.timing.position_ms) {
+          await actor.connection.reducers.participantUpdatePosition(this.positions.get(actor.key)!);
+          lastPosition = Date.now();
+        }
+        await delay(200, signal);
+        continue;
+      }
+      worked.add(assignment.id.toString());
+      atHome = false;
+      const stillActive = () => Array.from(actor.connection.db.myAssignment.iter()).some((row) => row.id === assignment.id && row.status.tag === 'Active');
+      const survivor = await waitForValue(actor, () => Array.from(actor.connection.db.mySurvivor.iter()).find((row) => row.id === assignment.survivorId), 10_000)
+        .catch(() => undefined);
+      if (!survivor) {
+        console.warn(`Rescuer ${actor.name} cannot see survivor ${assignment.survivorId} for assignment ${assignment.id}`);
+        continue;
+      }
+      await this.walkTo(actor, { lat: survivor.lat, lon: survivor.lon }, signal, stillActive);
+      if (signal.aborted) return;
+      if (!stillActive()) continue;
+      try { await actor.connection.reducers.markReached({ survivorId: survivor.id }); }
+      catch (error) { console.warn(`Rescuer ${actor.name} could not mark reached: ${errorText(error)}`); }
+      if (this.config.timing.auto_resolve_sim_rescues) {
+        await delay(this.config.timing.on_scene_s * 1000, signal);
+        if (signal.aborted) return;
+        try { await actor.connection.reducers.resolveSurvivor({ survivorId: survivor.id, resolution: Resolution.Rescued, note: 'simulated rescuer reached the person' }); }
+        catch (error) { console.warn(`Rescuer ${actor.name} could not resolve survivor: ${errorText(error)}`); }
+      }
+    }
+  }
+
+  private async walkTo(actor: SimActor, target: LatLon, signal: AbortSignal, keepGoing: () => boolean = () => true): Promise<void> {
+    const speed = 1.4 * this.config.timing.speedup;
+    while (!signal.aborted && keepGoing()) {
       const point = this.positions.get(actor.key)!;
       const distance = distanceMeters(point, target);
       if (distance <= 5) return;

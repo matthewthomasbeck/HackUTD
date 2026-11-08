@@ -1,4 +1,4 @@
-import { reportConfiguredHouse, printStatus, spawnSurvivor, walkGlassesRescuer } from './commands.ts';
+import { reportConfiguredHouse, printStatus, spawnSurvivor, walkGlassesRescuer, walkTargetWarning } from './commands.ts';
 import type { DemoSiteConfig } from './config.ts';
 import { formatNamedCoordinates, getNamedCoordinates } from './coords.ts';
 import { FailureController } from './failures.ts';
@@ -138,7 +138,10 @@ export class SimSession {
       await reportConfiguredHouse(config, this.pool, args.join(' '));
       console.log(`Person report recorded for ${args.join(' ')}.`);
     } else if (name === 'walk') {
-      await walkGlassesRescuer(config, args.join(' ') || undefined);
+      const house = args.join(' ') || undefined;
+      const warning = house ? walkTargetWarning(config, sim, house) : undefined;
+      if (warning) console.warn(warning);
+      await walkGlassesRescuer(config, house);
     } else if (name === 'timeline') {
       await this.runTimelineByName(args[0]!);
     } else {

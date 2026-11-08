@@ -8,11 +8,7 @@ const OPEN_MISSION = new Set(['Proposed', 'Queued', 'Leased', 'Active']);
 export function makeCondition(step: TimelineStep, sim: SimActor, config: DemoSiteConfig): () => boolean {
   const db = sim.connection.db;
   const cellIdFor = (house: string) => Array.from(db.searchCell.iter()).find((row) => row.label === house)?.id;
-  const identitiesFor = (key: string) => {
-    const configured = config.rescuers.find((item) => item.key === key);
-    const name = configured?.name ?? key;
-    return new Set(Array.from(db.participant.iter()).filter((row) => row.role.tag === 'Rescuer' && row.name === name).map((row) => hex(row.identity)));
-  };
+  const identitiesFor = (key: string) => rescuerIdentities(sim, config, key);
   const maxId = (rows: Iterable<{ id: bigint }>) => { let max = 0n; for (const row of rows) if (row.id > max) max = row.id; return max; };
   switch (step.await) {
     case 'survivor_in':
@@ -61,6 +57,17 @@ export function makeCondition(step: TimelineStep, sim: SimActor, config: DemoSit
     default:
       throw new Error(`Condition ${step.await} is not polled from the subscription`);
   }
+}
+
+// The sim registers rescuers by display name ("R1 (sim)"), but the glasses service registers
+// the real rescuer by its key ("cayden"), so match a configured rescuer by either, ignoring case.
+export function rescuerIdentities(sim: SimActor, config: DemoSiteConfig, key: string): Set<string> {
+  const wanted = key.toLowerCase();
+  const configured = config.rescuers.find((item) => item.key.toLowerCase() === wanted || item.name.toLowerCase() === wanted);
+  const names = new Set([wanted, ...(configured ? [configured.key.toLowerCase(), configured.name.toLowerCase()] : [])]);
+  return new Set(Array.from(sim.connection.db.participant.iter())
+    .filter((row) => row.role.tag === 'Rescuer' && names.has(row.name.toLowerCase()))
+    .map((row) => hex(row.identity)));
 }
 
 export function pascal(value: string): string {

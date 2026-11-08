@@ -212,7 +212,7 @@ Every command that changes the story (marked "inj") also writes a `sim_injection
 | `report <house>` | `rp` | fallback for the dashboard form: `report_person` with `family_report` (inj) |
 | `dupes [n]` | `d` | n near pairs just outside the merge radius, so the dashboard has possible duplicates (inj) |
 | `imbalance [key]` | `ib` | give one sim rescuer three active assignments while another is idle, for the auditor's load judgement (inj) |
-| `walk [house]` | `w` | ask the glasses service's demo walker to walk Cayden to a house (`POST $GLASSES_BASE/demo/cayden/walk`) |
+| `walk [house]` | `w` | ask the glasses service's demo walker to walk Cayden to the current assignment (`POST $GLASSES_BASE/demo/cayden/walk`); with a house, print a warning if that assignment is not at the house |
 | `fail robot-offline [robot_id]` | `f1` | stop heartbeats for a sim robot (default `sim-dog`) (inj) |
 | `fail rescuer-silent [key]` | `f2` | stop `rescuer_heartbeat` and positions for one sim rescuer with an active assignment; connection stays open (inj) |
 | `fail rescuer-drop [key]` | `f4` | close that sim rescuer's SpacetimeDB connection (the `client_disconnected` path) (inj) |
@@ -244,6 +244,7 @@ For each of `count` survivors (seeded, so every run is the same):
 1. Pick a scale lot (never a named house, so the live story stays clean), and a point inside it at least `min_spacing_m` (12 m) from other survivors, so the module neither merges them (`MERGE_RADIUS_M`, 4 m) nor flags them as possible duplicates (`DUPLICATE_RADIUS_M`, 10 m).
 2. Pick a fleet robot `sim-dog-2` to `sim-dog-<fleet_size + 1>`.
    Each has a `hold` mission created once at the start (`create_mission(robot_id, hold, [], none, none, reason, 0)` by `sim`, which starts `queued`, then claimed with `claim_next_mission`) so detections have a `mission_id`, and keeps its heartbeat and position running.
+   When `scale` or `dupes` ends, even on an error, each fleet robot reports its hold mission `done` with `mission_progress`, so a one-shot run never leaves a hold mission to expire and sit `queued` with `robot_id = ""`; the next `scale` creates fresh ones.
 3. `report_detection(...)` from that robot's connection with `source = thermal`, `gps_fix = false`, a `location_note` from a short list ("front room", "under a table", "basement stairs", "back bedroom", "garage"), `max_temp_c` 31 to 36, `thermal_confidence` 0.55 to 0.95, and a `thermal_image_url` from `sim-thermal/` (uploaded once with `POST /media`).
 4. Wait for the `survivor` insert whose `lat` and `lon` match (both rounded to 7 decimals), or the `detection` row's `survivor_id`, because reducers return no value to the client.
 5. Draw a level from `scale.mix`, then `report_breathing(survivor_id, breathing, rate_bpm, confidence, visibility_pct, display_url)` as `sim` (in demo mode the sim may call the perception reducers):
@@ -296,10 +297,14 @@ Each sim rescuer (the four named ones plus `extra_sim_rescuers`, named "R5 (sim)
 1. Every `rescuer_heartbeat_ms`: `rescuer_heartbeat()`; every `position_ms`: `participant_update_position(lat, lon)`.
    Both renew its leases.
 2. When an `assignment` with `status = proposed` appears for its identity, wait a random `accept_delay_s`, then `accept_assignment(assignment_id)` (the same acknowledgement the glasses send), then `start_en_route(assignment_id)` once, as the glasses service does.
-3. Walk to the survivor at 1.4 m/s times `speedup`.
+   This runs on its own, even while the rescuer is walking to an earlier survivor, so a 30 s demo proposal lease never lapses; each proposal is accepted at most once.
+3. Take the active assignments one at a time, lowest id first, and walk to the survivor at 1.4 m/s times `speedup`.
+   The walk stops early if the assignment is no longer active.
 4. Within 5 m: `mark_reached(survivor_id)`.
 5. After `on_scene_s`: `resolve_survivor(survivor_id, rescued, "sim")` if `auto_resolve_sim_rescues`, else wait.
-6. Walk back toward its start until the next proposal.
+6. Go to the next active assignment, or walk back toward its start until one appears.
+
+A rescuer held by `imbalance` neither accepts proposals nor starts new walks until `recover`.
 
 Cayden is never driven by this loop.
 
@@ -317,8 +322,10 @@ Each failure shows a database rule doing its job, and each writes a `sim_injecti
 For the real robot, a real failure is shown by stopping the bridge on the Pi; the sim never writes rows for `dog1`.
 `recover` restarts heartbeats and positions, reconnects dropped rescuers, and reports the device `OK`.
 
-`imbalance [key]` (default `r1`): as `sim`, `propose_assignment` three `delayed` scale survivors to that rescuer, one at a time (a rescuer has at most one open proposal), and that rescuer's identity accepts each before the next; another sim rescuer is held idle nearby.
-A rescuer may hold several active assignments and can still be proposed, so this always works.
+`imbalance [key]` (default `r1`): hold that rescuer's sim loop, then bring it to three active assignments: as `sim`, `propose_assignment` the nearest `delayed` scale survivors to that rescuer, one at a time (a rescuer has at most one open proposal), and that rescuer's identity accepts each before the next; another sim rescuer is held idle nearby.
+If another proposer (the module watchdog or the orchestrator) already has a proposal pending for that rescuer, `imbalance` accepts it as part of the load instead of failing, and it retries a rejected proposal with the next survivor.
+If it cannot reach three, it releases the hold and fails with the reason.
+A rescuer may hold several active assignments and can still be proposed.
 Then one `delayed` survivor is spawned next to that rescuer, so the orchestrator makes a new proposal while the load is uneven (it prefers rescuers with fewer active assignments, so it may pick the idle one).
 The module posts a `review` task for that proposal; if it makes the load uneven, the auditor completes the review with verdict `disagree` and `flag_kind` `load_imbalance`, and the module itself files the `audit_flag` (`filed_by = auditor`) inside `complete_agent_task`.
 The auditor does not call `file_audit_flag` for reviews, and the module files no counting flags.
