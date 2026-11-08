@@ -34,9 +34,14 @@ class LegIk2Link : public ILegIK {
   bool solve(const LegRequest& request, std::vector<ServoTarget>& out) override {
     out.clear();
     if (request.move == LegRequest::Move::None) return true;
+    // Hip and knee must be calibrated. Abduction is optional: channel -1 means no servo there
+    // (removed 2026-11-08), and it is skipped; a fitted one must be calibrated like the rest.
     for (const auto& leg : c_.joints)
-      for (const auto& j : leg)
-        if (!j.calibrated()) return false;  // an uncalibrated servo must never move
+      for (int j = 0; j < kJointsPerLeg; ++j) {
+        const JointCal& cal = leg[static_cast<std::size_t>(j)];
+        if (j == Abduction && !cal.fitted()) continue;
+        if (!cal.calibrated()) return false;  // an uncalibrated servo must never move
+      }
 
     double depth[kLegCount];
     for (double& d : depth) d = c_.stance_height_m;
@@ -56,6 +61,7 @@ class LegIk2Link : public ILegIK {
       const double joint_angle[kJointsPerLeg] = {0.0, (*angles)[0], (*angles)[1]};
       for (int j = 0; j < kJointsPerLeg; ++j) {
         const JointCal& cal = c_.joints[static_cast<std::size_t>(leg)][static_cast<std::size_t>(j)];
+        if (j == Abduction && !cal.fitted()) continue;
         const double us = cal.pulse_for(joint_angle[j]);
         if (us < cal.min_us || us > cal.max_us) return false;  // past a limit: reject, do not clamp
         targets.push_back(ServoTarget{cal.bus, cal.channel, us});

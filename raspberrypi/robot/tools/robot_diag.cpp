@@ -575,7 +575,8 @@ int cmd_legcal(const std::string& config, const std::string& only) {
 
       // 1. Channel.
       if (s.channel < 0) {
-        const std::string c = ask("  Which Maestro A channel is " + name + " plugged into (0..23, or 'skip')?");
+        const std::string c = ask("  Which Maestro A channel is " + name + " plugged into (0..23)? Press Enter to skip" +
+                                  std::string(j == Abduction ? " (no abduction servo fitted)" : "") + ":");
         if (c == "skip" || c.empty()) continue;
         s.channel = std::atoi(c.c_str());
       } else {

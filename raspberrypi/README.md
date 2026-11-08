@@ -168,6 +168,7 @@ Each leg has 3 servos on Maestro A (abduction, hip, knee). Each servo maps an an
 ./build/robot_diag --config config/robot.yaml joint FL_knee 45    # check a calibrated joint
 ```
 
+Each leg now has a hip (femur) and a knee servo; press Enter at the abduction joints, which were removed (2026-11-08).
 `legcal` per joint: which channel it is on, jog to the zero pose, jog to a known reference angle (90 degrees is easiest; it measures `us_per_rad` and `direction`), then jog to each end and stop short of hitting (`min_us` / `max_us`, kept 20 us inside). Every jog is ramped at 400 us/s, so a typo cannot slam a leg.
 When all 12 are pasted in, set `legs.impl: two_link`, `legs.stance_height_m`, and `servos.max_rate_us_per_s`. The IK then rejects (never clamps) any goal the leg cannot reach or that would pass a limit, and the movement thread moves each servo no faster than that rate. While a leg is lifted, the safety gate holds translation at zero.
 

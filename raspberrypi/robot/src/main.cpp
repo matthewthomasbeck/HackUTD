@@ -393,7 +393,8 @@ int main(int argc, char** argv) {
       for (std::size_t j = 0; j < 3; ++j) {
         const JointSettings& s = cfg.legs.joints[l][j];
         ik.joints[l][j] = JointCal{s.bus, s.channel, s.zero_us, s.us_per_rad, s.direction, s.min_us, s.max_us};
-        all_calibrated = all_calibrated && ik.joints[l][j].calibrated();
+        const bool optional_absent = j == Abduction && !ik.joints[l][j].fitted();  // abduction removed 2026-11-08
+        all_calibrated = all_calibrated && (optional_absent || ik.joints[l][j].calibrated());
       }
     }
     if (!all_calibrated) log::warn("legs: some joints are not calibrated (robot_diag legcal), so the legs will not move");
