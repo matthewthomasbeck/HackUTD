@@ -1,0 +1,32 @@
+{
+  "name": "rubble-glasses",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "phone": "vite --mode phone --host 0.0.0.0 --port 5174",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "mock": "node scripts/mock-service.mjs",
+    "sim": "evenhub-simulator --automation-port 9898 http://localhost:5173",
+    "qr": "evenhub qr --url http://$(ipconfig getifaddr en0):5173",
+    "set-ip": "node scripts/set-ip.mjs",
+    "pack": "npm run build && evenhub pack app.json dist -o rubble.ehpk"
+  },
+  "dependencies": {
+    "@evenrealities/even_hub_sdk": "0.0.16"
+  },
+  "devDependencies": {
+    "@evenrealities/evenhub-cli": "0.2.0",
+    "@evenrealities/evenhub-simulator": "0.9.5",
+    "@types/node": "^26.6.6",
+    "@types/ws": "^8.18.2",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0",
+    "ws": "^8.22.1"
+  }
+}

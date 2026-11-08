@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rubble Search Rescuer</title>
+    <link rel="stylesheet" href="/src/phone/style.css" />
+  </head>
+  <body>
+    <main class="phone-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">RUBBLE SEARCH</p>
+          <h1>Rescuer controls</h1>
+        </div>
+        <span id="link-state" class="status-chip" data-state="connecting">Connecting</span>
+      </header>
+
+      <section class="connection-card" aria-live="polite">
+        <strong id="gps-state">Checking location…</strong>
+        <span id="connection-detail">Opening your rescuer session.</span>
+      </section>
+
+      <section class="target-card" aria-labelledby="target-heading">
+        <p class="eyebrow">CURRENT TARGET</p>
+        <h2 id="target-heading">No active assignment</h2>
+        <p id="target-detail">Waiting for an assignment.</p>
+        <div class="target-meta">
+          <span id="target-priority" class="priority-chip">No target</span>
+          <span id="target-distance">Distance unavailable</span>
+        </div>
+      </section>
+
+      <section id="proposal-panel" class="action-card" hidden>
+        <p id="proposal-countdown" class="countdown">Assignment proposal</p>
+        <div class="button-row">
+          <button id="accept-button" class="button button-primary" type="button">Accept</button>
+          <button id="decline-button" class="button button-secondary" type="button">Decline</button>
+        </div>
+      </section>
+
+      <section id="assignment-panel" class="action-card" hidden>
+        <p id="assignment-state" class="section-label">Assignment active</p>
+        <div class="button-grid">
+          <button id="release-button" class="button button-secondary" type="button">Release</button>
+          <button id="reached-button" class="button button-primary" type="button">Mark reached</button>
+          <button id="resolve-button" class="button button-outline" type="button">Resolve…</button>
+        </div>
+      </section>
+
+      <section class="ask-card">
+        <div>
+          <h2>Ask the comms agent</h2>
+          <p id="ask-help">Ask a short question about the site or a survivor.</p>
+        </div>
+        <button id="ask-button" class="button button-primary button-wide" type="button">Ask</button>
+      </section>
+
+      <p id="notice" class="notice" role="status" aria-live="polite"></p>
+
+      <dialog id="resolve-dialog" class="resolve-dialog">
+        <form id="resolve-form" method="dialog">
+          <p class="eyebrow">CONFIRM RESOLUTION</p>
+          <h2>Resolve this survivor?</h2>
+          <label for="resolution">Outcome</label>
+          <select id="resolution" name="resolution" required>
+            <option value="rescued">Rescued</option>
+            <option value="handed_off">Handed off</option>
+            <option value="false_alarm">False alarm</option>
+            <option value="duplicate">Duplicate</option>
+          </select>
+          <label for="resolution-note">Note</label>
+          <textarea id="resolution-note" name="note" rows="3" maxlength="500" placeholder="Optional field note"></textarea>
+          <div class="button-row">
+            <button id="cancel-resolve" class="button button-secondary" value="cancel">Cancel</button>
+            <button id="confirm-resolve" class="button button-primary" value="resolve">Confirm resolution</button>
+          </div>
+        </form>
+      </dialog>
+    </main>
+    <script type="module" src="/src/phone/main.ts"></script>
+  </body>
+</html>

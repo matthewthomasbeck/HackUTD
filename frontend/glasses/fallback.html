@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Glasses fallback</title>
+    <link rel="stylesheet" href="/src/fallback/style.css" />
+  </head>
+  <body>
+    <main class="stage">
+      <div class="display-wrap">
+        <canvas id="display" class="display" aria-label="Glasses display, 576 by 288"></canvas>
+        <p id="attribution" class="attribution"></p>
+      </div>
+
+      <aside class="panel" aria-label="Fallback controls">
+        <h1 class="panel-title">Glasses fallback</h1>
+
+        <dl class="facts">
+          <dt>Link</dt>
+          <dd><span id="link" class="link" data-state="connecting">connecting</span></dd>
+          <dt>Rescuer</dt>
+          <dd id="rescuer" class="mono">-</dd>
+          <dt>Mode</dt>
+          <dd id="mode">-</dd>
+          <dt>Layout</dt>
+          <dd id="layout" class="mono">-</dd>
+          <dt>Ack id</dt>
+          <dd id="ack" class="mono">-</dd>
+          <dt>Last msg</dt>
+          <dd id="age" class="mono">-</dd>
+          <dt>Last input</dt>
+          <dd id="last-input" class="mono">-</dd>
+        </dl>
+
+        <h2 class="panel-heading">Input</h2>
+        <div class="buttons">
+          <button type="button" data-input="tap">Tap</button>
+          <button type="button" data-input="scroll_up">Scroll up</button>
+          <button type="button" data-input="scroll_down">Scroll down</button>
+          <button type="button" data-input="long_press">Long press</button>
+          <button type="button" data-input="double_tap">Double tap</button>
+        </div>
+
+        <h2 class="panel-heading">Demo keys</h2>
+        <ul class="keys">
+          <li><kbd>W</kbd> walk to the target, start or stop</li>
+          <li><kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&darr;</kbd> <kbd>&rarr;</kbd> move 5 m</li>
+          <li><kbd>R</kbd> reset to the start</li>
+          <li><kbd>Space</kbd> tap</li>
+        </ul>
+
+        <h2 class="panel-heading">Text fit</h2>
+        <pre id="fit" class="fit" data-ok="true">OK</pre>
+
+        <p id="ws-url" class="ws-url mono"></p>
+      </aside>
+    </main>
+    <script type="module" src="/src/fallback/main.ts"></script>
+  </body>
+</html>
