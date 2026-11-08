@@ -21,6 +21,19 @@ npm test && npm run build
 
 In the app, the Server menu switches between Maincloud (judging) and a local SpacetimeDB server without a rebuild.
 
+Play demo, in one command (local SpacetimeDB server):
+
+```bash
+cd frontend/dashboard && npm run demo     # SpacetimeDB, sim, glasses service, glasses pages, and the app
+cd frontend/glasses && npm run sim        # optional, second terminal: the Even simulator shows what the G2 shows
+```
+
+Then press Play demo (top right, next to Record run).
+Dog 1 searches house 3 and finds the hidden person, Cayden is assigned and accepts on his glasses, and he walks the streets to the door.
+The app shows his glasses in a panel above the map, and the Even simulator shows the same screens, because both read the same glasses service.
+Press it again (Play again) to walk him from the start of the street again.
+Details: `docs/specs/dashboard.md`, "Play demo".
+
 ## `glasses/` - Even Hub plugin, fallback page, phone page
 
 Spec: `docs/specs/glasses.md`.

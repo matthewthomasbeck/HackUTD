@@ -32,7 +32,8 @@ export class SimPool {
     this.env = options.env ?? process.env;
     this.uri = options.uri ?? this.env.STDB_URI ?? '';
     this.database = options.database ?? this.env.STDB_DATABASE ?? '';
-    this.tokenDirectory = resolve(options.tokenDirectory ?? '.tokens');
+    // STDB_TOKEN_DIR keeps one server's identities apart from another's (tokens from Maincloud fail on a local server).
+    this.tokenDirectory = resolve(options.tokenDirectory ?? this.env.STDB_TOKEN_DIR ?? '.tokens');
     if (!this.uri) throw new Error('STDB_URI is required');
     if (!this.database) throw new Error('STDB_DATABASE is required');
   }
