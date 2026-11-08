@@ -63,6 +63,12 @@ For example: `spacetime call <db> grant_role '[{"__identity__":"0x<hex>"},{"agen
 Until the grant, `register_participant` fails with `role not granted`, and the runner retries after 2, 4, 8, 15, then every 30 s, so no restart is needed.
 Heartbeats wait until registration succeeds, and an `agent_heartbeat` rejected with `not registered` starts registration again.
 
+### Environment names
+
+`STDB_URI` and `STDB_DATABASE` follow `docs/specs/CONTRACTS.md`.
+The agents use `STDB_TOKEN_DIR` (agent-internal) instead of the contract's `STDB_TOKEN`, because one process holds three identities, one token file each; see the proposed contract change in `docs/specs/agent.md`.
+Use an `http://` or `https://` (or `ws://`) URI; the perception service shares the same `STDB_URI` and needs `http(s)://`.
+
 ## Switches
 
 From agent.md 3.2: `DRY_RUN`, `LLM_MODE`, `ENABLE_AUDITOR_MODEL`, `ENABLE_COMMS_MODEL`, `ENABLE_QUESTIONS`, `ENABLE_VISION`, `ENABLE_SITREP`, `RPM_BUDGET`, `DEBOUNCE_MS`, `MAX_WAIT_MS`.
