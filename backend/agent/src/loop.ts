@@ -4,7 +4,7 @@
 
 import type { CycleCtx } from "./agent-types.ts";
 import { toolModeFor } from "./config.ts";
-import { redactNames } from "./guards.ts";
+import { redactForModel, resolveCallsigns } from "./guards.ts";
 import { modelExtras } from "./llm/client.ts";
 import { parseReply, stripThink } from "./llm/parse.ts";
 import type { ChatMessage, ToolCall } from "./llm/types.ts";
@@ -25,7 +25,7 @@ async function modelLoop(ctx: CycleCtx): Promise<string | null> {
   const { agent, deps, world, input } = ctx;
   const mode = toolModeFor(deps.cfg, agent.model);
   const system = mode === "json" ? `${agent.systemPrompt}\n\n${jsonCatalog(agent.tools)}` : agent.systemPrompt;
-  const packet = redactNames(agent.buildWakePacket(world, input, ctx), world);
+  const packet = redactForModel(agent.buildWakePacket(world, input, ctx), world);
   const messages: ChatMessage[] = [
     { role: "system", content: system },
     { role: "user", content: packet },
@@ -53,11 +53,11 @@ async function modelLoop(ctx: CycleCtx): Promise<string | null> {
         {
           agent: agent.name,
           model: agent.model,
-          // Read-tool results can contain participant names too. Redact every
+          // Read-tool results can contain participant names and identities too. Redact every
           // outgoing turn, not just the initial wake packet.
           messages: messages.map(m => ({
             ...m,
-            content: typeof m.content === "string" ? redactNames(m.content, world) : m.content,
+            content: typeof m.content === "string" ? redactForModel(m.content, world) : m.content,
           })),
           tools: mode === "native" ? toolDefs(tools) : undefined,
           maxTokens: agent.maxTokens,
@@ -104,7 +104,7 @@ async function modelLoop(ctx: CycleCtx): Promise<string | null> {
       }
       messages.push({ role: "assistant", content: content || null, tool_calls: calls });
       for (const call of calls) {
-        const r = await dispatch(ctx, call.function.name, call.function.arguments, agent.model);
+        const r = await dispatch(ctx, call.function.name, resolveCallsigns(call.function.arguments, world), agent.model);
         messages.push({ role: "tool", tool_call_id: call.id, content: toolMessage(r) });
       }
     } else {
@@ -124,7 +124,7 @@ async function modelLoop(ctx: CycleCtx): Promise<string | null> {
       messages.push({ role: "assistant", content: reply.content });
       const results: Array<Record<string, unknown>> = [];
       for (const a of parsed.actions.slice(0, JSON_MAX_ACTIONS)) {
-        const r = await dispatch(ctx, a.tool, a.args, agent.model);
+        const r = await dispatch(ctx, a.tool, resolveCallsigns(a.args, world), agent.model);
         results.push(r.ok ? { tool: a.tool, ok: true, result: r.result } : { tool: a.tool, ok: false, result: r.error });
       }
       messages.push({ role: "user", content: clip("TOOL_RESULTS " + safeJson(results), TOOL_RESULT_MAX) });

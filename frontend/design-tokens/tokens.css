@@ -119,6 +119,54 @@
   --border-w: 1px;
   --border-w-strong: 2px;
   --shadow-card: 0 1px 2px rgb(17 24 39 / 0.06), 0 4px 12px rgb(17 24 39 / 0.08);
+
+  /* Assess look (approved 2026-11-08 in .lavish/ui-revamp.html): HackUTD Zero Day colors in the top bar and accents,
+     a light paper-and-ink map, floating cards. Status colors above are unchanged. */
+  --brand: #7828FF;
+  --brand-ink: #5B17D6;
+  --brand-soft: #EFE7FF;
+  --lavender: #DBC4FF;
+  --magenta: #FF2EE6;
+  --night: #0A0718;
+  --night-2: #1B0F3F;
+  --on-night: #FFFFFF;
+  --on-night-muted: rgb(255 255 255 / 0.65);
+  --on-night-line: rgb(255 255 255 / 0.12);
+  --on-night-fill: rgb(255 255 255 / 0.07);
+  --on-night-ok: #7CF0A6;
+  --page-wash: #F1ECFF;
+  --hairline: #EEEAF6;
+  --hairline-strong: #E7E2F3;
+  --map-paper: #F3F1F7;
+  --map-ink: 42 35 64; /* rgb channels, used with an alpha in the map */
+  --map-house: #FFFFFF;
+  --map-context-house: #FAF9FC;
+  --map-road: #FFFFFF;
+  --map-alley: #F8F7FB;
+  --map-park: #E4EEE1;
+  --map-water: #CFDAF0;
+  --map-water-edge: rgb(43 76 140 / 0.5);
+  --house-searched: #CDEBDD;
+  --house-partial: #FBE7C4;
+  --house-target: #FBDCC6;
+  --glyph-unsearched: #B9B3C9;
+  --seg-empty: #DCD7E8;
+  --row-selected: #FFF4EC;
+  --headline-ok-bg: #F2FAF2;
+  --headline-alarm-bg: #FFF1E8;
+  --db-card-bg: #F4FAF4;
+  --chip-critical-bg: #FFF8F3;
+  --rescuer-bg: #FCEFF6;
+  --rescuer-ink: #8A3D68;
+  --float-shadow: 0 1px 2px rgb(27 15 63 / 0.08), 0 8px 28px rgb(27 15 63 / 0.12);
+  --brand-glow: rgb(120 40 255 / 0.55);
+  --magenta-glow: rgb(255 46 230 / 0.22);
+  --logo-glow: rgb(255 160 60 / 0.35); /* the dog logo's warm halo */
+  --on-night-fill-strong: rgb(255 255 255 / 0.12);
+  --scrim: rgb(10 7 24 / 0.55);
+  --font-assess-ui: "Satoshi", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-assess-display: "Chakra Petch", "Satoshi", system-ui, sans-serif; /* free stand-in for HackUTD's Elevon (trial license) */
+  --font-assess-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 [data-theme="dark"] {

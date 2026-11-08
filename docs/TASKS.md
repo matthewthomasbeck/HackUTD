@@ -13,7 +13,7 @@ Items marked PROPOSED were unassigned in the MVP; confirm or move them at the ne
 | Person | Owns | Code folders (team repo) | Detail |
 | --- | --- | --- | --- |
 | Matthew Beck | Electrical system, robot assembly, leg motion with Camille, the physical demo set, outdoor test and footage (PROPOSED) | `3d_parts/`, `raspberrypi/` config for hardware, `images/` | `tasks/matthew.md` |
-| Camille | Robot edge software: C++ program on the Pi, Pico firmware, the bridge to SpacetimeDB, robot missions, terrain rules | `raspberrypi/`, `pico/` | `tasks/camille.md` |
+| Camille | Robot edge software: C++ program on the Pi, Pico firmware, robot missions, terrain rules (R3, the bridge, moved to Eric on 2026-11-08) | `raspberrypi/`, `pico/` | `tasks/camille.md` |
 | Eric Lee | Computer vision and models: breathing check, thermal confirmation, critical score, media server, speech-to-text for rescuer questions from the glasses, terrain camera model; the Nemotron agents (PROPOSED) | `backend/perception/`, `backend/agent/` | `tasks/eric.md` |
 | Cayden Hutcheson | G2 glasses; extra work: SpacetimeDB module and contracts, dashboard, simulator, design control, slides and pitch, integration (all PROPOSED except glasses) | `frontend/glasses/`, `backend/glasses-service/`, `backend/spacetimedb/`, `frontend/dashboard/`, `backend/sim/` | `tasks/cayden.md` |
 
@@ -60,9 +60,15 @@ Confirm the submission time and judging time, then write clock times into this t
 ### Checkpoint status (2026-11-08)
 
 Eric's completed-item audit is recorded in
-`notes/2026-11-08-eric-completed-task-audit.md`. R1 step 6 is reopened for
-blocking logging; full G8 identity handling and intermittent real-model chain
-failures remain open. Brev is the intended model deployment.
+`notes/2026-11-08-eric-completed-task-audit.md`. R1 step 6's blocking logger and
+G8 callsign handling were fixed on 2026-11-08 (`tasks/eric-remaining.md`).
+Intermittent real-model chain failures remain open. Brev is the intended model deployment.
+
+Local validation on `eric-cv-benchmark`, 2026-11-08: 136 primary agent tests and
+typecheck, 770 primary perception tests, and 106 robot tests (after merging `main`) passed. The isolated robot
+executable check also verified hold, latched e-stop, rejected restart, reset and clean
+SIGINT shutdown (`notes/2026-11-08-r1-scripted-mock-check.md`). These are branch
+snapshots, not proof of live hardware integration; rerun after merging further changes.
 
 Eric's local transition checks now close E3 8b/10b and E6 6/8b:
 three agent identities, task/action round trips, perception writes/readback,
@@ -74,12 +80,21 @@ the full combined run still needs to be recorded. Evidence:
 
 - Checkpoint 1: the module half is done.
   The module is published locally and on Maincloud as `assess-0hw81`, with bindings in `backend/spacetimedb-bindings/` and 62 passing smoke checks.
-  The robot half is open: the robot program foundation is in `raspberrypi/robot/` (task R1), but the bridge to SpacetimeDB and the Pico firmware are not pushed, so no bridge heartbeat has reached the module yet.
+  The robot half is open: the robot program foundation is in `raspberrypi/robot/` (task R1), and the bridge to SpacetimeDB (task R3) is built on branch `eric-r3-bridge`: on a laptop with mocks the robot's heartbeat, positions, devices, a mission and a test detection reached a local module, but it is not merged and has not run on the Pi.
 - Checkpoint 2: the whole flow with no robot runs in the simulator, but it is not marked passed.
   The sim robot finds survivors, and the dashboard and the glasses service show changes live.
   With Eric's agents merged locally (`integration/eric-agents`) and `LLM_MODE=mock`, the orchestrator proposed, the auditor reviewed, and the comms agent briefed against the live module.
-  Still open: perception scoring a sim detection in the same run, a real Nemotron key, and one recorded run with its run id.
+  A4 now also records a reproducible local simulator/module/runtime chain and a separate no-write shadow run on `eric-cv-benchmark` (`notes/2026-11-08-live-agent-scenarios.md`).
+  Still open: primary perception scoring a sim detection in the same run, real-model integration, and combined dashboard/glasses acceptance with the recorded run.
 - Checkpoints 3 to 5: not started; they need the real robot, the real G2, and rehearsals.
+
+### Judged demo plan (decision 2026-11-08)
+
+- The judged demo is hard-coded: only SpacetimeDB runs live (Maincloud `assess-0hw81`), and the simulator scripts the robot (`sim-dog`), the find, the breathing result and critical score, and any rescuer actions.
+- The agents, perception, the real robot, and the real G2 hardware are not live in the judged demo; they are tested separately.
+- The dashboard and the glasses view (on the G2 or the fallback page) are real clients that render the scripted data live.
+- The story ends at the find in house 3; the run is `npm run sim -- setup`, then `npm run sim -- timeline demo` (`docs/specs/demo.md`, "Judged demo (hard-coded, 2026-11-08)").
+- So checkpoint 5's "two full rehearsals of `specs/demo.md`" now means two runs of the `demo` timeline with its fallbacks; checkpoints 3 and 4 are no longer needed for judging, and they stay open as integration work.
 
 ## What blocks what
 

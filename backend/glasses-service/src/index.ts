@@ -8,11 +8,13 @@ import { RescuerActions, type RescuerAction } from './actions.js';
 import { createTileSource } from './tiles/source.js';
 import { TileCache } from './tiles/cache.js';
 import { MapImageDiff, SiteMapRenderer, type MapMarker } from './render/map.js';
+import { followFrame, loadSiteGeometry } from './render/vector.js';
 import { processQuestionAudio } from './ask.js';
 import { validateQuestionWav } from './wav.js';
 import { AudioQuestionBuffer } from './audio.js';
 
 const config = loadConfig();
+const siteGeometry = loadSiteGeometry(config.siteGeometryFile);
 const sessions = new Map<string, RuntimeSession>();
 let rescuerMap: Awaited<ReturnType<typeof readRescuerMap>> | undefined;
 
@@ -83,7 +85,7 @@ const server = createServer(async (req, res) => {
 
 const wss = new WebSocketServer({ noServer: true });
 if (config.fakeDb) {
-  const fixture = new FakeSession();
+  const fixture = new FakeSession({ demoSpeedMps: config.demoSpeedMps, demoStartBearingDeg: config.demoStartBearingDeg, demoStartDistanceM: config.demoStartDistanceM, ...(siteGeometry ? { geometry: siteGeometry } : {}) });
   await fixture.init();
   server.on('upgrade', (req, socket, head) => {
     const path = new URL(req.url ?? '/', `http://${req.headers.host}`).pathname;
@@ -204,7 +206,7 @@ interface RuntimeSession {
 function getRuntime(rescuer: string): RuntimeSession {
   const existing = sessions.get(rescuer);
   if (existing) return existing;
-  const service = new FakeSession({ demoSpeedMps: config.demoSpeedMps, demoStartBearingDeg: config.demoStartBearingDeg, demoStartDistanceM: config.demoStartDistanceM });
+  const service = new FakeSession({ demoSpeedMps: config.demoSpeedMps, demoStartBearingDeg: config.demoStartBearingDeg, demoStartDistanceM: config.demoStartDistanceM, ...(siteGeometry ? { geometry: siteGeometry } : {}) });
   service.enableLiveMode();
   const runtime: RuntimeSession = {
     service,
@@ -215,7 +217,7 @@ function getRuntime(rescuer: string): RuntimeSession {
     phonePrimarySockets: new Set<WebSocket>(),
     sockets: new Set<WebSocket>(),
     actions: undefined as unknown as RescuerActions,
-    mapRenderer: new SiteMapRenderer(new TileCache({ directory: config.tileCacheDirectory, source: createTileSource(config.tileSource, config.cartoKey) }), createTileSource(config.tileSource, config.cartoKey)),
+    mapRenderer: new SiteMapRenderer(new TileCache({ directory: config.tileCacheDirectory, source: createTileSource(config.tileSource, config.cartoKey) }), createTileSource(config.tileSource, config.cartoKey), siteGeometry),
     mapDiff: new MapImageDiff(),
   };
   runtime.actions = new RescuerActions({
@@ -253,8 +255,13 @@ function updateMap(runtime: RuntimeSession, snapshot: DbSnapshot): void {
   })).filter(marker => Number.isFinite(marker.lat) && Number.isFinite(marker.lon));
   for (const row of snapshot.robots) if (typeof row.lat === 'number' && typeof row.lon === 'number') markers.push({ kind: 'robot', lat: row.lat, lon: row.lon, online: row.online === true, headingDeg: typeof row.headingDeg === 'number' ? row.headingDeg : null });
   const position = runtime.service.currentPosition();
-  markers.push({ kind: 'rescuer', lat: position.lat, lon: position.lon });
-  runtime.mapRenderer.request({ center: { lat: site.centerLat, lon: site.centerLon }, radiusM: site.radiusM, markers, onImages: images => {
+  markers.push({ kind: 'rescuer', lat: position.lat, lon: position.lon, headingDeg: runtime.service.currentHeading() });
+  const targetRow = target ? snapshot.survivors.find(row => String(row.id) === targetId) : undefined;
+  const frame = siteGeometry && config.tileSource === 'vector'
+    ? followFrame(position, targetRow ? { lat: Number(targetRow.lat), lon: Number(targetRow.lon) } : undefined)
+    : { center: { lat: site.centerLat, lon: site.centerLon }, radiusM: site.radiusM };
+  const route = siteGeometry && config.tileSource === 'vector' ? runtime.service.currentRoute() : [];
+  runtime.mapRenderer.request({ center: frame.center, radiusM: frame.radiusM, markers, ...(route.length > 1 ? { route } : {}), onImages: images => {
     const changed = runtime.mapDiff.changed(images);
     if (changed) runtime.service.setMapImages(changed.top, changed.bottom, images.lensText);
   } });

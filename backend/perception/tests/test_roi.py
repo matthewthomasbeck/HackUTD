@@ -89,6 +89,25 @@ def test_chest_from_pose_lying_no_hips():
     assert rect == (100, 197, 44, 66)
 
 
+def test_chest_from_pose_cropped_upright_no_hips():
+    cfg = roi.merge_cfg(None)
+    # Close-up of a seated person: the torso fills a wide frame, so the box is wider than tall,
+    # but the shoulders are side by side and the chest is below them (MPSC-RR front clips).
+    pose = fake_pose({5: (450, 80), 6: (150, 80)}, box=(40, 5, 640, 375))
+    rect, axis = roi.chest_from_pose(pose, (640, 376), cfg)
+    # S = (300, 80), sw = 300, H = S + 360 down; segment to y = 296; half width 165.
+    assert axis == pytest.approx((0.0, 1.0))
+    assert rect == (135, 80, 330, 216)
+
+
+def test_chest_from_pose_no_hips_points_away_from_face():
+    cfg = roi.merge_cfg(None)
+    # Shoulders side by side, nose below them (upside-down person), box centered on the shoulders.
+    pose = fake_pose({0: (300, 300), 5: (250, 200), 6: (350, 200)}, box=(150, 0, 300, 400))
+    _, axis = roi.chest_from_pose(pose, SIZE, cfg)
+    assert axis == pytest.approx((0.0, -1.0))
+
+
 def test_chest_from_pose_needs_two_points():
     cfg = roi.merge_cfg(None)
     assert roi.chest_from_pose(fake_pose({5: (280, 150)}), SIZE, cfg) is None

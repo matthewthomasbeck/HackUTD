@@ -1,0 +1,2252 @@
+{
+  "development": [
+    "030s",
+    "060s"
+  ],
+  "held_out": [
+    "090s",
+    "120s"
+  ],
+  "limitations": "All four VRWi windows were seen in A1; one subject, temporal split only, not an independent test.",
+  "selection_rule": "First candidate with all development rates within 3/min and all synthetic expectations passing; otherwise retain baseline.",
+  "candidates": [
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9
+  ],
+  "base_config": {
+    "default_fps": 30,
+    "min_fps": 10,
+    "min_duration_s": 15,
+    "max_duration_s": 30,
+    "yolo_model": "yolo26n-pose.pt",
+    "yolo_fallback_model": "yolo11n-pose.pt",
+    "yolo_weights_dir": "data/weights",
+    "motion_null_ratio_min": 4.0,
+    "yolo_conf": 0.25,
+    "kp_conf": 0.5,
+    "yolo_frames": 5,
+    "person_confirm_conf": 0.5,
+    "chest_width_factor": 1.1,
+    "center_roi_frac": 0.4,
+    "min_roi_px": 40,
+    "roi_max_w": 160,
+    "roi_max_h": 120,
+    "grid": 8,
+    "clip_dark_mean_min": 40,
+    "clip_noise_max": 6,
+    "sat_frac_max": 0.2,
+    "dark_mean_min": 8,
+    "tex_min": 4,
+    "band_lo_hz": 0.1,
+    "band_hi_hz": 1.0,
+    "filter_order": 2,
+    "nfft": 4096,
+    "peak_halfwidth_hz": 0.05,
+    "c_min": 0.15,
+    "c_good": 0.5,
+    "c_detect": 0.35,
+    "snr_detect_db": 6,
+    "half_tol_bpm": 6,
+    "flow_tol_bpm": 4,
+    "bg_ratio_max": 0.5,
+    "flicker_c_max": 0.5,
+    "k_not_detected": 0.75
+  },
+  "selected_overrides": {
+    "flicker_c_max": 0.6
+  },
+  "trials": [
+    {
+      "flicker_c_max": 0.5,
+      "eligible": false,
+      "summary": {
+        "vrwi/reference": {
+          "windows": 2,
+          "failures": 0,
+          "detected": 1,
+          "not_detected": 0,
+          "abstained": 1,
+          "abstain_reasons": {
+            "lighting or exposure changed": 1
+          },
+          "coverage": 0.5,
+          "median_confidence": 0.4,
+          "labelled_windows": 2,
+          "labelled_with_rate": 1,
+          "mae_bpm": 0.02,
+          "within_3_bpm": "1/2",
+          "confident_within_3_bpm": "1/1"
+        },
+        "vrwi/service": {
+          "windows": 2,
+          "failures": 0,
+          "detected": 2,
+          "not_detected": 0,
+          "abstained": 0,
+          "abstain_reasons": {},
+          "coverage": 1.0,
+          "median_confidence": 0.33,
+          "labelled_windows": 2,
+          "labelled_with_rate": 2,
+          "mae_bpm": 0.43,
+          "within_3_bpm": "2/2",
+          "confident_within_3_bpm": "0/0"
+        },
+        "synthetic/reference": {
+          "windows": 15,
+          "failures": 0,
+          "detected": 8,
+          "not_detected": 1,
+          "abstained": 6,
+          "abstain_reasons": {
+            "camera or scene moved": 1,
+            "clip too dark, needs light": 1,
+            "clip too noisy (low light)": 1,
+            "clip too short": 1,
+            "lighting or exposure changed": 1,
+            "no texture on chest region": 1
+          },
+          "coverage": 0.533,
+          "median_confidence": 0.4,
+          "labelled_windows": 7,
+          "labelled_with_rate": 7,
+          "mae_bpm": 0.01,
+          "within_3_bpm": "7/7",
+          "confident_within_3_bpm": "7/7",
+          "expect_met": "15/15"
+        }
+      },
+      "rows": [
+        {
+          "source": "vrwi",
+          "subject": "M14",
+          "window": "030s",
+          "truth_bpm": 14.39,
+          "reference_accepted": true,
+          "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_030s.mp4",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "unknown",
+          "rate_bpm": null,
+          "confidence": 0.0,
+          "reason": "lighting or exposure changed",
+          "abstained": true,
+          "quality": {
+            "concentration": 0.725,
+            "snr_db": 24.5,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.074,
+            "flicker_peak": true
+          },
+          "debug": {
+            "frame_mean": 134.6,
+            "noise_sigma": 0.53,
+            "chest_roi": [
+              250,
+              550,
+              600,
+              500
+            ],
+            "background_roi": [
+              0,
+              0,
+              1080,
+              162
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": null,
+            "motion_vs_noise": 463.38,
+            "chest_motion": true,
+            "peak_hz": 0.2361,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              12.4,
+              6.9
+            ],
+            "flow_rate_bpm": 13.2,
+            "flow_concentration": 0.573,
+            "flicker_rate_bpm": 16.1,
+            "flicker_concentration": 0.511
+          },
+          "roi_source": "operator"
+        },
+        {
+          "source": "vrwi",
+          "subject": "M14",
+          "window": "030s",
+          "truth_bpm": 14.39,
+          "reference_accepted": true,
+          "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_030s.mp4",
+          "mode": "service",
+          "variant": "flicker_c_max=0.5",
+          "result": "detected",
+          "rate_bpm": 13.7,
+          "confidence": 0.4,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.43,
+            "snr_db": 12.2,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.185,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 134.6,
+            "noise_sigma": 0.53,
+            "chest_roi": [
+              287,
+              644,
+              489,
+              320
+            ],
+            "background_roi": [
+              0,
+              0,
+              1080,
+              135
+            ],
+            "person_box": [
+              4.5,
+              135.8,
+              1005.9,
+              1077.4
+            ],
+            "yolo_person_conf": 0.848,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 170.94,
+            "chest_motion": true,
+            "peak_hz": 0.2278,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              10.2,
+              7.8
+            ],
+            "flow_rate_bpm": 13.0,
+            "flow_concentration": 0.617,
+            "flicker_rate_bpm": 10.6,
+            "flicker_concentration": 0.48
+          },
+          "roi_source": "pose",
+          "abs_error_bpm": 0.69
+        },
+        {
+          "source": "vrwi",
+          "subject": "M14",
+          "window": "060s",
+          "truth_bpm": 18.68,
+          "reference_accepted": true,
+          "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_060s.mp4",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "detected",
+          "rate_bpm": 18.7,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.76,
+            "snr_db": 18.5,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.009,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 134.1,
+            "noise_sigma": 0.6,
+            "chest_roi": [
+              250,
+              550,
+              600,
+              500
+            ],
+            "background_roi": [
+              0,
+              0,
+              1080,
+              162
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 263.59,
+            "chest_motion": true,
+            "peak_hz": 0.3118,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              18.9,
+              19.2
+            ],
+            "flow_rate_bpm": 18.5,
+            "flow_concentration": 0.528,
+            "flicker_rate_bpm": 27.0,
+            "flicker_concentration": 0.275
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.02
+        },
+        {
+          "source": "vrwi",
+          "subject": "M14",
+          "window": "060s",
+          "truth_bpm": 18.68,
+          "reference_accepted": true,
+          "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_060s.mp4",
+          "mode": "service",
+          "variant": "flicker_c_max=0.5",
+          "result": "detected",
+          "rate_bpm": 18.5,
+          "confidence": 0.25,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.635,
+            "snr_db": 16.9,
+            "half_agreement": 0.5,
+            "flow_agreement": true,
+            "background_ratio": 0.023,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 134.1,
+            "noise_sigma": 0.6,
+            "chest_roi": [
+              286,
+              646,
+              488,
+              321
+            ],
+            "background_roi": [
+              0,
+              0,
+              1080,
+              127
+            ],
+            "person_box": [
+              4.9,
+              128.0,
+              1008.0,
+              1075.5
+            ],
+            "yolo_person_conf": 0.849,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 144.83,
+            "chest_motion": true,
+            "peak_hz": 0.3084,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              12.0,
+              18.9
+            ],
+            "flow_rate_bpm": 18.6,
+            "flow_concentration": 0.455,
+            "flicker_rate_bpm": 27.2,
+            "flicker_concentration": 0.283
+          },
+          "roi_source": "pose",
+          "abs_error_bpm": 0.18
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "f0.15",
+          "truth_bpm": 9.0,
+          "expect": "detected",
+          "file": "backend/perception/data/benchmarks/synthetic/f0.15.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "detected",
+          "rate_bpm": 8.9,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.965,
+            "snr_db": 53.7,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 680.41,
+            "chest_motion": true,
+            "peak_hz": 0.1479,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              7.8,
+              7.9
+            ],
+            "flow_rate_bpm": 8.9,
+            "flow_concentration": 0.964,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.1,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "f0.25",
+          "truth_bpm": 15.0,
+          "expect": "detected",
+          "file": "backend/perception/data/benchmarks/synthetic/f0.25.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "detected",
+          "rate_bpm": 15.0,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.902,
+            "snr_db": 52.8,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 992.39,
+            "chest_motion": true,
+            "peak_hz": 0.2502,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              15.0,
+              15.0
+            ],
+            "flow_rate_bpm": 15.0,
+            "flow_concentration": 0.902,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.0,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "f0.4",
+          "truth_bpm": 24.0,
+          "expect": "detected",
+          "file": "backend/perception/data/benchmarks/synthetic/f0.4.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "detected",
+          "rate_bpm": 24.0,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.926,
+            "snr_db": 46.2,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.01,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 980.83,
+            "chest_motion": true,
+            "peak_hz": 0.4001,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              24.1,
+              24.1
+            ],
+            "flow_rate_bpm": 24.0,
+            "flow_concentration": 0.925,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.0,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "f0.6",
+          "truth_bpm": 36.0,
+          "expect": "detected",
+          "file": "backend/perception/data/benchmarks/synthetic/f0.6.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "detected",
+          "rate_bpm": 36.0,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.9,
+            "snr_db": 44.7,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.01,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 892.77,
+            "chest_motion": true,
+            "peak_hz": 0.6,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              36.0,
+              36.0
+            ],
+            "flow_rate_bpm": 36.0,
+            "flow_concentration": 0.9,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.0,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "f0.9",
+          "truth_bpm": 54.0,
+          "expect": "detected",
+          "file": "backend/perception/data/benchmarks/synthetic/f0.9.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "detected",
+          "rate_bpm": 54.0,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.901,
+            "snr_db": 47.0,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.03,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 382.24,
+            "chest_motion": true,
+            "peak_hz": 0.9,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              54.0,
+              54.0
+            ],
+            "flow_rate_bpm": 54.0,
+            "flow_concentration": 0.9,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.0,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "small_amp",
+          "truth_bpm": 15.0,
+          "expect": "detected_or_unknown",
+          "file": "backend/perception/data/benchmarks/synthetic/small_amp.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "detected",
+          "rate_bpm": 15.0,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.926,
+            "snr_db": 46.7,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 89.75,
+            "chest_motion": true,
+            "peak_hz": 0.2503,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              15.0,
+              15.0
+            ],
+            "flow_rate_bpm": 15.0,
+            "flow_concentration": 0.902,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.0,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "short",
+          "truth_bpm": null,
+          "expect": "clip too short",
+          "file": "backend/perception/data/benchmarks/synthetic/short.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "unknown",
+          "rate_bpm": null,
+          "confidence": 0.0,
+          "reason": "clip too short",
+          "abstained": true,
+          "quality": {
+            "concentration": null,
+            "snr_db": null,
+            "half_agreement": null,
+            "flow_agreement": null,
+            "background_ratio": null,
+            "flicker_peak": null
+          },
+          "debug": {
+            "frame_mean": null,
+            "noise_sigma": null,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt"
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "still",
+          "truth_bpm": null,
+          "expect": "not_detected",
+          "file": "backend/perception/data/benchmarks/synthetic/still.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "not_detected",
+          "rate_bpm": null,
+          "confidence": 0.24,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.516,
+            "snr_db": 16.7,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.553,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 1.56,
+            "chest_motion": false,
+            "peak_hz": 0.1025,
+            "peak_at_band_edge": true,
+            "half_rates_bpm": [
+              6.2,
+              6.2
+            ],
+            "flow_rate_bpm": 6.3,
+            "flow_concentration": 0.232,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "sway",
+          "truth_bpm": null,
+          "expect": "camera or scene moved",
+          "file": "backend/perception/data/benchmarks/synthetic/sway.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "unknown",
+          "rate_bpm": null,
+          "confidence": 0.0,
+          "reason": "camera or scene moved",
+          "abstained": true,
+          "quality": {
+            "concentration": 0.901,
+            "snr_db": 47.9,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 8.121,
+            "flicker_peak": true
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.01,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 1006.69,
+            "chest_motion": true,
+            "peak_hz": 0.3001,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              18.1,
+              18.1
+            ],
+            "flow_rate_bpm": 18.0,
+            "flow_concentration": 0.9,
+            "flicker_rate_bpm": 18.0,
+            "flicker_concentration": 0.9
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "flicker",
+          "truth_bpm": null,
+          "expect": "lighting or exposure changed",
+          "file": "backend/perception/data/benchmarks/synthetic/flicker.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "unknown",
+          "rate_bpm": null,
+          "confidence": 0.0,
+          "reason": "lighting or exposure changed",
+          "abstained": true,
+          "quality": {
+            "concentration": 0.901,
+            "snr_db": 57.7,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.276,
+            "flicker_peak": true
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 47960.35,
+            "chest_motion": true,
+            "peak_hz": 0.3002,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              18.1,
+              18.1
+            ],
+            "flow_rate_bpm": 16.5,
+            "flow_concentration": 0.508,
+            "flicker_rate_bpm": 18.0,
+            "flicker_concentration": 0.901
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "flat_torso",
+          "truth_bpm": null,
+          "expect": "no texture on chest region",
+          "file": "backend/perception/data/benchmarks/synthetic/flat_torso.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "unknown",
+          "rate_bpm": null,
+          "confidence": 0.0,
+          "reason": "no texture on chest region",
+          "abstained": true,
+          "quality": {
+            "concentration": null,
+            "snr_db": null,
+            "half_agreement": null,
+            "flow_agreement": null,
+            "background_ratio": null,
+            "flicker_peak": null
+          },
+          "debug": {
+            "frame_mean": 105.6,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt"
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "dark",
+          "truth_bpm": null,
+          "expect": "clip too dark, needs light",
+          "file": "backend/perception/data/benchmarks/synthetic/dark.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "unknown",
+          "rate_bpm": null,
+          "confidence": 0.0,
+          "reason": "clip too dark, needs light",
+          "abstained": true,
+          "quality": {
+            "concentration": null,
+            "snr_db": null,
+            "half_agreement": null,
+            "flow_agreement": null,
+            "background_ratio": null,
+            "flicker_peak": null
+          },
+          "debug": {
+            "frame_mean": 20.0,
+            "noise_sigma": null,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt"
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "noisy",
+          "truth_bpm": null,
+          "expect": "clip too noisy (low light)",
+          "file": "backend/perception/data/benchmarks/synthetic/noisy.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "unknown",
+          "rate_bpm": null,
+          "confidence": 0.0,
+          "reason": "clip too noisy (low light)",
+          "abstained": true,
+          "quality": {
+            "concentration": null,
+            "snr_db": null,
+            "half_agreement": null,
+            "flow_agreement": null,
+            "background_ratio": null,
+            "flicker_peak": null
+          },
+          "debug": {
+            "frame_mean": 105.6,
+            "noise_sigma": 11.8,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt"
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "fan",
+          "truth_bpm": 15.0,
+          "expect": "detected",
+          "file": "backend/perception/data/benchmarks/synthetic/fan.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "detected",
+          "rate_bpm": 15.0,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.902,
+            "snr_db": 52.8,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.6,
+            "noise_sigma": 2.02,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 992.39,
+            "chest_motion": true,
+            "peak_hz": 0.2502,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              15.0,
+              15.0
+            ],
+            "flow_rate_bpm": 15.0,
+            "flow_concentration": 0.902,
+            "flicker_rate_bpm": 48.1,
+            "flicker_concentration": 0.909
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.0,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "irregular",
+          "truth_bpm": null,
+          "expect": "not_confidently_wrong",
+          "file": "backend/perception/data/benchmarks/synthetic/irregular.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.5",
+          "result": "detected",
+          "rate_bpm": 18.0,
+          "confidence": 0.4,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.781,
+            "snr_db": 43.2,
+            "half_agreement": 0.5,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 994.22,
+            "chest_motion": true,
+            "peak_hz": 0.2997,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              15.0,
+              21.1
+            ],
+            "flow_rate_bpm": 18.0,
+            "flow_concentration": 0.781,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        }
+      ]
+    },
+    {
+      "flicker_c_max": 0.6,
+      "eligible": true,
+      "summary": {
+        "vrwi/reference": {
+          "windows": 2,
+          "failures": 0,
+          "detected": 2,
+          "not_detected": 0,
+          "abstained": 0,
+          "abstain_reasons": {},
+          "coverage": 1.0,
+          "median_confidence": 0.8,
+          "labelled_windows": 2,
+          "labelled_with_rate": 2,
+          "mae_bpm": 0.1,
+          "within_3_bpm": "2/2",
+          "confident_within_3_bpm": "2/2"
+        },
+        "vrwi/service": {
+          "windows": 2,
+          "failures": 0,
+          "detected": 2,
+          "not_detected": 0,
+          "abstained": 0,
+          "abstain_reasons": {},
+          "coverage": 1.0,
+          "median_confidence": 0.33,
+          "labelled_windows": 2,
+          "labelled_with_rate": 2,
+          "mae_bpm": 0.43,
+          "within_3_bpm": "2/2",
+          "confident_within_3_bpm": "0/0"
+        },
+        "synthetic/reference": {
+          "windows": 15,
+          "failures": 0,
+          "detected": 8,
+          "not_detected": 1,
+          "abstained": 6,
+          "abstain_reasons": {
+            "camera or scene moved": 1,
+            "clip too dark, needs light": 1,
+            "clip too noisy (low light)": 1,
+            "clip too short": 1,
+            "lighting or exposure changed": 1,
+            "no texture on chest region": 1
+          },
+          "coverage": 0.533,
+          "median_confidence": 0.4,
+          "labelled_windows": 7,
+          "labelled_with_rate": 7,
+          "mae_bpm": 0.01,
+          "within_3_bpm": "7/7",
+          "confident_within_3_bpm": "7/7",
+          "expect_met": "15/15"
+        }
+      },
+      "rows": [
+        {
+          "source": "vrwi",
+          "subject": "M14",
+          "window": "030s",
+          "truth_bpm": 14.39,
+          "reference_accepted": true,
+          "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_030s.mp4",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "detected",
+          "rate_bpm": 14.2,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.725,
+            "snr_db": 24.5,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.074,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 134.6,
+            "noise_sigma": 0.53,
+            "chest_roi": [
+              250,
+              550,
+              600,
+              500
+            ],
+            "background_roi": [
+              0,
+              0,
+              1080,
+              162
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 463.38,
+            "chest_motion": true,
+            "peak_hz": 0.2361,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              12.4,
+              6.9
+            ],
+            "flow_rate_bpm": 13.2,
+            "flow_concentration": 0.573,
+            "flicker_rate_bpm": 16.1,
+            "flicker_concentration": 0.511
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.19
+        },
+        {
+          "source": "vrwi",
+          "subject": "M14",
+          "window": "030s",
+          "truth_bpm": 14.39,
+          "reference_accepted": true,
+          "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_030s.mp4",
+          "mode": "service",
+          "variant": "flicker_c_max=0.6",
+          "result": "detected",
+          "rate_bpm": 13.7,
+          "confidence": 0.4,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.43,
+            "snr_db": 12.2,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.185,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 134.6,
+            "noise_sigma": 0.53,
+            "chest_roi": [
+              287,
+              644,
+              489,
+              320
+            ],
+            "background_roi": [
+              0,
+              0,
+              1080,
+              135
+            ],
+            "person_box": [
+              4.5,
+              135.8,
+              1005.9,
+              1077.4
+            ],
+            "yolo_person_conf": 0.848,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 170.94,
+            "chest_motion": true,
+            "peak_hz": 0.2278,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              10.2,
+              7.8
+            ],
+            "flow_rate_bpm": 13.0,
+            "flow_concentration": 0.617,
+            "flicker_rate_bpm": 10.6,
+            "flicker_concentration": 0.48
+          },
+          "roi_source": "pose",
+          "abs_error_bpm": 0.69
+        },
+        {
+          "source": "vrwi",
+          "subject": "M14",
+          "window": "060s",
+          "truth_bpm": 18.68,
+          "reference_accepted": true,
+          "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_060s.mp4",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "detected",
+          "rate_bpm": 18.7,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.76,
+            "snr_db": 18.5,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.009,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 134.1,
+            "noise_sigma": 0.6,
+            "chest_roi": [
+              250,
+              550,
+              600,
+              500
+            ],
+            "background_roi": [
+              0,
+              0,
+              1080,
+              162
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 263.59,
+            "chest_motion": true,
+            "peak_hz": 0.3118,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              18.9,
+              19.2
+            ],
+            "flow_rate_bpm": 18.5,
+            "flow_concentration": 0.528,
+            "flicker_rate_bpm": 27.0,
+            "flicker_concentration": 0.275
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.02
+        },
+        {
+          "source": "vrwi",
+          "subject": "M14",
+          "window": "060s",
+          "truth_bpm": 18.68,
+          "reference_accepted": true,
+          "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_060s.mp4",
+          "mode": "service",
+          "variant": "flicker_c_max=0.6",
+          "result": "detected",
+          "rate_bpm": 18.5,
+          "confidence": 0.25,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.635,
+            "snr_db": 16.9,
+            "half_agreement": 0.5,
+            "flow_agreement": true,
+            "background_ratio": 0.023,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 134.1,
+            "noise_sigma": 0.6,
+            "chest_roi": [
+              286,
+              646,
+              488,
+              321
+            ],
+            "background_roi": [
+              0,
+              0,
+              1080,
+              127
+            ],
+            "person_box": [
+              4.9,
+              128.0,
+              1008.0,
+              1075.5
+            ],
+            "yolo_person_conf": 0.849,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 144.83,
+            "chest_motion": true,
+            "peak_hz": 0.3084,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              12.0,
+              18.9
+            ],
+            "flow_rate_bpm": 18.6,
+            "flow_concentration": 0.455,
+            "flicker_rate_bpm": 27.2,
+            "flicker_concentration": 0.283
+          },
+          "roi_source": "pose",
+          "abs_error_bpm": 0.18
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "f0.15",
+          "truth_bpm": 9.0,
+          "expect": "detected",
+          "file": "backend/perception/data/benchmarks/synthetic/f0.15.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "detected",
+          "rate_bpm": 8.9,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.965,
+            "snr_db": 53.7,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 680.41,
+            "chest_motion": true,
+            "peak_hz": 0.1479,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              7.8,
+              7.9
+            ],
+            "flow_rate_bpm": 8.9,
+            "flow_concentration": 0.964,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.1,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "f0.25",
+          "truth_bpm": 15.0,
+          "expect": "detected",
+          "file": "backend/perception/data/benchmarks/synthetic/f0.25.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "detected",
+          "rate_bpm": 15.0,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.902,
+            "snr_db": 52.8,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 992.39,
+            "chest_motion": true,
+            "peak_hz": 0.2502,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              15.0,
+              15.0
+            ],
+            "flow_rate_bpm": 15.0,
+            "flow_concentration": 0.902,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.0,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "f0.4",
+          "truth_bpm": 24.0,
+          "expect": "detected",
+          "file": "backend/perception/data/benchmarks/synthetic/f0.4.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "detected",
+          "rate_bpm": 24.0,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.926,
+            "snr_db": 46.2,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.01,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 980.83,
+            "chest_motion": true,
+            "peak_hz": 0.4001,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              24.1,
+              24.1
+            ],
+            "flow_rate_bpm": 24.0,
+            "flow_concentration": 0.925,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.0,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "f0.6",
+          "truth_bpm": 36.0,
+          "expect": "detected",
+          "file": "backend/perception/data/benchmarks/synthetic/f0.6.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "detected",
+          "rate_bpm": 36.0,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.9,
+            "snr_db": 44.7,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.01,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 892.77,
+            "chest_motion": true,
+            "peak_hz": 0.6,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              36.0,
+              36.0
+            ],
+            "flow_rate_bpm": 36.0,
+            "flow_concentration": 0.9,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.0,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "f0.9",
+          "truth_bpm": 54.0,
+          "expect": "detected",
+          "file": "backend/perception/data/benchmarks/synthetic/f0.9.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "detected",
+          "rate_bpm": 54.0,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.901,
+            "snr_db": 47.0,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.03,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 382.24,
+            "chest_motion": true,
+            "peak_hz": 0.9,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              54.0,
+              54.0
+            ],
+            "flow_rate_bpm": 54.0,
+            "flow_concentration": 0.9,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.0,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "small_amp",
+          "truth_bpm": 15.0,
+          "expect": "detected_or_unknown",
+          "file": "backend/perception/data/benchmarks/synthetic/small_amp.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "detected",
+          "rate_bpm": 15.0,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.926,
+            "snr_db": 46.7,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 89.75,
+            "chest_motion": true,
+            "peak_hz": 0.2503,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              15.0,
+              15.0
+            ],
+            "flow_rate_bpm": 15.0,
+            "flow_concentration": 0.902,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.0,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "short",
+          "truth_bpm": null,
+          "expect": "clip too short",
+          "file": "backend/perception/data/benchmarks/synthetic/short.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "unknown",
+          "rate_bpm": null,
+          "confidence": 0.0,
+          "reason": "clip too short",
+          "abstained": true,
+          "quality": {
+            "concentration": null,
+            "snr_db": null,
+            "half_agreement": null,
+            "flow_agreement": null,
+            "background_ratio": null,
+            "flicker_peak": null
+          },
+          "debug": {
+            "frame_mean": null,
+            "noise_sigma": null,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt"
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "still",
+          "truth_bpm": null,
+          "expect": "not_detected",
+          "file": "backend/perception/data/benchmarks/synthetic/still.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "not_detected",
+          "rate_bpm": null,
+          "confidence": 0.24,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.516,
+            "snr_db": 16.7,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.553,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 1.56,
+            "chest_motion": false,
+            "peak_hz": 0.1025,
+            "peak_at_band_edge": true,
+            "half_rates_bpm": [
+              6.2,
+              6.2
+            ],
+            "flow_rate_bpm": 6.3,
+            "flow_concentration": 0.232,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "sway",
+          "truth_bpm": null,
+          "expect": "camera or scene moved",
+          "file": "backend/perception/data/benchmarks/synthetic/sway.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "unknown",
+          "rate_bpm": null,
+          "confidence": 0.0,
+          "reason": "camera or scene moved",
+          "abstained": true,
+          "quality": {
+            "concentration": 0.901,
+            "snr_db": 47.9,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 8.121,
+            "flicker_peak": true
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.01,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 1006.69,
+            "chest_motion": true,
+            "peak_hz": 0.3001,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              18.1,
+              18.1
+            ],
+            "flow_rate_bpm": 18.0,
+            "flow_concentration": 0.9,
+            "flicker_rate_bpm": 18.0,
+            "flicker_concentration": 0.9
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "flicker",
+          "truth_bpm": null,
+          "expect": "lighting or exposure changed",
+          "file": "backend/perception/data/benchmarks/synthetic/flicker.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "unknown",
+          "rate_bpm": null,
+          "confidence": 0.0,
+          "reason": "lighting or exposure changed",
+          "abstained": true,
+          "quality": {
+            "concentration": 0.901,
+            "snr_db": 57.7,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.276,
+            "flicker_peak": true
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 47960.35,
+            "chest_motion": true,
+            "peak_hz": 0.3002,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              18.1,
+              18.1
+            ],
+            "flow_rate_bpm": 16.5,
+            "flow_concentration": 0.508,
+            "flicker_rate_bpm": 18.0,
+            "flicker_concentration": 0.901
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "flat_torso",
+          "truth_bpm": null,
+          "expect": "no texture on chest region",
+          "file": "backend/perception/data/benchmarks/synthetic/flat_torso.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "unknown",
+          "rate_bpm": null,
+          "confidence": 0.0,
+          "reason": "no texture on chest region",
+          "abstained": true,
+          "quality": {
+            "concentration": null,
+            "snr_db": null,
+            "half_agreement": null,
+            "flow_agreement": null,
+            "background_ratio": null,
+            "flicker_peak": null
+          },
+          "debug": {
+            "frame_mean": 105.6,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt"
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "dark",
+          "truth_bpm": null,
+          "expect": "clip too dark, needs light",
+          "file": "backend/perception/data/benchmarks/synthetic/dark.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "unknown",
+          "rate_bpm": null,
+          "confidence": 0.0,
+          "reason": "clip too dark, needs light",
+          "abstained": true,
+          "quality": {
+            "concentration": null,
+            "snr_db": null,
+            "half_agreement": null,
+            "flow_agreement": null,
+            "background_ratio": null,
+            "flicker_peak": null
+          },
+          "debug": {
+            "frame_mean": 20.0,
+            "noise_sigma": null,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt"
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "noisy",
+          "truth_bpm": null,
+          "expect": "clip too noisy (low light)",
+          "file": "backend/perception/data/benchmarks/synthetic/noisy.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "unknown",
+          "rate_bpm": null,
+          "confidence": 0.0,
+          "reason": "clip too noisy (low light)",
+          "abstained": true,
+          "quality": {
+            "concentration": null,
+            "snr_db": null,
+            "half_agreement": null,
+            "flow_agreement": null,
+            "background_ratio": null,
+            "flicker_peak": null
+          },
+          "debug": {
+            "frame_mean": 105.6,
+            "noise_sigma": 11.8,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt"
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "fan",
+          "truth_bpm": 15.0,
+          "expect": "detected",
+          "file": "backend/perception/data/benchmarks/synthetic/fan.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "detected",
+          "rate_bpm": 15.0,
+          "confidence": 0.8,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.902,
+            "snr_db": 52.8,
+            "half_agreement": 1.0,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.6,
+            "noise_sigma": 2.02,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 992.39,
+            "chest_motion": true,
+            "peak_hz": 0.2502,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              15.0,
+              15.0
+            ],
+            "flow_rate_bpm": 15.0,
+            "flow_concentration": 0.902,
+            "flicker_rate_bpm": 48.1,
+            "flicker_concentration": 0.909
+          },
+          "roi_source": "operator",
+          "abs_error_bpm": 0.0,
+          "expect_met": true
+        },
+        {
+          "source": "synthetic",
+          "subject": "synthetic",
+          "window": "irregular",
+          "truth_bpm": null,
+          "expect": "not_confidently_wrong",
+          "file": "backend/perception/data/benchmarks/synthetic/irregular.avi",
+          "mode": "reference",
+          "variant": "flicker_c_max=0.6",
+          "result": "detected",
+          "rate_bpm": 18.0,
+          "confidence": 0.4,
+          "reason": null,
+          "abstained": false,
+          "quality": {
+            "concentration": 0.781,
+            "snr_db": 43.2,
+            "half_agreement": 0.5,
+            "flow_agreement": true,
+            "background_ratio": 0.0,
+            "flicker_peak": false
+          },
+          "debug": {
+            "frame_mean": 105.5,
+            "noise_sigma": 2.0,
+            "chest_roi": [
+              210,
+              140,
+              220,
+              200
+            ],
+            "background_roi": [
+              0,
+              408,
+              640,
+              72
+            ],
+            "person_box": null,
+            "yolo_person_conf": 0.0,
+            "yolo_model": "yolo26n-pose.pt",
+            "motion_vs_noise": 994.22,
+            "chest_motion": true,
+            "peak_hz": 0.2997,
+            "peak_at_band_edge": false,
+            "half_rates_bpm": [
+              15.0,
+              21.1
+            ],
+            "flow_rate_bpm": 18.0,
+            "flow_concentration": 0.781,
+            "flicker_rate_bpm": 41.2,
+            "flicker_concentration": 0.46
+          },
+          "roi_source": "operator",
+          "expect_met": true
+        }
+      ]
+    }
+  ]
+}

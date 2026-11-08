@@ -1,7 +1,7 @@
-import { Breathing as BreathingEnum, CellStatus, CriticalLevel, DetectionSource, MissionKind, RobotState } from '../../spacetimedb-bindings/types.js';
+import { Breathing as BreathingEnum, CellStatus, CriticalLevel, DetectionSource, MissionKind, MissionStatus, RobotState } from '../../spacetimedb-bindings/types.js';
 import type { DemoSiteConfig } from './config.ts';
-import { offsetToLatLon } from './geo.ts';
-import { generateScaleLots } from './setup.ts';
+import { insideRing, offsetToLatLon } from './geo.ts';
+import { generateScaleLots, type ScaleLot } from './setup.ts';
 import { mulberry32 } from './rng.ts';
 import { logInjection } from './inject.ts';
 import type { SimActor, SimPool } from './pool.ts';
@@ -24,29 +24,41 @@ export interface PlannedScaleSurvivor {
 }
 
 export function planScaleSurvivors(config: DemoSiteConfig, count = config.scale.count): PlannedScaleSurvivor[] {
-  if (!Number.isInteger(count) || count < 0) throw new Error('count must be a non-negative integer');
-  const lots = generateScaleLots(config);
-  if (count > 0 && lots.length === 0) throw new Error('No scale lots available');
   const random = mulberry32(config.scale.seed);
-  const plans: PlannedScaleSurvivor[] = [];
   const mix = config.scale.mix;
-  const totalAttempts = Math.max(10_000, count * 400);
-  let attempts = 0;
-  while (plans.length < count && attempts < totalAttempts) {
-    attempts += 1;
-    const lot = lots[Math.floor(random() * lots.length)]!;
-    const east_m = lot.east_m + (random() - 0.5) * config.cell_size_m;
-    const north_m = lot.north_m + (random() - 0.5) * config.cell_size_m;
-    if (Math.hypot(east_m, north_m) > config.site.radius_m - config.cell_size_m / 2) continue;
-    if (plans.some((point) => Math.hypot(point.east_m - east_m, point.north_m - north_m) < config.scale.min_spacing_m)) continue;
+  return placeSurvivorsInLots(config, generateScaleLots(config), count, random, () => {
     const roll = random();
-    const level: ScaleLevel = roll < mix.immediate
+    return roll < mix.immediate
       ? 'immediate'
       : roll < mix.immediate + mix.delayed
         ? 'delayed'
         : roll < mix.immediate + mix.delayed + mix.minor
           ? 'minor'
           : 'unknown';
+  });
+}
+
+// Places count survivors inside real building footprints (and inside each lot's search cell, so the module
+// labels them with their lot), at least min_spacing_m apart. levelFor picks each survivor's level.
+export function placeSurvivorsInLots(config: DemoSiteConfig, lots: readonly ScaleLot[], count: number, random: () => number, levelFor: (index: number) => ScaleLevel): PlannedScaleSurvivor[] {
+  if (!Number.isInteger(count) || count < 0) throw new Error('count must be a non-negative integer');
+  if (count > 0 && lots.length === 0) throw new Error('No scale lots available');
+  const plans: PlannedScaleSurvivor[] = [];
+  const totalAttempts = Math.max(10_000, count * 400);
+  let attempts = 0;
+  while (plans.length < count && attempts < totalAttempts) {
+    attempts += 1;
+    const lot = lots[Math.floor(random() * lots.length)]!;
+    const xs = lot.ring.map((point) => point[0]);
+    const ys = lot.ring.map((point) => point[1]);
+    const east_m = Math.min(...xs) + random() * (Math.max(...xs) - Math.min(...xs));
+    const north_m = Math.min(...ys) + random() * (Math.max(...ys) - Math.min(...ys));
+    if (!insideRing(east_m, north_m, lot.ring)) continue;
+    // Stay inside the lot's search cell too, so the module labels the survivor with its lot.
+    if (Math.abs(east_m - lot.east_m) > config.cell_size_m / 2 - 0.5 || Math.abs(north_m - lot.north_m) > config.cell_size_m / 2 - 0.5) continue;
+    if (Math.hypot(east_m, north_m) > config.site.radius_m) continue;
+    if (plans.some((point) => Math.hypot(point.east_m - east_m, point.north_m - north_m) < config.scale.min_spacing_m)) continue;
+    const level = levelFor(plans.length);
     plans.push({ lot: lot.label, east_m, north_m, level, ...makeClinicalPlan(level, random, config) });
   }
   if (plans.length !== count) throw new Error(`Could only place ${plans.length} of ${count} scale survivors while preserving ${config.scale.min_spacing_m} m spacing`);
@@ -91,6 +103,15 @@ export async function scaleSurvivors(config: DemoSiteConfig, pool: SimPool, coun
   await logInjection(sim, 'scale', String(count));
   const robotIds = Array.from({ length: config.robots.fleet_size }, (_, index) => `${config.robots.sim.robot_id}-${index + 2}`);
   const missionIds = await ensureHoldMissions(sim, pool, robotIds);
+  try {
+    return await reportScalePlans(config, pool, plans, ratePerSecond, robotIds, missionIds);
+  } finally {
+    await finishHoldMissions(sim, pool, missionIds);
+  }
+}
+
+async function reportScalePlans(config: DemoSiteConfig, pool: SimPool, plans: PlannedScaleSurvivor[], ratePerSecond: number, robotIds: string[], missionIds: Map<string, bigint>): Promise<number> {
+  const sim = pool.get('sim');
   const lastHeartbeat = new Map<string, number>();
   const lastPosition = new Map<string, number>();
   const deadlineStep = ratePerSecond > 0 ? 1000 / ratePerSecond : 0;
@@ -152,15 +173,37 @@ async function ensureHoldMissions(sim: SimActor, pool: SimPool, robotIds: string
     let mission = Array.from(sim.connection.db.mission.iter()).find((row) => row.robotId === robotId && row.kind.tag === 'Hold' && row.status.tag !== 'Done' && row.status.tag !== 'Failed' && row.status.tag !== 'Cancelled');
     if (!mission) {
       await sim.connection.reducers.createMission({ robotId, kind: MissionKind.Hold, targetCellIds: [], targetLat: undefined, targetLon: undefined, reason: SCALE_HOLD_REASON, chainId: 0n });
-      mission = await waitForValue(sim, () => Array.from(sim.connection.db.mission.iter()).find((row) => row.robotId === robotId && row.kind.tag === 'Hold' && row.reason === SCALE_HOLD_REASON));
+      mission = await waitForValue(sim, () => Array.from(sim.connection.db.mission.iter()).find((row) => row.robotId === robotId && row.kind.tag === 'Hold' && row.reason === SCALE_HOLD_REASON && row.status.tag === 'Queued'));
     }
     if (mission.status.tag === 'Queued') {
+      const holdId = mission.id;
       await robot.connection.reducers.claimNextMission({ robotId });
       mission = await waitForValue(sim, () => Array.from(sim.connection.db.mission.iter()).find((row) => row.robotId === robotId && (row.status.tag === 'Leased' || row.status.tag === 'Active')));
+      if (mission.id !== holdId) console.warn(`${robotId} leased mission ${mission.id} instead of scale hold mission ${holdId}`);
     }
     result.set(robotId, mission.id);
   }
   return result;
+}
+
+// Scale and dupes lease one hold mission per fleet robot only to tag their detections. Finish
+// them when the command ends, so a one-shot run never leaves them to expire and be requeued
+// with robot_id "" after the fleet robots disconnect.
+export async function finishHoldMissions(sim: SimActor, pool: SimPool, missionIds: Map<string, bigint>): Promise<void> {
+  for (const [robotId, missionId] of missionIds) {
+    const mission = Array.from(sim.connection.db.mission.iter()).find((row) => row.id === missionId);
+    if (!mission || mission.kind.tag !== 'Hold' || mission.reason !== SCALE_HOLD_REASON) continue;
+    if (mission.status.tag === 'Done' || mission.status.tag === 'Failed' || mission.status.tag === 'Cancelled') continue;
+    if ((mission.status.tag !== 'Leased' && mission.status.tag !== 'Active') || mission.robotId !== robotId) {
+      console.warn(`Scale hold mission ${missionId} is ${mission.status.tag} for "${mission.robotId}"; ${robotId} cannot finish it`);
+      continue;
+    }
+    try {
+      await pool.get(robotId).connection.reducers.missionProgress({ missionId, status: MissionStatus.Done, note: 'scale reporting finished', observedAt: undefined });
+    } catch (error) {
+      console.warn(`Could not finish scale hold mission ${missionId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
 }
 
 async function markCoverage(config: DemoSiteConfig, pool: SimPool, count: number, lastHeartbeat: Map<string, number>, lastPosition: Map<string, number>): Promise<void> {
@@ -179,6 +222,8 @@ async function markCoverage(config: DemoSiteConfig, pool: SimPool, count: number
   for (let index = 0; index < searchedCount + partialCount; index += 1) {
     const cell = shuffled[index];
     if (!cell) break;
+    // A robot cannot reopen a searched cell, so a repeated scale skips cells an earlier run finished.
+    if (cell.status.tag === 'Searched') continue;
     const robotId = ids[index % ids.length]!;
     const robot = pool.get(robotId);
     await keepRobotOnline(config, robot, { lat: cell.lat, lon: cell.lon }, lastHeartbeat, lastPosition);
@@ -229,6 +274,16 @@ export async function addDuplicatePairs(config: DemoSiteConfig, pool: SimPool, c
   if (candidates.length < count) throw new Error(`dupes needs ${count} scale survivors; run scale first`);
   await logInjection(sim, 'dupes', String(count));
   const missionIds = await ensureHoldMissions(sim, pool, robotIds);
+  try {
+    await reportDuplicates(config, pool, candidates, count, robotIds, missionIds, detections);
+  } finally {
+    await finishHoldMissions(sim, pool, missionIds);
+  }
+  return count;
+}
+
+async function reportDuplicates(config: DemoSiteConfig, pool: SimPool, candidates: Array<{ lat: number; lon: number; firstDetectionId: bigint; locationNote: string }>, count: number, robotIds: string[], missionIds: Map<string, bigint>, detections: Array<{ id: bigint; robotId: string }>): Promise<void> {
+  const sim = pool.get('sim');
   const random = mulberry32(config.scale.seed + 77);
   const lastHeartbeat = new Map<string, number>();
   const lastPosition = new Map<string, number>();
@@ -262,5 +317,4 @@ export async function addDuplicatePairs(config: DemoSiteConfig, pool: SimPool, c
     });
     await waitForValue(sim, () => Array.from(sim.connection.db.detection.iter()).find((row) => row.clientRef === clientRef && row.survivorId !== 0n));
   }
-  return count;
 }

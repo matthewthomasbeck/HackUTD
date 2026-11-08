@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { loadDemoConfig } from '../src/config.ts';
-import { distanceMeters, offsetToLatLon } from '../src/geo.ts';
+import { distanceMeters, insideRing, offsetToLatLon } from '../src/geo.ts';
 import { planScaleSurvivors } from '../src/scale.ts';
+import { generateScaleLots } from '../src/setup.ts';
 
 test('seeded scale plan is repeatable and keeps survivors at least 12 m apart', () => {
   const config = loadDemoConfig();
@@ -19,4 +20,20 @@ test('seeded scale plan is repeatable and keeps survivors at least 12 m apart', 
   }
   assert.ok(first.filter((item) => item.level === 'immediate').length < 90);
   assert.ok(first.every((item) => item.level === 'unknown' ? item.score === undefined : item.score! < 90));
+});
+
+test('scale lots are real buildings and every scale survivor sits inside its building', () => {
+  const config = loadDemoConfig();
+  const lots = generateScaleLots(config);
+  assert.ok(lots.length > 200);
+  for (const lot of lots) {
+    assert.ok(Math.hypot(lot.east_m, lot.north_m) <= config.site.radius_m);
+    assert.ok(config.houses.every((house) => Math.hypot(lot.east_m - house.east_m, lot.north_m - house.north_m) >= config.scale_lots.exclude_within_m));
+  }
+  const byLabel = new Map(lots.map((lot) => [lot.label, lot]));
+  for (const survivor of planScaleSurvivors(config, 300)) {
+    assert.ok(insideRing(survivor.east_m, survivor.north_m, byLabel.get(survivor.lot)!.ring), `${survivor.lot} survivor is inside its footprint`);
+    const lot = byLabel.get(survivor.lot)!;
+    assert.ok(Math.abs(survivor.east_m - lot.east_m) <= config.cell_size_m / 2 && Math.abs(survivor.north_m - lot.north_m) <= config.cell_size_m / 2, `${survivor.lot} survivor is inside its search cell`);
+  }
 });

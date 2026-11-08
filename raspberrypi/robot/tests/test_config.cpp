@@ -70,5 +70,34 @@ TEST(ConfigTest, UnknownDeviceRejected) {
   EXPECT_NE(r.error.find("flux_capacitor"), std::string::npos) << r.error;
 }
 
+TEST(ConfigTest, BridgeAndLocationKeysLoad) {
+  const auto laptop = load_config_file(kLaptop);
+  ASSERT_TRUE(laptop.ok) << laptop.error;
+  EXPECT_EQ(laptop.config.bridge.socket, "/tmp/robot-bridge.sock");  // the Node bridge's laptop default
+  EXPECT_EQ(laptop.config.bridge.heartbeat_hz, 1);
+  EXPECT_TRUE(laptop.config.site.demo_mode_default);
+  EXPECT_EQ(laptop.config.location.heading_source, "commanded");
+  const auto pi = load_config_file(kPi);
+  ASSERT_TRUE(pi.ok) << pi.error;
+  EXPECT_EQ(pi.config.bridge.socket, "/run/robot/bridge.sock");
+  EXPECT_EQ(pi.config.location.heading_source, "imu");
+}
+
+TEST(ConfigTest, SlowHeartbeatRejected) {
+  YAML::Node root = YAML::LoadFile(kLaptop);
+  root["bridge"]["heartbeat_hz"] = 0.1;  // one every 10 s: the module would mark the robot offline
+  const auto r = load_config_node(root);
+  EXPECT_FALSE(r.ok);
+  EXPECT_NE(r.error.find("bridge.heartbeat_hz"), std::string::npos) << r.error;
+}
+
+TEST(ConfigTest, BadGyroSignRejected) {
+  YAML::Node root = YAML::LoadFile(kLaptop);
+  root["heading"]["gyro_sign"] = 2;
+  const auto r = load_config_node(root);
+  EXPECT_FALSE(r.ok);
+  EXPECT_NE(r.error.find("heading.gyro_sign"), std::string::npos) << r.error;
+}
+
 }  // namespace
 }  // namespace robot

@@ -48,6 +48,7 @@ DEFAULTS = {
 # COCO keypoint indices.
 L_SHOULDER, R_SHOULDER, L_HIP, R_HIP = 5, 6, 11, 12
 TORSO_KPS = (L_SHOULDER, R_SHOULDER, L_HIP, R_HIP)
+FACE_KPS = (0, 1, 2, 3, 4)  # nose, eyes, ears
 N_KPS = 17
 
 BG_STRIP_FRAC = 0.15  # border strip depth for the background ROI
@@ -263,13 +264,23 @@ def chest_from_pose(pose: dict, size, cfg: dict):
     elif len(hips) == 1:
         H = xy[hips[0]].copy()
     else:
-        # Hips hidden: H = S + 1.2 * shoulder width along the box's long axis, toward the box center.
-        bx, by, bw, bh = box_to_rect(pose["box"])
-        cx, cy = bx + bw / 2, by + bh / 2
-        if bh >= bw:
-            u = np.array([0.0, 1.0 if cy >= S[1] else -1.0])
+        # Hips hidden: H = S + 1.2 * shoulder width, perpendicular to the shoulder line, away
+        # from the face if any face keypoint is visible, else toward the box center, else down.
+        # Not the box's long axis: a torso that fills a wide frame gives a wide box although the
+        # person is upright (MPSC-RR front clips, A3 review 2026-11-08).
+        v = xy[R_SHOULDER] - xy[L_SHOULDER]
+        u = np.array([-v[1], v[0]]) / max(float(np.linalg.norm(v)), 1e-9)
+        face = [xy[j] for j in FACE_KPS if _visible(pose, j, kc)]
+        if face:
+            toward = S - np.mean(face, axis=0)
         else:
-            u = np.array([1.0 if cx >= S[0] else -1.0, 0.0])
+            bx, by, bw, bh = box_to_rect(pose["box"])
+            toward = np.array([bx + bw / 2, by + bh / 2]) - S
+        side = float(np.dot(u, toward))
+        if abs(side) < 1e-6:
+            side = u[1]  # no cue: the image-down side
+        if side < 0:
+            u = -u
         H = S + 1.2 * sw * u
     d = H - S
     L = float(np.linalg.norm(d))

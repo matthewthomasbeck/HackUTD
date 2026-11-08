@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { extraRescuerNumber, type DemoSiteConfig } from './config.ts';
 import { offsetToLatLon } from './geo.ts';
 import { mulberry32 } from './rng.ts';
@@ -8,20 +10,18 @@ export interface ScaleLot {
   label: string;
   east_m: number;
   north_m: number;
+  ring: Array<[number, number]>;
 }
 
+// Scale lots are real building footprints (site-lots.json, built by `npm run lots`), away from the demo houses.
 export function generateScaleLots(config: DemoSiteConfig): ScaleLot[] {
+  const path = fileURLToPath(new URL(`../${config.scale_lots.file}`, import.meta.url));
+  const buildings = (JSON.parse(readFileSync(path, 'utf8')) as { lots: Array<Omit<ScaleLot, 'label'>> }).lots;
   const lots: ScaleLot[] = [];
-  const { radius_m } = config.site;
-  const pitch = config.scale_lots.pitch_m;
-  const edge = Math.floor(radius_m / pitch) * pitch;
-  const excluded = config.houses;
-  for (let north = edge; north >= -edge; north -= pitch) {
-    for (let east = -edge; east <= edge; east += pitch) {
-      if (Math.hypot(east, north) > radius_m) continue;
-      if (excluded.some((house) => Math.hypot(east - house.east_m, north - house.north_m) < config.scale_lots.exclude_within_m)) continue;
-      lots.push({ label: `${config.scale_lots.label_prefix} ${lots.length + 1}`, east_m: east, north_m: north });
-    }
+  for (const building of buildings) {
+    if (Math.hypot(building.east_m, building.north_m) > config.site.radius_m) continue;
+    if (config.houses.some((house) => Math.hypot(building.east_m - house.east_m, building.north_m - house.north_m) < config.scale_lots.exclude_within_m)) continue;
+    lots.push({ label: `${config.scale_lots.label_prefix} ${lots.length + 1}`, ...building });
   }
   return lots;
 }
@@ -36,7 +36,7 @@ export function generateExtraRescuerStarts(config: DemoSiteConfig): Array<{ key:
     const north_m = Math.sin(angle) * radius;
     const point = offsetToLatLon({ lat: config.site.center_lat, lon: config.site.center_lon }, { east_m, north_m });
     const number = extraRescuerNumber(config, index);
-    starts.push({ key: `r${number}`, name: `R${number} (sim)`, ...point });
+    starts.push({ key: `r${number}`, name: `R${number}`, ...point });
   }
   return starts;
 }
@@ -48,7 +48,7 @@ export async function setupSite(config: DemoSiteConfig, pool: SimPool): Promise<
   const center = { lat: config.site.center_lat, lon: config.site.center_lon };
   const cellSpecs = [
     ...config.houses.map((house) => ({ label: house.label, east_m: house.east_m, north_m: house.north_m })),
-    ...generateScaleLots(config),
+    ...generateScaleLots(config).map((lot) => ({ label: lot.label, east_m: lot.east_m, north_m: lot.north_m })),
   ];
   for (const cell of cellSpecs) {
     const point = offsetToLatLon(center, cell);

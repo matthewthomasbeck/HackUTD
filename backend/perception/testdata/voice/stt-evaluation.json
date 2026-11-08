@@ -1,0 +1,696 @@
+{
+  "date": "2026-11-08",
+  "engine": "whisper_local:small.en",
+  "compute": "cpu/int8",
+  "beam_size": 5,
+  "vad_filter": true,
+  "condition_on_previous_text": false,
+  "no_speech_max": 0.6,
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "processor": "arm",
+  "python": "3.12.12",
+  "versions": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.8.5",
+    "numpy": "2.5.4",
+    "soundfile": "0.14.0"
+  },
+  "model_snapshot": "d1d751a5f8271d482d14ca55d9e2deeebbae577f",
+  "weights_bytes": 486098798,
+  "startup_with_silence_probe_s": 0.6331,
+  "repeats": 3,
+  "source": {
+    "url": "https://raw.githubusercontent.com/SYSTRAN/faster-whisper/846467d436117e44d54ad74f555d85c75834edb0/tests/data/jfk.flac",
+    "revision": "846467d436117e44d54ad74f555d85c75834edb0",
+    "sha256": "63a4b1e4c1dc655ac70961ffbf518acd249df237e5a0152faae9a4a836949715",
+    "transformation": "first 8 seconds after resampling to 16 kHz mono",
+    "license_note": "Upstream faster-whisper repository MIT license; JFK inaugural address is US federal government speech."
+  },
+  "limits": [
+    "Question fixture recording provenance is not documented; no human-voice generalization claim.",
+    "One public speaker and three short question fixtures are a smoke evaluation, not an ASR benchmark.",
+    "Gaussian noise does not represent crowd speech, reverberation or robot noise.",
+    "Timings exclude model initialization/download and are affected by concurrent laptop work.",
+    "Confidence is the engine's segment log-probability estimate, not calibrated accuracy.",
+    "No hosted Riva, glasses microphone or live voice round trip was tested."
+  ],
+  "rows": [
+    {
+      "fixture": "is_anyone_else_in_house_3",
+      "kind": "repository_question_fixture",
+      "condition": "clean",
+      "seconds": 1.3993,
+      "source_sha256": "7b4d90ff76368809751ec4aeda841844c4ebdc2c27d42c1da0e2e843c14cd35e",
+      "snr_db": null,
+      "noise_rms_before_gain": 0.0,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": true,
+      "runs": [
+        {
+          "transcript": "Is anyone else in House 3?",
+          "confidence": 0.73,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9584
+        },
+        {
+          "transcript": "Is anyone else in House 3?",
+          "confidence": 0.73,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 1.1732
+        },
+        {
+          "transcript": "Is anyone else in House 3?",
+          "confidence": 0.73,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9548
+        }
+      ],
+      "median_s": 0.9584,
+      "max_s": 1.1732,
+      "all_transcripts_equal": true,
+      "silence_pass": null
+    },
+    {
+      "fixture": "is_anyone_else_in_house_3",
+      "kind": "repository_question_fixture",
+      "condition": "snr_20db",
+      "seconds": 1.3993,
+      "source_sha256": "7b4d90ff76368809751ec4aeda841844c4ebdc2c27d42c1da0e2e843c14cd35e",
+      "snr_db": 20,
+      "noise_rms_before_gain": 0.011306,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": true,
+      "runs": [
+        {
+          "transcript": "Is anyone else in house 3?",
+          "confidence": 0.67,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.8771
+        },
+        {
+          "transcript": "Is anyone else in house 3?",
+          "confidence": 0.67,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.901
+        },
+        {
+          "transcript": "Is anyone else in house 3?",
+          "confidence": 0.67,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.8889
+        }
+      ],
+      "median_s": 0.8889,
+      "max_s": 0.901,
+      "all_transcripts_equal": true,
+      "silence_pass": null
+    },
+    {
+      "fixture": "is_anyone_else_in_house_3",
+      "kind": "repository_question_fixture",
+      "condition": "snr_0db",
+      "seconds": 1.3993,
+      "source_sha256": "7b4d90ff76368809751ec4aeda841844c4ebdc2c27d42c1da0e2e843c14cd35e",
+      "snr_db": 0,
+      "noise_rms_before_gain": 0.11306,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": true,
+      "runs": [
+        {
+          "transcript": "Is anyone else in house food?",
+          "confidence": 0.41,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.893
+        },
+        {
+          "transcript": "Is anyone else in house food?",
+          "confidence": 0.41,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9064
+        },
+        {
+          "transcript": "Is anyone else in house food?",
+          "confidence": 0.41,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.8986
+        }
+      ],
+      "median_s": 0.8986,
+      "max_s": 0.9064,
+      "all_transcripts_equal": true,
+      "silence_pass": null
+    },
+    {
+      "fixture": "how_many_still_unaccounted",
+      "kind": "repository_question_fixture",
+      "condition": "clean",
+      "seconds": 2.0692,
+      "source_sha256": "a85038a0736963408b92e2f85fdaa7f40fc22195c3892e55807632f37cc76252",
+      "snr_db": null,
+      "noise_rms_before_gain": 0.0,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": true,
+      "runs": [
+        {
+          "transcript": "how many people are still unaccounted for.",
+          "confidence": 0.79,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9258
+        },
+        {
+          "transcript": "how many people are still unaccounted for.",
+          "confidence": 0.79,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9515
+        },
+        {
+          "transcript": "how many people are still unaccounted for.",
+          "confidence": 0.79,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9308
+        }
+      ],
+      "median_s": 0.9308,
+      "max_s": 0.9515,
+      "all_transcripts_equal": true,
+      "silence_pass": null
+    },
+    {
+      "fixture": "how_many_still_unaccounted",
+      "kind": "repository_question_fixture",
+      "condition": "snr_20db",
+      "seconds": 2.0692,
+      "source_sha256": "a85038a0736963408b92e2f85fdaa7f40fc22195c3892e55807632f37cc76252",
+      "snr_db": 20,
+      "noise_rms_before_gain": 0.012107,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": true,
+      "runs": [
+        {
+          "transcript": "how many people are still unaccounted for.",
+          "confidence": 0.79,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9181
+        },
+        {
+          "transcript": "how many people are still unaccounted for.",
+          "confidence": 0.79,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9502
+        },
+        {
+          "transcript": "how many people are still unaccounted for.",
+          "confidence": 0.79,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 1.014
+        }
+      ],
+      "median_s": 0.9502,
+      "max_s": 1.014,
+      "all_transcripts_equal": true,
+      "silence_pass": null
+    },
+    {
+      "fixture": "how_many_still_unaccounted",
+      "kind": "repository_question_fixture",
+      "condition": "snr_0db",
+      "seconds": 2.0692,
+      "source_sha256": "a85038a0736963408b92e2f85fdaa7f40fc22195c3892e55807632f37cc76252",
+      "snr_db": 0,
+      "noise_rms_before_gain": 0.121073,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": true,
+      "runs": [
+        {
+          "transcript": "how many people are still unaccounted for.",
+          "confidence": 0.74,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9653
+        },
+        {
+          "transcript": "how many people are still unaccounted for.",
+          "confidence": 0.74,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9304
+        },
+        {
+          "transcript": "how many people are still unaccounted for.",
+          "confidence": 0.74,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 1.1169
+        }
+      ],
+      "median_s": 0.9653,
+      "max_s": 1.1169,
+      "all_transcripts_equal": true,
+      "silence_pass": null
+    },
+    {
+      "fixture": "which_survivor_is_most_critical",
+      "kind": "repository_question_fixture",
+      "condition": "clean",
+      "seconds": 1.8274,
+      "source_sha256": "dff433dc32400dc3480bd3540b7eda95005699a30da9437c7026cb9198002932",
+      "snr_db": null,
+      "noise_rms_before_gain": 0.0,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": true,
+      "runs": [
+        {
+          "transcript": "which survivor is the most critical.",
+          "confidence": 0.7,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9942
+        },
+        {
+          "transcript": "which survivor is the most critical.",
+          "confidence": 0.7,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9438
+        },
+        {
+          "transcript": "which survivor is the most critical.",
+          "confidence": 0.7,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9464
+        }
+      ],
+      "median_s": 0.9464,
+      "max_s": 0.9942,
+      "all_transcripts_equal": true,
+      "silence_pass": null
+    },
+    {
+      "fixture": "which_survivor_is_most_critical",
+      "kind": "repository_question_fixture",
+      "condition": "snr_20db",
+      "seconds": 1.8274,
+      "source_sha256": "dff433dc32400dc3480bd3540b7eda95005699a30da9437c7026cb9198002932",
+      "snr_db": 20,
+      "noise_rms_before_gain": 0.010172,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": true,
+      "runs": [
+        {
+          "transcript": "which survivor is the most critical.",
+          "confidence": 0.7,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.995
+        },
+        {
+          "transcript": "which survivor is the most critical.",
+          "confidence": 0.7,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9025
+        },
+        {
+          "transcript": "which survivor is the most critical.",
+          "confidence": 0.7,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9002
+        }
+      ],
+      "median_s": 0.9025,
+      "max_s": 0.995,
+      "all_transcripts_equal": true,
+      "silence_pass": null
+    },
+    {
+      "fixture": "which_survivor_is_most_critical",
+      "kind": "repository_question_fixture",
+      "condition": "snr_0db",
+      "seconds": 1.8274,
+      "source_sha256": "dff433dc32400dc3480bd3540b7eda95005699a30da9437c7026cb9198002932",
+      "snr_db": 0,
+      "noise_rms_before_gain": 0.101718,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": true,
+      "runs": [
+        {
+          "transcript": "which survivors is the most critical.",
+          "confidence": 0.56,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9195
+        },
+        {
+          "transcript": "which survivors is the most critical.",
+          "confidence": 0.56,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.8777
+        },
+        {
+          "transcript": "which survivors is the most critical.",
+          "confidence": 0.56,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.9171
+        }
+      ],
+      "median_s": 0.9171,
+      "max_s": 0.9195,
+      "all_transcripts_equal": true,
+      "silence_pass": null
+    },
+    {
+      "fixture": "public_jfk_8s",
+      "kind": "public_speech",
+      "condition": "clean",
+      "seconds": 8.0,
+      "source_sha256": "63a4b1e4c1dc655ac70961ffbf518acd249df237e5a0152faae9a4a836949715",
+      "snr_db": null,
+      "noise_rms_before_gain": 0.0,
+      "gain": 1.0,
+      "reference_text": "and so my fellow americans ask not what your country can do for you",
+      "expected_speech": true,
+      "runs": [
+        {
+          "transcript": "And so, my fellow Americans, ask not what your country can do for you.",
+          "confidence": 0.82,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 1.0712
+        },
+        {
+          "transcript": "And so, my fellow Americans, ask not what your country can do for you.",
+          "confidence": 0.82,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 1.1656
+        },
+        {
+          "transcript": "And so, my fellow Americans, ask not what your country can do for you.",
+          "confidence": 0.82,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 1.0499
+        }
+      ],
+      "median_s": 1.0712,
+      "max_s": 1.1656,
+      "all_transcripts_equal": true,
+      "word_errors": 0,
+      "reference_words": 14,
+      "wer": 0.0,
+      "silence_pass": null
+    },
+    {
+      "fixture": "public_jfk_8s",
+      "kind": "public_speech",
+      "condition": "snr_20db",
+      "seconds": 8.0,
+      "source_sha256": "63a4b1e4c1dc655ac70961ffbf518acd249df237e5a0152faae9a4a836949715",
+      "snr_db": 20,
+      "noise_rms_before_gain": 0.015205,
+      "gain": 1.0,
+      "reference_text": "and so my fellow americans ask not what your country can do for you",
+      "expected_speech": true,
+      "runs": [
+        {
+          "transcript": "And so, my fellow Americans, ask not what your country can do for you.",
+          "confidence": 0.77,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 1.0512
+        },
+        {
+          "transcript": "And so, my fellow Americans, ask not what your country can do for you.",
+          "confidence": 0.77,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 1.0339
+        },
+        {
+          "transcript": "And so, my fellow Americans, ask not what your country can do for you.",
+          "confidence": 0.77,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 1.1085
+        }
+      ],
+      "median_s": 1.0512,
+      "max_s": 1.1085,
+      "all_transcripts_equal": true,
+      "word_errors": 0,
+      "reference_words": 14,
+      "wer": 0.0,
+      "silence_pass": null
+    },
+    {
+      "fixture": "public_jfk_8s",
+      "kind": "public_speech",
+      "condition": "snr_0db",
+      "seconds": 8.0,
+      "source_sha256": "63a4b1e4c1dc655ac70961ffbf518acd249df237e5a0152faae9a4a836949715",
+      "snr_db": 0,
+      "noise_rms_before_gain": 0.15205,
+      "gain": 0.910863,
+      "reference_text": "and so my fellow americans ask not what your country can do for you",
+      "expected_speech": true,
+      "runs": [
+        {
+          "transcript": "And so, my fellow Americans, ask not what your country can do for you.",
+          "confidence": 0.73,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 1.0621
+        },
+        {
+          "transcript": "And so, my fellow Americans, ask not what your country can do for you.",
+          "confidence": 0.73,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 1.0615
+        },
+        {
+          "transcript": "And so, my fellow Americans, ask not what your country can do for you.",
+          "confidence": 0.73,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 1.0578
+        }
+      ],
+      "median_s": 1.0615,
+      "max_s": 1.0621,
+      "all_transcripts_equal": true,
+      "word_errors": 0,
+      "reference_words": 14,
+      "wer": 0.0,
+      "silence_pass": null
+    },
+    {
+      "fixture": "fixture_silence_2s",
+      "kind": "silence",
+      "condition": "clean",
+      "seconds": 2.0,
+      "source_sha256": "20eaebffe1816e0ffa6f7f854f5ef4ea80d5349faaf0ce1fec1b713e7fde58fa",
+      "snr_db": null,
+      "noise_rms_before_gain": 0.0,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": false,
+      "runs": [
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0038
+        },
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0034
+        },
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0039
+        }
+      ],
+      "median_s": 0.0038,
+      "max_s": 0.0039,
+      "all_transcripts_equal": true,
+      "silence_pass": true
+    },
+    {
+      "fixture": "fixture_silence_2s",
+      "kind": "silence",
+      "condition": "noise_rms_0.01",
+      "seconds": 2.0,
+      "source_sha256": "20eaebffe1816e0ffa6f7f854f5ef4ea80d5349faaf0ce1fec1b713e7fde58fa",
+      "snr_db": null,
+      "noise_rms_before_gain": 0.01,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": false,
+      "runs": [
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0038
+        },
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.004
+        },
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0038
+        }
+      ],
+      "median_s": 0.0038,
+      "max_s": 0.004,
+      "all_transcripts_equal": true,
+      "silence_pass": true
+    },
+    {
+      "fixture": "fixture_silence_2s",
+      "kind": "silence",
+      "condition": "noise_rms_0.1",
+      "seconds": 2.0,
+      "source_sha256": "20eaebffe1816e0ffa6f7f854f5ef4ea80d5349faaf0ce1fec1b713e7fde58fa",
+      "snr_db": null,
+      "noise_rms_before_gain": 0.1,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": false,
+      "runs": [
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0039
+        },
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0037
+        },
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0036
+        }
+      ],
+      "median_s": 0.0037,
+      "max_s": 0.0039,
+      "all_transcripts_equal": true,
+      "silence_pass": true
+    },
+    {
+      "fixture": "generated_silence_8s",
+      "kind": "silence",
+      "condition": "clean",
+      "seconds": 8.0,
+      "source_sha256": null,
+      "snr_db": null,
+      "noise_rms_before_gain": 0.0,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": false,
+      "runs": [
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0128
+        },
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0127
+        },
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0127
+        }
+      ],
+      "median_s": 0.0127,
+      "max_s": 0.0128,
+      "all_transcripts_equal": true,
+      "silence_pass": true
+    },
+    {
+      "fixture": "generated_silence_8s",
+      "kind": "silence",
+      "condition": "noise_rms_0.01",
+      "seconds": 8.0,
+      "source_sha256": null,
+      "snr_db": null,
+      "noise_rms_before_gain": 0.01,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": false,
+      "runs": [
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0127
+        },
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0126
+        },
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0127
+        }
+      ],
+      "median_s": 0.0127,
+      "max_s": 0.0127,
+      "all_transcripts_equal": true,
+      "silence_pass": true
+    },
+    {
+      "fixture": "generated_silence_8s",
+      "kind": "silence",
+      "condition": "noise_rms_0.1",
+      "seconds": 8.0,
+      "source_sha256": null,
+      "snr_db": null,
+      "noise_rms_before_gain": 0.1,
+      "gain": 1.0,
+      "reference_text": null,
+      "expected_speech": false,
+      "runs": [
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0127
+        },
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0125
+        },
+        {
+          "transcript": "",
+          "confidence": 0.0,
+          "engine": "whisper_local:small.en",
+          "elapsed_s": 0.0127
+        }
+      ],
+      "median_s": 0.0127,
+      "max_s": 0.0127,
+      "all_transcripts_equal": true,
+      "silence_pass": true
+    }
+  ]
+}

@@ -229,10 +229,10 @@ Checklist:
 - [x] 3. Write one test per transition row, plus the latch, reset, retry, and SIGTERM tests below.
 - [x] 4. Write `MotionCommand` and the pure `SafetyGate::filter(state, snapshot, output)` with the rules from robot.md 10.1 (terrain rules can be a stub until R7).
 - [x] 5. Write the safety gate tests below.
-- [ ] 6. Finish the main loop in `main.cpp`: the fixed rate, steps, overrun detection and summary exist, but logging can block the main loop. The 2026-11-08 completed-item audit reproduced a control timeout over 2 s with a full stderr pipe. Move blocking log output off the main loop before closing this step; see `docs/notes/2026-11-08-eric-completed-task-audit.md`.
+- [x] 6. Finish the main loop in `main.cpp`: the fixed rate, steps, overrun detection and summary exist, but logging can block the main loop. The 2026-11-08 completed-item audit reproduced a control timeout over 2 s with a full stderr pipe. Move blocking log output off the main loop before closing this step; see `docs/notes/2026-11-08-eric-completed-task-audit.md`. Fixed 2026-11-08 (Eric): `src/core/log.cpp` now only queues a line (bounded at 1024, extra lines dropped and counted) and a writer thread does the I/O. `tests/test_log.cpp` covers it, and a rerun of the audit case (stderr into a full, unread pipe) answered every `robotctl` command in about 40 ms and latched SAFE_STOP on e-stop.
 - [x] 7. Write the control server (non-blocking Unix socket, NDJSON commands `start`, `stop`, `estop`, `reset`, `status`) and `robotctl`.
 - [x] 8. Handle SIGTERM and SIGINT: raise the `sigterm` event, stop motion, then SHUTDOWN within `shutdown.timeout_ms`.
-- [ ] 9. Run the scripted check below on mocks and paste the log into the PR.
+- [ ] 9. Run the scripted check below on mocks and paste the log into the PR. Local check passed 2026-11-08 on `eric-cv-benchmark`: build and 88 tests passed, and `tools/check_mock_lifecycle.py` verified hold, latched e-stop, rejected restart, reset/re-init and SIGINT shutdown with exit 0. Captured evidence: `docs/notes/2026-11-08-r1-scripted-mock-check.md`. PR paste remains open.
 
 Tests (GoogleTest, `FakeClock`, no hardware):
 - `StateMachine.BootConfigValidGoesToInit`, `StateMachine.BootConfigInvalidGoesToShutdown`.
@@ -349,6 +349,12 @@ Pitfalls:
 
 ### R3. Bridge to SpacetimeDB
 
+Status (2026-11-08): built by Eric (handed over by Camille) on branch `eric-r3-bridge`, not merged yet.
+C++ side: 146 robot tests pass; Node bridge (`raspberrypi/bridge/`): 61 tests pass.
+Laptop end-to-end against a local `assess-0hw81` passed: `dog1` online READY with 14 device rows and demo positions, a hold mission leased then active, `robotctl test_detection` made a detection and survivor, a 25 s SpacetimeDB outage spooled and replayed with the original `observed_at`, the expired lease was cancelled on the robot and re-leased, a coordinator cancel, a bridge restart during a mission (duplicate resend ignored), and `robotctl stop` reporting failed.
+Not done: media upload against a live media server (no clip on the test hook), real hardware, `upload_logs.ts`, the `terrain_hint` image forwarding, `STDB_MODE=http`, the gpsd reader, and `missions.on_bridge_loss`.
+The bridge runs with `npm start` (tsx), so `robot-bridge.service` (robot.md 14.2) needs that instead of a `dist/` build.
+
 Estimate with AI: 2 h.
 
 Goal: Node.js bridge using the SpacetimeDB TypeScript SDK and the robot's identity, the local socket protocol from `CONTRACTS.md`, spooling to the SD card when offline, media upload to Eric's media server.
@@ -384,18 +390,18 @@ spacetime sql assess-0hw81 "SELECT * FROM robot"
 ```
 
 Checklist:
-- [ ] 1. C++ `messages.cpp`: build every robot-to-bridge message from robot.md 9.3 with `observed_at` (ISO 8601 UTC with `Z`) and `seq`, and parse `mission`, `cancel`, `site`, and `terrain_hint`, ignoring unknown types with a log line.
-- [ ] 2. C++ `bridge_client.cpp`: non-blocking connect with backoff (0.5 s doubling to 5 s), `telemetry` queue (64, drop oldest) and `important` queue (256), partial writes kept, and `important` messages also appended to the outbox file and replayed on reconnect.
-- [ ] 3. C++ localizer and `geo.cpp`: demo, GPS, indoor, and unknown modes, equirectangular offsets, and the location note (robot.md section 8).
-- [ ] 4. Write the C++ tests below with a `socketpair`.
-- [ ] 5. Bridge `local_socket.ts`: listen on `BRIDGE_SOCKET` (unlink first), one client at a time, NDJSON line parsing.
-- [ ] 6. Bridge `stdb.ts`: connect with the builder from robot.md 9.2, save the token with mode 0600, print the identity hex, call `registerParticipant` with name `ROBOT_ID` and role `robot`, and subscribe to the six SQL queries in robot.md 9.2.
-- [ ] 7. Bridge `mapping.ts` (pure): each local message to a reducer name and argument object, converting ids to `bigint`, enums to the contract spelling, and `observed_at` to a `Timestamp`.
-- [ ] 8. Bridge `to_wire.ts` and `missions.ts`: forward `leased` missions once (dedupe by id), forward `cancelled` as `cancel`, send `site` on connect and change, and call `claimNextMission` every `CLAIM_INTERVAL_MS` only when connected, robot READY, no current mission, and the C++ client connected.
-- [ ] 9. Bridge `media.ts`: upload each file with `POST {MEDIA_URL}/media` (field `file`, plus `run_id`, `robot_id`, `kind`), retry 1, 2, 4, 8 s, then `report_detection`, then find `survivor_id` by `client_ref` (wait up to 10 s), then `POST /breathing` with `clip_url`, `survivor_id`, `detection_id`.
-- [ ] 10. Bridge `spool.ts`: append JSON lines while disconnected, `fsync` after detection, cell, and mission_progress, keep only the newest position, never spool heartbeats, replay in order on reconnect awaiting each call, skip rejections, truncate after replay, and cap at `SPOOL_MAX_MB` by dropping positions first.
-- [ ] 11. Write the bridge tests below and run `npm test`.
-- [ ] 12. Run the laptop end-to-end check below with Cayden's local module.
+- [x] 1. C++ `messages.cpp`: build every robot-to-bridge message from robot.md 9.3 with `observed_at` (ISO 8601 UTC with `Z`) and `seq`, and parse `mission`, `cancel`, `site`, and `terrain_hint`, ignoring unknown types with a log line.
+- [x] 2. C++ `bridge_client.cpp`: non-blocking connect with backoff (0.5 s doubling to 5 s), `telemetry` queue (64, drop oldest) and `important` queue (256), partial writes kept, and `important` messages also appended to the outbox file and replayed on reconnect.
+- [x] 3. C++ localizer and `geo.cpp`: demo, GPS, indoor, and unknown modes, equirectangular offsets, and the location note (robot.md section 8).
+- [x] 4. Write the C++ tests below with a `socketpair`.
+- [x] 5. Bridge `local_socket.ts`: listen on `BRIDGE_SOCKET` (unlink first), one client at a time, NDJSON line parsing.
+- [x] 6. Bridge `stdb.ts`: connect with the builder from robot.md 9.2, save the token with mode 0600, print the identity hex, call `registerParticipant` with name `ROBOT_ID` and role `robot`, and subscribe to the six SQL queries in robot.md 9.2.
+- [x] 7. Bridge `mapping.ts` (pure): each local message to a reducer name and argument object, converting ids to `bigint`, enums to the contract spelling, and `observed_at` to a `Timestamp`.
+- [x] 8. Bridge `to_wire.ts` and `missions.ts`: forward `leased` missions once (dedupe by id), forward `cancelled` as `cancel`, send `site` on connect and change, and call `claimNextMission` every `CLAIM_INTERVAL_MS` only when connected, robot READY, no current mission, and the C++ client connected.
+- [x] 9. Bridge `media.ts`: upload each file with `POST {MEDIA_URL}/media` (field `file`, plus `run_id`, `robot_id`, `kind`), retry 1, 2, 4, 8 s, then `report_detection`, then find `survivor_id` by `client_ref` (wait up to 10 s), then `POST /breathing` with `clip_url`, `survivor_id`, `detection_id`.
+- [x] 10. Bridge `spool.ts`: append JSON lines while disconnected, `fsync` after detection, cell, and mission_progress, keep only the newest position, never spool heartbeats, replay in order on reconnect awaiting each call, skip rejections, truncate after replay, and cap at `SPOOL_MAX_MB` by dropping positions first.
+- [x] 11. Write the bridge tests below and run `npm test`.
+- [x] 12. Run the laptop end-to-end check below with Cayden's local module.
 
 Tests:
 - C++ `BridgeClient.NonBlockingWriteNeverStalls`: with the peer not reading, `poll()` returns within 1 ms.

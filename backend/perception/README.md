@@ -16,7 +16,9 @@ cp .env.example .env        # then fill in PUBLIC_BASE_URL with the laptop LAN I
 ```
 
 Never commit `.env` or `data/identity.json` (both are git-ignored).
-After the first working install on the demo laptop, run `pip freeze > requirements.lock` and commit it.
+`requirements.lock` pins the working primary environment (2026-11-08, Python 3.12, macOS arm64).
+To reproduce it exactly, use `pip install -r requirements.lock` instead of `requirements.txt`.
+After changing dependencies, rerun the tests and regenerate it with `pip freeze`.
 
 ## Run
 
@@ -40,7 +42,24 @@ curl http://localhost:8080/health
 
 `config.toml` holds every section (`server`, `paths`, `media`, `stdb`, `breathing`, `evm`, `score`, `terrain`, `stt`).
 `perception.config.load_config()` reads it, then `.env` (the names in `.env.example`), then `PERCEPTION_<SECTION>_<KEY>` overrides, for example `PERCEPTION_SCORE_RR_HIGH=32`.
-The `[breathing]` and `[score]` values are the spec defaults and are untuned.
+Values follow the spec defaults except `flicker_c_max=0.6`, selected in A2 on
+VRWi M14 resting 030s/060s and constrained by the 15 synthetic cases. The two
+reserved windows showed no improvement. Evidence is limited to one subject,
+and robot-camera performance is unverified. See
+[the gate audit](../../docs/notes/2026-11-08-quality-gates.md).
+
+To reproduce A2 after preparing the A1 public clips, from this directory:
+
+```sh
+.venv/bin/python scripts/audit_quality_gates.py develop --out-dir data/a2-repeat
+.venv/bin/python scripts/audit_quality_gates.py evaluate --out-dir data/a2-repeat
+```
+
+Development refuses to overwrite its frozen choice; evaluation reads that choice
+without reselection. The committed `testdata/public/quality-gates-*.json` files
+retain each window's gate diagnostics and results. Gate bypass runs are diagnostic
+only and never become service settings. Python calls without an explicit config
+retain the original baseline fallback of 0.5; the CLI and service load `config.toml`.
 
 ## Endpoints
 
@@ -72,6 +91,27 @@ The `[breathing]` and `[score]` values are the spec defaults and are untuned.
 
 `breathing.py`, `roi.py`, `score.py`, `stt.py`, `terrain.py`, and `video.py` are written separately.
 The service imports them only when needed, so it starts without them: a breathing job fails with `breathing module not installed`, `set_critical_score` is skipped without `score.py`, and `/health` shows `yolo: missing`.
+
+## Local transcription evaluation (2026-11-08)
+
+Run `.venv/bin/python scripts/evaluate_stt.py` from this directory. Cached `small.en`
+weights are required; `--allow-model-download` permits their initial download.
+The primary `whisper_local:small.en` CPU/int8 path was evaluated on three question
+fixtures, one public eight-second speech excerpt, two-second fixture silence and
+eight-second generated silence. Each input was tested clean and at two deterministic
+noise levels, with three repeats per condition.
+
+Speech medians were 0.889 to 1.071 s, maximum 1.173 s, on an Apple M4 Pro during
+concurrent laptop testing. Model files occupy about 464 MiB. All 18 silence/noise-only
+calls returned empty text. At 0 dB white noise, `house 3` became `house food`, so this
+does not establish noisy-venue reliability. Question transcript truth and recording
+provenance are unverified; no question accuracy metric is claimed. Only `small.en`
+was measured, with no model-size comparison, hosted Riva or live glasses voice check.
+
+Full transcripts, settings, checksums and timings are in
+[`testdata/voice/stt-evaluation.json`](testdata/voice/stt-evaluation.json).
+See the [method and results](../../docs/notes/2026-11-08-local-transcription-evaluation.md)
+for per-clip timings and limitations.
 
 ## SpacetimeDB
 

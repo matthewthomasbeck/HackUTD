@@ -36,10 +36,22 @@ cd backend/sim
 npm run sim -- help              # every command and its short form
 npm run sim -- setup             # create the demo site, cells, and sim actors
 npm run sim -- console           # interactive controls
-npm run sim -- timeline judge    # run a timeline (e2e, judge, video, stress); add --dry to print it
+npm run sim -- timeline demo     # the judged demo (hard-coded, 2026-11-08)
+npm run sim -- scene             # seed an in-progress board (searched houses, survivors, house 4 report), start rescuers and sim-dog
+npm run sim -- search house 3    # short: sr; queue a sim-dog search mission for one house
+npm run sim -- timeline judge    # run a timeline (demo, scene, e2e, judge, video, stress); add --dry to print it
 npm run reset                    # republish with --delete-data=always, then setup (never on Maincloud during judging)
 npm test && npx tsc --noEmit
 ```
+
+### Run the demo
+
+The judged demo is hard-coded (decision 2026-11-08): only SpacetimeDB runs live, and the sim scripts the robot (`sim-dog`), the find, the breathing result and score, and rescuer actions.
+Set `STDB_URI=https://maincloud.spacetimedb.com` and `STDB_DATABASE=assess-0hw81` (or the local fallback), then run `npm run sim -- setup` and `npm run sim -- timeline demo`.
+`timelines/demo.json` starts a run, arms the hidden survivors, starts `sim-dog`, queues `search house 3`, waits for the house 3 survivor (fallback `robot replay house3`), and ends the run when you press Enter.
+Before judging, republish Maincloud clean from the repo root with `spacetime publish assess-0hw81 -p backend/spacetimedb --server maincloud --delete-data=always --yes`, then run `setup`.
+The `judge`, `e2e`, `video`, and `stress` timelines remain as rehearsal and video material.
+Details: `docs/specs/demo.md`, "Judged demo (hard-coded, 2026-11-08)".
 
 ## `glasses-service/` - glasses backend
 

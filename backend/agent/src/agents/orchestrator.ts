@@ -7,6 +7,7 @@ import type { Config } from "../config.ts";
 import { breathingDisplay, levelWord, tierOf } from "../priority.ts";
 import { continueMission } from "../rules.ts";
 import { dispatch } from "../tools/dispatch.ts";
+import { orderCells, targetedBy } from "../tools/reads.ts";
 import type { ToolName } from "../tools/schemas.ts";
 import type { AgentTask, Assignment, AuditFlag, Detection, EventLog, Mission, PersonReport, Robot, SearchCell, Survivor } from "../types.ts";
 import { iso, parsePayload, type World } from "../world.ts";
@@ -138,14 +139,43 @@ function watchdogLine(w: World, ctx: CycleCtx): string {
   return `WATCHDOG: fires in ${left} s if no proposal for #${urgent.id}`;
 }
 
+/** Candidates per survivor: the rescuers the propose_assignment guard accepts, best first (World.candidatesFor). */
+export const CANDIDATES_LABEL = "candidates (fewest active, then nearest)";
+export const NEXT_CELLS_LABEL = "next to search";
+
 function survivorLine(w: World, s: Survivor): string {
-  const near = w
-    .rescuersNear(s.lat, s.lon, true)
-    .slice(0, 3)
-    .map((r) => `${r.callsign} ${r.distance_m} m ${r.compass}`)
-    .join(", ");
+  const { candidates, lapsed } = w.candidatesFor(s);
+  const near = candidates
+    .slice(0, 5)
+    .map((r) => `${r.callsign} ${r.distance_m ?? "?"} m ${r.compass ?? ""}, ${r.active_assignments} active`.replace(" ,", ","))
+    .join("; ");
+  const gone = lapsed.length ? ` | lapsed, do not propose: ${lapsed.map((r) => r.callsign).join(", ")}` : "";
   const note = s.location_note ? `, ${s.location_note}` : "";
-  return `#${s.id} ${w.placeOf(s)} ${levelWord(s)} score ${Math.round(s.critical_score)}, ${breathingDisplay(s)}${note}; nearest available: ${near || "none"}`;
+  return `#${s.id} ${w.placeOf(s)} ${levelWord(s)} score ${Math.round(s.critical_score)}, ${breathingDisplay(s)}${note} | ${CANDIDATES_LABEL}: ${near || "none"}${gone}`;
+}
+
+/** Cells a search_cells mission may target now, in search order (agent.md 7.2 step 4). */
+function cellsLine(w: World): string {
+  const cells = w.cells();
+  const unacc = cells.filter((c) => c.unaccounted > 0);
+  const uns = cells.filter((c) => c.status === "unsearched" || c.status === "partially_searched");
+  const parts = unacc.map(
+    (c) => `${c.label} (cell #${c.id} at ${c.lat.toFixed(6)},${c.lon.toFixed(6)}) reported missing ${c.reported_missing}, found ${c.found}, unaccounted ${c.unaccounted}`,
+  );
+  const site = w.site();
+  const robot = w.robots().find((r) => r.online && r.lat != null && r.lon != null);
+  const from = robot ? { lat: robot.lat!, lon: robot.lon! } : site ? { lat: site.center_lat, lon: site.center_lon } : null;
+  const open = cells.filter(
+    (c) => c.status !== "searched" && c.status !== "searching" && (c.unaccounted > 0 || uns.includes(c)) && targetedBy(w, c.id) == null,
+  );
+  const next = orderCells(w, open, from).slice(0, 6).map(({ c }) => `#${c.id} ${c.label}`);
+  const inMissions = uns.filter((c) => targetedBy(w, c.id) != null).length;
+  parts.push(
+    `${uns.length} unsearched or partly searched` +
+      (inMissions ? `, ${inMissions} in open missions` : "") +
+      `; ${NEXT_CELLS_LABEL}: ${next.length ? next.join(", ") : "none"}`,
+  );
+  return `CELLS: ${parts.join("; ")}`;
 }
 
 export function orchestratorPacket(w: World, input: CycleInput, ctx: CycleCtx): string {
@@ -179,17 +209,10 @@ export function orchestratorPacket(w: World, input: CycleInput, ctx: CycleCtx): 
       return n?.distance_m != null ? ` ${n.distance_m} m ${n.compass} of #${top.id}` : "";
     })() : "";
     const state = r.available ? "available" : `busy (proposal #${r.proposed_assignment_id})`;
-    return `${r.callsign} ${state}${where}, active ${r.active_assignments}, id ${r.identity}`;
+    return `${r.callsign} ${state}${where}, active ${r.active_assignments}`;
   });
   lines.push(`RESCUERS: ${resc.length ? resc.join("; ") : "none"}`);
-  const cells = w.cells();
-  const unacc = cells.filter((c) => c.unaccounted > 0);
-  const uns = cells.filter((c) => c.status === "unsearched" || c.status === "partially_searched");
-  const cellParts = unacc.map(
-    (c) => `${c.label} (cell #${c.id} at ${c.lat.toFixed(6)},${c.lon.toFixed(6)}) reported missing ${c.reported_missing}, found ${c.found}, unaccounted ${c.unaccounted}`,
-  );
-  cellParts.push(`${uns.length} unsearched or partly searched${uns.length ? ": " + uns.slice(0, 6).map((c) => `#${c.id} ${c.label}`).join(", ") : ""}`);
-  lines.push(`CELLS: ${cellParts.join("; ")}`);
+  lines.push(cellsLine(w));
   const robots = w.robots().map((r) => {
     const open = w.openMissionsFor(r.robot_id).map((m) => `mission #${m.id} ${m.kind} ${m.status}`);
     const bat = r.battery_pct != null ? ` battery ${Math.round(r.battery_pct)}%` : "";

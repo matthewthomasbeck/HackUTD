@@ -5,8 +5,8 @@ import { loadDemoConfig } from '../src/config.ts';
 import { parseCommand, validateCommand } from '../src/dispatch.ts';
 import { computeTimelineSchedule, parseTimeline, runTimeline, type TimelineStep } from '../src/timeline.ts';
 
-test('parses the four committed timeline files', async () => {
-  for (const name of ['judge', 'video', 'e2e', 'stress']) {
+test('parses every committed timeline file', async () => {
+  for (const name of ['judge', 'video', 'e2e', 'stress', 'demo', 'scene']) {
     const text = await readFile(new URL(`../timelines/${name}.json`, import.meta.url), 'utf8');
     assert.ok(parseTimeline(JSON.parse(text)).length > 0, `${name} should not be empty`);
   }
@@ -32,7 +32,7 @@ test('rejects malformed timeline actions and timestamps', () => {
 
 test('every committed timeline only references commands the dispatcher knows', async () => {
   const config = loadDemoConfig();
-  for (const name of ['judge', 'video', 'e2e', 'stress']) {
+  for (const name of ['judge', 'video', 'e2e', 'stress', 'demo', 'scene']) {
     const text = await readFile(new URL(`../timelines/${name}.json`, import.meta.url), 'utf8');
     for (const step of parseTimeline(JSON.parse(text))) {
       for (const cmd of [step.cmd, step.else]) {

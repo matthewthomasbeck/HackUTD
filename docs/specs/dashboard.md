@@ -1,6 +1,7 @@
 # Spec: coordinator dashboard (live view, agents, replay)
 
 Status: PROPOSED (2026-11-07), follows `docs/specs/CONTRACTS.md` version 8.1.
+Updated 2026-11-08: the Assess design is built (approved in review, mockup at `.lavish/ui-revamp.html`), and the dashboard ships as a desktop app (Electron); see "UI direction: Assess", "Desktop app", and "Layout".
 Folder in the team repo: `frontend/dashboard/`.
 Read `docs/specs/CONTRACTS.md` first, including "Recording and replay", then `docs/AGENT_WORKFLOW.md` and `docs/PROJECT.md`.
 Every table, column, enum value, reducer, and role name in this file comes from the contract.
@@ -12,6 +13,7 @@ Backend: SpacetimeDB only (TypeScript SDK, `spacetimedb/react` hooks, subscripti
 ## Purpose
 
 The dashboard is the coordinators' live board and the main screen the judges watch.
+Since 2026-11-08 the judged demo is hard-coded: the dashboard is a live client rendering scripted simulator data from SpacetimeDB, and the run of show is `docs/specs/demo.md`, "Judged demo (hard-coded, 2026-11-08)".
 It must show, at a glance from across a room:
 
 - who needs help most (State Farm: urgent needs),
@@ -35,21 +37,18 @@ It has four views that share one set of components:
 - Replay: the state of a chosen run at time T, rebuilt from `event_log`, `agent_action`, and `detection`, played at 1x, 4x, or 16x.
   Replay shows survivors, assignments, agents, and robot state changes, not smooth movement trails, because positions are not recorded (see "Transport bar and replay").
 
-## UI direction: the Pacioli approach
+## UI direction: Assess
 
-The team's reference is Pacioli, a SpacetimeDB winner at Cal Hacks 13.0 (https://devpost.com/software/pacioli, notes in `docs/notes/2026-11-07-spacetime-winners.md`).
-It is a UI reference only.
-Pacioli has no license, so do not copy its code, styles, or assets.
-Take the approach only, as the team described it in `docs/PROJECT.md`:
+Approved by Cayden on 2026-11-08 after four review rounds (the mockup and its versions are in `.lavish/`).
+References, for approach only (no copied code or assets): Standard Response (Cal Hacks 13.0, the map as the whole screen with floating cards), Stochastic (agent tints, hand-off strip, shape plus word for every status), and the HackUTD Zero Day site (colors and the Satoshi font).
 
-- One main canvas where each stage of the pipeline is a card with one big live number, connected by edges.
-- A sidebar on the left (theirs holds scenarios, ours holds runs).
-- Presence avatars at the top right showing who is connected.
-- A transport bar at the bottom (ours: the live and replay timeline).
-- Agent decisions shown with a reason for each call, and only unsure items brought to a person (our approvals, audit flags, and possible duplicates).
-
-Pacioli's "Ask" chat button is left out.
-This dashboard shows data only.
+- The map is the screen: the real block around 7716 Worthing St, drawn from OpenStreetMap outlines, with floating cards on top.
+- One question first: "Who needs help first", the ranked survivors in the top-left card.
+- Two pages only: Dashboard and Agents.
+- Night-purple top bar (HackUTD Zero Day colors), light map and cards underneath, so the projector does not wash out the data.
+- Every mark has a word: level pills, a map key card, and name tags on every rescuer, robot, and survivor.
+- The mascot is a small cartoon tornado, one per agent, each with its agent's tint and one prop; the app logo is the dog with the visor (`public/brand/assess-dog.png`).
+- No simulator wording on screen: rescuers read R1 and R2, robots read Dog 1 and Dog 2 (`crewName` and `robotName` in `src/view/derive.ts`).
 
 ### Light theme, with a dark option
 
@@ -64,14 +63,15 @@ Both themes use the same tokens and must pass the same contrast checks.
 | --- | --- | --- |
 | Framework | React + Vite + TypeScript | The SpacetimeDB React bindings (`spacetimedb/react`) give a provider and table hooks, so live tables need no glue code. |
 | SpacetimeDB client | `spacetimedb` npm package, version 2.14.x (the version `docs/specs/spacetimedb.md` tested), plus the generated bindings in `backend/spacetimedb-bindings/` | Same bindings as the agents, the sim, the glasses service, and the robot bridge. |
-| Pipeline canvas | React Flow (`@xyflow/react`) | Cards and edges as custom nodes, with animated edges; https://reactflow.dev/ |
-| Map | Leaflet 1.9.4, used directly (no `react-leaflet`) | Direct control of hundreds of markers and in-place updates; https://leafletjs.com/ |
-| Tiles | Esri World Light Gray Base by default, Esri World Dark Gray Base with `?theme=dark`; CARTO only with a key | Keyless; CARTO now watermarks keyless tiles "API KEY REQUIRED" (`docs/specs/glasses.md`); attribution required. |
+| Desktop app | Electron 44.9.3, packaged with electron-builder 26.18.0 | The dashboard runs as its own app window (Cayden, 2026-11-08); the same Vite build also still runs in a browser. See "Desktop app". |
+| Map | Our own SVG map from OpenStreetMap geometry in `public/site/` (no Leaflet, no tiles) | Sharp on a projector, works with no network at the venue, no tile key; drag to pan and scroll to zoom. |
+| Fonts | Satoshi (Fontshare, needs network; system font when offline), Chakra Petch Bold Italic and IBM Plex Mono (bundled from `@fontsource`) | HackUTD's body font; Chakra Petch stands in for HackUTD's Elevon, which is a trial license we cannot ship. |
 | Tests | Vitest (unit) and Playwright (end to end, two browser contexts) | Fast unit tests for the pure logic, and a real two-screen test. |
 
 Use the React version that the official React quickstart pins (https://spacetimedb.com/docs/quickstarts/react).
 Node.js 22 or newer.
 Dev server port 5180 (`vite --port 5180 --host`), because the glasses plugin and fallback page use 5173 and 5174 (`docs/specs/glasses.md`).
+All runtime packages are `devDependencies`, because Vite bundles them into `dist/`; this keeps them out of the packaged desktop app (its own code is about 1.6 MB).
 
 ### SpacetimeDB client API used
 
@@ -98,74 +98,85 @@ One adapter file, `src/stdb/enums.ts`, converts generated values to the contract
 No other file reads `.tag` directly.
 `event_log.payload_json` is plain JSON with contract strings, so replay code reads it directly.
 
+## Desktop app (Electron)
+
+The coordinator dashboard is a desktop app (Cayden, 2026-11-08).
+`electron/main.cjs` opens one window that loads the Vite build (`dist/index.html`), passes the run-time settings as URL parameters, and adds a Server menu.
+The page itself is unchanged, so the web dashboard (`npm run dev`) and its tests keep working.
+On desktop launch, a separate centered, transparent splash window (`electron/splash.html`) plays all 12 frames of the backflip (`electron/assets/backflip.png`, `Loading.gif` with its black background removed, 100 ms per frame), then fades to `Logo.png` placed over the last frame's dog, while the dashboard loads hidden.
+The dashboard appears after the GIF and logo hold finish and the map is ready, with a 10 second readiness fallback.
+
+Commands (from `frontend/dashboard/`):
+
+```bash
+npm run app                      # desktop app with hot reload (Vite dev server + Electron)
+npm run app -- --db=local --local-uri=ws://127.0.0.1:3000
+npm run app:start                # build, then open the built app in Electron
+npm run app:pack                 # build Assess.app in release/mac-arm64/ (unsigned)
+npm run app:dmg                  # build a .dmg installer in release/
+```
+
+Run-time settings, in order of precedence:
+
+1. Command-line flags: `--db=cloud|local`, `--local-uri=ws://HOST:3000`, `--glasses-page=URL`, `--glasses-ws=URL`, `--screen=A`.
+   For the packaged app: `open -n Assess.app --args --db=local --local-uri=ws://127.0.0.1:3000`.
+2. The settings file `assess-settings.json` in the app's user data folder, written by the Server menu ("Open settings file…" shows it).
+3. Defaults: Maincloud (`VITE_STDB_URI` and `VITE_STDB_DATABASE`, baked in at build time from `.env`), local server `ws://127.0.0.1:3000`.
+
+- Server menu: "Maincloud (judging)" and "Local server (address)" switch the database at run time and reload, so a venue Wi-Fi failure needs no rebuild.
+  The dashboard reads the address from `?uri=` (`src/stdb/connection.ts`), which overrides the build-time value.
+- Glasses heads-up in Camera View: set `--glasses-page` and `--glasses-ws` (or `VITE_GLASSES_PAGE_URL` and `VITE_GLASSES_WS_URL` at build time).
+- Security: `contextIsolation` on, `nodeIntegration` off, `sandbox` on; the page has no Node access, links open in the default browser, and the window never navigates away from the dashboard.
+- Build uses `base: './'` in `vite.config.ts`, so assets load from `file://`.
+- Packaging: the app is unsigned (no Apple Developer ID); on first open, right-click Assess.app and choose Open.
+  The bundle is about 310 MB, almost all of it the Electron runtime; `release/` is git-ignored.
+- The app icon is `electron/icon.png` (1024 px, the dog logo on the night purple); it is not under `build/` because the repo ignores every `build/` folder.
+
 ## Folder layout
 
 ```
 frontend/dashboard/
-  package.json
-  vite.config.ts
+  package.json             scripts: dev, build, test, app, app:start, app:pack, app:dmg; electron-builder config
+  vite.config.ts           base './', @bindings alias
   index.html
-  .env.example             VITE_STDB_URI, VITE_STDB_DATABASE, VITE_STDB_URI_LOCAL, VITE_TILE_SOURCE, VITE_CARTO_KEY, VITE_PERCEPTION_URL
+  .env.example             VITE_STDB_URI, VITE_STDB_DATABASE, VITE_STDB_URI_LOCAL, VITE_GLASSES_PAGE_URL, VITE_GLASSES_WS_URL
+  electron/
+    main.cjs               desktop window, run-time settings, Server menu
+    icon.png               app icon
+  scripts/
+    app-dev.mjs            npm run app: Vite dev server, then Electron
+  public/
+    site/block.geojson     the 72 buildings of the Worthing St block (OpenStreetMap, ODbL), with row labels
+    site/context.geojson   the neighborhood around it: 522 buildings, roads, parks, water
+    brand/assess-dog.png   the logo
   src/
-    main.tsx               URL params, connection, providers
-    App.tsx                layout per view
-    stdb/
-      connection.ts        builder, token storage, register with the right role
-      enums.ts             tag <-> contract string
-      time.ts              Timestamp -> ms, "12 s ago", countdown text
-    data/
-      BoardData.ts         the BoardState type every component reads
-      LiveSource.tsx       BoardState from subscriptions
-      ReplaySource.tsx     BoardState at time T from history (uses replay/)
-      useBoard.ts          hook: active BoardState and the clock "now"
-      personCheck.ts       person check per detection, fetched from the perception service (not SpacetimeDB)
-    replay/
-      history.ts           collect and sort one run's history rows
-      fold.ts              apply event_log payloads to entity maps
-      snapshots.ts         snapshot every 10 s of run time for fast scrubbing
-      player.ts            play, pause, speed, seek
-    model/
-      headline.ts          "Critical survivors unattended over 60 s" (shared with the sim)
-      ranking.ts           survivor sort order
-      labels.ts            every user-facing string for enums
-      geo.ts               cell bounds, point in cell, distance
-      timers.ts            every countdown: leases, heartbeats, escalation, watchdog, task leases
-      accounting.ts        per-cell display text from the search_cell summary columns
-      duplicates.ts        possible duplicate pairs
-      agents.ts            agent list, status, current task
-      chains.ts            one survivor's chain by chain_id, in order
-      runs.ts              group agent actions into bursts
-      pipeline.ts          stage card numbers
+    main.tsx               URL params, connection, providers, fonts
+    App.tsx                the two pages, actions (reducer calls), map controls, Camera View
+    stdb/                  connection (with the ?uri= override), enums, time
+    data/                  BoardState, LiveSource, ReplaySource
+    replay/                history, fold, player
+    model/                 headline, ranking, labels, timers, agents, chains, accounting, map actions
+    site/
+      geometry.ts          load and parse the site files, meters, point in house, block homes
+      houses.ts            each house's state from cells and survivors; place names ("7716 Worthing St", "Building near Coit Rd")
+      route.ts             walking routes along the streets (Dijkstra on the OSM road graph)
+    view/
+      derive.ts            everything the cards show, from BoardState (pure, unit tested)
     components/
-      TopBar.tsx           site, DEMO MODE, SCREEN label, headline, presence
-      Headline.tsx
-      RunsSidebar.tsx
-      PipelineCanvas.tsx   React Flow canvas
-      StageCard.tsx
-      MapView.tsx
-      SurvivorList.tsx
-      SurvivorDetail.tsx   media, duplicates, resolve
-      DuplicatePair.tsx
-      ResolveDialog.tsx
-      Buildings.tsx        person reports and unaccounted counts
-      MissionQueue.tsx
-      Assignments.tsx
-      Timers.tsx           all countdowns in one list
-      AgentsPanel.tsx      one Agents panel: agent status, task board, action log, chain per survivor
-      ChainView.tsx        a survivor's whole chain, step by step
-      TaskBoard.tsx
-      AuditFlags.tsx
-      AgentLog.tsx
-      EventLog.tsx
-      BriefingBanner.tsx
-      RobotHealth.tsx
-      CommanderView.tsx
-      TransportBar.tsx
+      AppBar.tsx           logo, pages, collapsible System chips, Record run
+      SiteMap.tsx          the full-screen SVG map: houses, survivors, rescuers with routes, robots, labels; pan and zoom
+      HelpCard.tsx         Who needs help first: count, ranked rows, assign and resolve
+      SideCards.tsx        headline, rescuers and robot, houses (with mission approvals), map key
+      HousePanel.tsx       one house: state, reports, send robot, mark, add a report
+      CardHeader.tsx       card header whose count folds the card
+      CameraView.tsx       robot stills and the glasses heads-up
+      AgentsPage.tsx       hand-off chain, agent cards, database fallback, task board
+      Mascot.tsx           the tornado mascot
+      TransportBar.tsx     replay controls
     styles/
-      app.css              imports ../../../design-tokens/tokens.css (light and dark tokens, the one shared file in frontend/design-tokens/)
+      assess.css           imports ../../../design-tokens/tokens.css; every color and font is a token
   tests/
     unit/*.test.ts
-    e2e/*.spec.ts
 ```
 
 ### Importing the shared bindings
@@ -288,71 +299,29 @@ The dashboard never calls robot, agent, auditor, perception, or sim reducers (`p
 ## Layout (1920x1080 projector)
 
 ```
-+-------------------------------------------------------------------------------------------+
-| TOP BAR: site | DEMO MODE | SCREEN A | REC run | HEADLINE: Critical ... over 60 s: 0 | avatars |
-+-----------+--------------------------------------------------------+----------------------+
-| RUNS      | PIPELINE CANVAS (React Flow), 7 stage cards in one row  | RANKED SURVIVORS     |
-| sidebar   +-------------------------------+------------------------+  (top 10 visible)   |
-| (240 px)  |                               | TABS: Agents | Missions |                      |
-| layers    |            MAP                | Assignments | Timers |  +----------------------+
-|           |                               | Flags | Buildings |      | SURVIVOR DETAIL      |
-|           |                               | Events | Robot          | media, duplicates,   |
-|           |                               |                        | resolve              |
-+-----------+-------------------------------+------------------------+----------------------+
-| TRANSPORT BAR: LIVE or REPLAY | timeline scrubber with event ticks | speed | events | run    |
-+-------------------------------------------------------------------------------------------+
++---------------------------------------------------------------------------------------------+
+| BAR: dog logo ASSESS | Worthing St block | Dashboard | Agents |      System (fold) | Record run |
++---------------------------------------------------------------------------------------------+
+| +-------------------+                                                  +------------------+ |
+| | WHO NEEDS HELP    |                                                  | 0 critical       | |
+| | FIRST         (n) |              FULL-SCREEN MAP                     | unattended > 60 s| |
+| | 2 critical        |   (real OSM buildings, house states,             +------------------+ |
+| | ranked rows:      |    survivors, rescuers + street routes,          | Rescuers + robot | |
+| |  level, address,  |    robots, street names)                         +------------------+ |
+| |  score, status    |                                                  | Houses in block  | |
+| |  (row opens:      |                                                  +------------------+ |
+| |  evidence, assign,|                                                  | Map key          | |
+| |  resolve)         |                                                  +------------------+ |
+| +-------------------+      [ Status | Camera view | - + Recenter | 50 m ]                     |
++---------------------------------------------------------------------------------------------+
 ```
 
-- Widths at 1920: sidebar 240 px, right column 440 px, center 1240 px.
-- Center: canvas band 300 px tall across the full center width; below it the map (60%) and the tabbed panels (40%).
-- Transport bar 72 px tall, always visible.
-- Below 1400 px width, the sidebar collapses to icons and the right column moves under the center.
-- Keyboard: `1` canvas, `2` map, `3` survivors, `4` agents, `5` events, `6` buildings: maximize that panel; `A` opens the Agents panel full screen; `Esc` restores; `Space` play or pause in replay; `[` and `]` step 10 s in replay.
-- The Agents tab and `view=agents` (or `A`) show the same Agents panel, in the tab and full screen; full screen is the one to show judges.
-
-### Top bar and presence
-
-- Left: site name, "DEMO MODE" badge, "SCREEN A" (28 px), and a red dot with "REC `<run name>`" while a `run` row has no `ended_at`.
-- Center: the headline.
-- Right: presence avatars, one per `participant` row with `online = true` (set by the module's `client_connected` and `client_disconnected` lifecycle reducers).
-  - 36 px circles with initials from `name`, and a small role icon in the corner (commander: star, coordinator: monitor, rescuer: person, robot: paw, agent: spark, auditor: magnifier, perception: eye, sim: dice).
-  - Ring color by role, and the role name in the tooltip, so color is not the only cue.
-  - A rescuer whose `last_heartbeat` is older than 10 s gets a faded avatar and "silent `<n>` s" under it.
-  - When a participant goes offline, its avatar fades out over 1 s and a small "left" chip stays for 5 s, so a dropped glasses session is visible.
-  - More than 8: show 7 and a "+`<n>`" circle with a dropdown.
-- A "COMMANDER ONLINE" chip when a `commander` participant is online.
-
-### Runs sidebar (`RunsSidebar.tsx`)
-
-- "Live" at the top, with a red dot when a run is active.
-- Then all `run` rows for the current site, newest first: name, start time, duration, survivors found, resolved.
-- Click a past run: replay it (`view=replay&run=<id>`).
-- Under the runs, map layer toggles: cells, survivors, robot, terrain, rescuers, unaccounted badges.
-
-### Pipeline canvas (`PipelineCanvas.tsx`, `StageCard.tsx`)
-
-React Flow setup:
-
-- `nodeTypes = { stage: StageCard }`, seven nodes at fixed positions in one row, edges between neighbors.
-- `nodesDraggable={false}`, `nodesConnectable={false}`, `elementsSelectable={true}`, `panOnDrag={false}`, `zoomOnScroll={false}`, `zoomOnPinch={false}`, `fitView`.
-- Import `@xyflow/react/dist/style.css` once.
-- An edge has `animated: true` while items moved across it in the last 5 s, and a label like "+12 last min".
-- Click a card: highlight its items on the map and filter the survivor list (click again to clear).
-
-Cards (big number 44 px, label 16 px uppercase, two detail lines 18 px), computed in `model/pipeline.ts`:
-
-| Card | Big number | Detail lines |
-| --- | --- | --- |
-| Robot search | "`<searched>` / `<total>` cells" | robots online and state; `searching` now; "`<n>` partially searched" |
-| Detections | detections this run | thermal and camera counts; robot that found the latest |
-| Breathing and score | "`<n>` IMMEDIATE" | `delayed`, `minor`, not scored; "`<n>` no signs of life detected, low confidence" |
-| Agents | agent tasks this run | agents online of total; open tasks; "`<n>` missions need approval" |
-| Assignments | "`<n>` IMMEDIATE unassigned" | proposed (waiting for acknowledgement), active, released this run |
-| Rescuers | rescuers en route | rescuers online; rescuers silent |
-| Resolved | resolved this run | by resolution; reached and waiting |
-
-A card whose number signals risk ("IMMEDIATE unassigned" above 0, "missions need approval" above 0, an agent offline, a robot offline) gets a 4 px left border in `--crit-immediate`, a warning icon, and the word "ACTION".
-"This run" means rows with the active `run_id`; with no active run, the cards count everything for the site and say "all time".
+- Left card 470 px, right column 360 px (400 and 320 under 1500 px); the map frames the block in the space between them.
+- Each card's count (or title) folds the card to its header; a folded count shows as a dark pill.
+- Clicking a house on the map replaces the rescuers card with the house panel (state, reports, Send robot, Mark searched, Mark partial, Add report).
+- Bottom dock: Status toggles the house colors; hovering Status shows the Rescuers and Robots layer toggles; Camera view opens robot stills next to the live glasses heads-up; zoom buttons and Recenter.
+- Keyboard: `A` opens the Agents page, `Esc` returns to the board and closes the house panel or Camera View.
+- System chips (SpacetimeDB, robots, glasses, agents) fold into one "System all OK" or "System 1 issue" chip.
 
 ### Colors, shapes, and fonts (color-blind safe)
 
@@ -372,74 +341,26 @@ Other tokens (light / dark): background `#F7F8FA` / `#0B0F14`, panel `#FFFFFF` /
   White on `#D55E00` is below 4.5:1, so that badge text is always bold 18.66 px or larger.
 - The levels follow the START triage words (immediate, delayed, minor), as `docs/PROJECT.md` suggests.
   There is no "expectant" or "deceased" level, and the UI never shows those words, "dead", or "no pulse".
-- Font: system UI stack (`system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`), `font-variant-numeric: tabular-nums`, monospace for tool names, task kinds, and ids.
-  No web font download, so it works on a weak network.
-- Minimum text size 18 px, except the map attribution; list rows 22 px; big numbers 44 px.
+- Fonts: Satoshi for text (system UI font when offline), Chakra Petch Bold Italic for titles and big numbers, IBM Plex Mono for ids, times, and level pills.
+- Sizes after the 2026-11-08 review ("make everything a little smaller"): card text 13 to 16 px, row addresses 16 px, big numbers 22 to 52 px.
 - Rule: readable from 5 m on a 1080p projector.
 
 ## Views and panels
 
-### Map (`MapView.tsx`)
+Note (2026-11-08): the panels below were specified for the first layout.
+Their data rules (ranking, labels, banned words, timers, accounting) still hold; where they sit on screen follows "Layout" above.
 
-- Leaflet map, fit to the site circle (`center_lat`, `center_lon`, `radius_m`) on first load and on a "Fit site" button.
-- Tile source, chosen by `VITE_TILE_SOURCE` (same names as `docs/specs/glasses.md`):
+### Map (`SiteMap.tsx`)
 
-  | Source | URL template | Attribution |
-  | --- | --- | --- |
-  | `esri-light` (default, light theme) | `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}` (`{y}` before `{x}`, JPEG) | `Esri, HERE, Garmin, &copy; OpenStreetMap contributors` (UNCONFIRMED wording, check Esri's attribution page) |
-  | `esri-dark` (default, dark theme) | `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}` | same as above |
-  | `carto-light`, `carto-dark` (only with a key) | `https://{s}.basemaps.cartocdn.com/<light_all or dark_all>/{z}/{x}/{y}{r}.png?key=<VITE_CARTO_KEY>`, `subdomains: 'abcd'` (template from https://github.com/CartoDB/basemap-styles) | `&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>` |
-  | `none` | no tiles | none |
-
-  `maxZoom: 19` for Esri sources (`maxNativeZoom` 16 if deeper tiles come back blank; check at the site).
-  UNCONFIRMED: Esri's terms for keyless use of these services; Cayden decides, as in `docs/specs/glasses.md`.
-  Agents must not sign up for any key.
-  With a CARTO key, set `VITE_TILE_SOURCE` and `VITE_CARTO_KEY`; nothing else changes.
-- The attribution is always visible in the map corner (Leaflet `attribution` option on the tile layer), and the full text is in the video credits.
-- Tiles offline: after more than 5 `tileerror` events, hide the tile layer and show "Map tiles offline" on a plain background.
-  The site circle, cells, and markers still draw, because they are our own geometry.
-- Site circle: dashed muted outline, no fill, label "0.3 mi search radius" when `radius_m` is 483.
-- Cells: `L.rectangle` from the cell center and `size_m`.
-  Half side in degrees: `dLat = (size_m / 2) / 111320`, `dLon = (size_m / 2) / (111320 * cos(lat in radians))` (in `geo.ts`, unit tested).
-
-  | `status` | Style | Text |
-  | --- | --- | --- |
-  | `unsearched` | dashed muted outline, no fill | label at zoom 17 and above |
-  | `searching` | solid text-color outline, 15% fill, outline pulses once per second (off under `prefers-reduced-motion`) | label plus "SEARCHING" |
-  | `partially_searched` | dashed text-color outline, 25% `#E69F00` fill | label plus "PARTIAL, still in queue" |
-  | `searched` | solid border-color outline, 35% `#009E73` fill | label plus a check mark |
-
-  A `partially_searched` cell never shows a check mark and never reads "clear".
-  Labels starting with `house` always show as permanent tooltips, so "house 3" is visible on the projector.
-- Unaccounted badge (toggle "unaccounted"): a cell with `unaccounted > 0` shows a bold `--crit-immediate` badge "`<n>` UNACCOUNTED" (see Buildings).
-- Cell popup (live mode): label, status, `searched_by`, `updated_at`, person report totals (missing, safe) and the unaccounted count, and buttons "Send robot to search", "Mark searched", "Mark partially searched", "Add person report", "Rename".
-- Survivors: `L.marker` with an `L.divIcon` holding an inline SVG of the level shape, 28 px (36 px for `immediate`), with the rank number under it for the top 10.
-  - Possible duplicate: a dotted line between the two markers and a "?=" badge on both.
-  - Resolved survivors are hidden by default (toggle "resolved"), drawn as a small hollow gray circle with a check mark.
-  - Click: select in the list and open the detail.
-  - Update markers in place (`setLatLng`, `setIcon`) keyed by `id`; never rebuild layers on each change.
-    Batch map updates with `requestAnimationFrame`, so a burst of hundreds of inserts from the sim does not freeze the page.
-- Robot: one marker per `robot` row with a `lat`; a chevron rotated by `heading_deg`, label "`<name>` `<state>`".
-  `online = false`: gray chevron and "`<name>` OFFLINE" with a line through.
-  `gps_fix = false`: label adds "no GPS fix, +`<indoor_offset_m>` m indoors".
-  A thin dashed line goes from the robot to its current mission target.
-- Terrain (the robot's latest terrain fields): one 16 px marker beside each robot chevron, with one letter in a rounded square, so class is not color only.
-  There is no terrain history, so the map shows only the class the robot reported last, not a trail of past readings.
-
-  | `terrain_class` | Glyph | Fill |
-  | --- | --- | --- |
-  | `flat` | hidden by default (toggle "show flat") | none |
-  | `debris` | `D` | `#E69F00` |
-  | `step` | `S` | `#56B4E9` |
-  | `gap` | `G` | `#CC79A7` |
-  | `blocked` | `X` | `#D55E00` |
-  | `unknown` | `?` | gray |
-
-  Opacity follows `terrain_confidence` (0.4 to 1.0); the popup shows class, confidence, `terrain_source`, and `terrain_action` as a word.
-- Rescuers: one diamond per `participant` with role `rescuer` and a position, with the name.
-  `last_heartbeat` older than 10 s: 50% opacity and "silent `<n>` s"; `online = false`: hollow diamond and "OFFLINE".
-  A solid line from each rescuer to the survivor of their `active` assignment, and a dashed line for a `proposed` one.
-- Legend in the bottom left: level shapes, duplicate badge, cell states, unaccounted badges, terrain glyphs, robot, rescuer.
+- An SVG in local meters around the site center, drawn from `public/site/context.geojson` (neighborhood) and `public/site/block.geojson` (the 72 block buildings); no tiles, so nothing loads from the network.
+- Drag to pan, scroll or pinch to zoom around the cursor, zoom buttons and Recenter in the dock; panning stops at the edge of the OSM data.
+- House state comes from `src/site/houses.ts`: the worst open survivor inside the house, else its search cell (searched, partly searched, searching, unaccounted), matched by point in polygon.
+- House fills: critical survivor inside (orange), open or people unaccounted (amber), searched and clear (green), searching (lavender), not searched (white); the Status button turns the fills off.
+- Survivors: level shape (triangle, square, circle, diamond) with a short tag under it (the house number inside the block, else the street); an IMMEDIATE survivor with no rescuer pulses.
+- Rescuers: pink dot with the name; an active assignment draws a dashed walking route along the streets (`src/site/route.ts`), with the walking distance in the label and in the rescuers card.
+- Robots: dark tile with a name tag ("Dog 1"); drawn under survivors so a robot at a find never hides the survivor.
+- The selected survivor gets a callout with its address and level.
+- The Map key card lists every color and shape.
 
 ### Ranked survivor list (`SurvivorList.tsx`)
 
@@ -647,7 +568,7 @@ Chain per survivor (`ChainView.tsx`, `model/chains.ts`), inside the Agents panel
   - the `event_log` rows, which have no `chain_id`: the row whose `id` is the `chain_id`, plus rows with `entity = survivor` and this survivor's id, or `entity = assignment` for its assignments,
   - ordered by `(created_at, id)`.
   If a survivor has more than one `chain_id`, each chain is a section with its own header, newest first.
-- The steps the demo shows, each as one line with the time from the first step, the actor, and a chip:
+- The steps the demo shows, each as one line with the time from the first step, the actor, and a chip (original live plan; since 2026-11-08 the judged demo is hard-coded with no agents running, so no agent steps appear in its chain):
 
   | Step | Source row | Example line |
   | --- | --- | --- |
@@ -782,7 +703,7 @@ Fidelity check: folding all of a finished run's events must give the same `statu
 3. The transport bar shows "Last change `HH:MM:SS.mmm`, `<table>` #`<id>`" from the insert and update callbacks; both screens show the same row at nearly the same time.
 4. Changed rows, cards, and markers flash for 2 s on both screens; canvas edges animate when items flow.
 5. "Sync test" calls `post_briefing(audience = coordinators, text = "Sync test from SCREEN A at HH:MM:SS.mmm", priority = info, survivor_id = none, kind = none)`; each screen shows the text and "received about `<n>` ms after it was sent" (meaningful only with synced clocks).
-6. Demo move: click "Approve" on Screen A while pointing at Screen B, where the mission flips from `proposed` to `queued` and the Robot search edge starts to animate.
+6. Demo move (original live plan, not in the hard-coded judged demo of 2026-11-08): click "Approve" on Screen A while pointing at Screen B, where the mission flips from `proposed` to `queued` and the Robot search edge starts to animate.
 7. Say what makes it work: both screens are plain SpacetimeDB subscribers, with no API server or polling between them.
 
 ## Accessibility and clarity checklist
@@ -804,12 +725,13 @@ Fidelity check: folding all of a finished run's events must give the same `statu
 VITE_STDB_URI=https://maincloud.spacetimedb.com
 VITE_STDB_DATABASE=assess-0hw81
 VITE_STDB_URI_LOCAL=ws://<laptop A LAN IP>:3000
-VITE_TILE_SOURCE=esri-light
-VITE_CARTO_KEY=
-VITE_PERCEPTION_URL=http://<laptop LAN IP>:8080
+VITE_GLASSES_PAGE_URL=http://<laptop LAN IP>:5173/fallback.html
+VITE_GLASSES_WS_URL=ws://<laptop LAN IP>:8787/view
 ```
 
-The Maincloud URI and database name follow `docs/specs/spacetimedb.md` section 1.4 (the name is not confirmed free on Maincloud).
+These are read at build time.
+The desktop app overrides the database address at run time (Server menu or `--db`/`--local-uri`), and the glasses addresses with `--glasses-page`/`--glasses-ws`.
+In a browser, `?db=local&uri=...`, `?glassesPage=...`, and `?glassesWs=...` do the same.
 No secrets live in the dashboard.
 Run `npm run dev` (Vite on `0.0.0.0:5180`) on Laptop A, so Screen B opens `http://<laptop A IP>:5180/?screen=B`.
 
@@ -833,6 +755,8 @@ Run `npm run dev` (Vite on `0.0.0.0:5180`) on Laptop A, so Screen B opens `http:
 - `fold.test.ts`: a fixture event list folds to the expected survivor states at three times; a bad `payload_json` is skipped and counted.
 - `fold.test.ts` also: two `terrain` events (`debris`, then `flat`) give the robot entity the right class at each time.
 - `snapshots.test.ts`: seeking via a snapshot gives the same state as folding from the start.
+- `site.test.ts`: 7716 Worthing St is found from its GPS point; the 68 homes come in reading order; a house takes its worst open survivor, else its cell; place names ("Building near …", "Open ground near …"); walking routes never cross a house; short map tags; crew names without simulator markers.
+- `connection.test.ts`: `?uri=` overrides the build-time address (the desktop app's server switch).
 
 ### End-to-end tests (Playwright)
 
@@ -849,7 +773,6 @@ Setup: a local server (`spacetime start`), the module published with data delete
 - `chain.spec.ts`: with the agents running against the sim (`spawn immediate house 8`), clicking that survivor shows detection, proposal, auditor verdict, briefing, and acknowledgement in that order within 30 s.
 - `banned-words.spec.ts`: after `scale 300`, no banned word in the page text, and every `not_detected` row contains "No signs of life detected, low confidence".
 - `offline.spec.ts`: sim `fail robot-offline`; OFFLINE shows within 7 s.
-- `tiles-offline.spec.ts`: block `server.arcgisonline.com` with `page.route`; "Map tiles offline" shows and cells still render.
 - `replay.spec.ts`: run the sim timeline `e2e`, end the run, open `view=replay`; at the end, folded survivor states equal the live tables; at 16x the run plays through with no console errors; a `sim fail robot-offline` during the run shows the robot OFFLINE at the right replay time.
 
 ### Manual checks before judging
@@ -857,7 +780,7 @@ Setup: a local server (`spacetime start`), the module published with data delete
 - Both screens on the real network (hotspot), not localhost.
 - Screen A on the projector from 5 m in the hall lighting, in light and dark themes; pick the one that reads better there.
 - The vision deficiency emulations above.
-- Attribution visible on the map.
+- The packaged desktop app opens on the judging laptop, and the Server menu switches between Maincloud and the local server.
 - The Agents panel full screen readable from 5 m with all agents running.
 
 ## Build order and estimates

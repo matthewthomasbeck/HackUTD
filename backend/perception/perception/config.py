@@ -131,6 +131,12 @@ def load_config(path: str | os.PathLike | None = None, env_path: str | os.PathLi
     if not data_dir.is_absolute():
         data_dir = BASE_DIR / data_dir
     cfg["paths"]["data_dir"] = str(data_dir)
+    # YOLO weights live under data_dir (downloaded there on first use): a relative
+    # yolo_weights_dir is relative to data_dir, and the default is data_dir/weights.
+    weights_dir = Path(str(cfg["breathing"].get("yolo_weights_dir") or "weights"))
+    if not weights_dir.is_absolute():
+        weights_dir = data_dir / weights_dir
+    cfg["breathing"]["yolo_weights_dir"] = str(weights_dir)
     cfg["server"]["public_base_url"] = str(cfg["server"].get("public_base_url", "")).rstrip("/")
     origins = cfg["server"].get("cors_origins", "")
     if isinstance(origins, str):

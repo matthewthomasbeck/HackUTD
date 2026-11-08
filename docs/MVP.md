@@ -36,6 +36,30 @@ What each sponsor offers and expects:
 
 ## The demo we must be able to show
 
+### Decision 2026-11-08: hard-coded demo
+
+Cayden decided on 2026-11-08 that the judged demo is hard-coded (scripted by the simulator).
+Only SpacetimeDB runs live: the Maincloud database `assess-0hw81` (dashboard https://spacetimedb.com/assess-0hw81), or the local fallback server with the same name.
+Every rule, timer, and subscription in the module is real.
+The simulator scripts everything else in the judged demo: the robot (`sim-dog`), the find, the breathing result and critical score, and any rescuer actions.
+The Nemotron agents, the perception service, the real robot, and the real G2 hardware do not run live in the judged demo.
+They exist and are tested separately: the agents (136 primary tests and typecheck on `eric-cv-benchmark`, 2026-11-08, plus the eight mock scenarios and the earlier Brev real-model validation in `docs/notes/2026-11-08-brev-validation.md`), perception (770 primary tests on that branch), the robot foundation in `raspberrypi/robot/` (106 tests after merging `main`, and the scripted mock lifecycle check), and the Pico firmware in `pico/`. These are local branch validation counts; rerun after merging further changes.
+The dashboard and the glasses view (on the G2 or the fallback page) are real clients that render live from SpacetimeDB subscriptions of the scripted data.
+
+The judged story is short and ends at the find:
+
+1. The robot dog enters 7716 Worthing St (house 3) and searches inside.
+2. It finds the hidden person: IMMEDIATE, breathing 8/min, back bedroom under debris.
+3. The dashboard and the glasses view show the find, and the demo ends there.
+
+The judged demo has no scale 300 run, no glasses walk, no disconnect beat, and no agent-stop beat.
+How to run it is in `docs/specs/demo.md` ("Judged demo (hard-coded, 2026-11-08)"): `npm run sim -- setup`, then `npm run sim -- timeline demo` from `backend/sim/`.
+
+### Original plan (2026-11-07, superseded for the judged demo on 2026-11-08)
+
+The list below is the original live demo plan.
+It stays as the plan for rehearsal and video material, not for judging.
+
 1. Dim light, a teammate partly hidden under boxes and blankets (mock rubble).
 2. The robot drives in, finds the warm body with the thermal camera, and stops.
 3. It records about 20 seconds of camera video and measures breathing.
@@ -84,6 +108,7 @@ What each sponsor offers and expects:
 - Map view on the glasses when far, switching to the arrow when close.
 - Replay of a run on the dashboard.
 - Simulator that adds hundreds of survivors across the area to show "at scale", with the unattended headline staying at 0.
+  (This applied to the earlier rehearsal plan; since 2026-11-08 the sim crew is minimal, R1 and R2 only with `extra_sim_rescuers` 0, so it would need extra helper rescuers, and it is not in the judged demo.)
 - Person reports: a coordinator enters what family or neighbors report (2 people live in house 4, or someone is safe); a house with anyone unaccounted for stays open.
 - Blocked or partly covered areas marked partially searched, never clear.
 
@@ -108,8 +133,8 @@ All screens follow design control in `docs/DESIGN.md`: one design file, tokens b
 
 | Surface | Look | Reference |
 | --- | --- | --- |
-| Coordinator dashboard | Light theme for a projector, a pipeline canvas of live cards beside the map, a bottom replay bar, the headline "Critical survivors unattended over 60 s: 0", status always labelled, not color only | Pacioli (Cal Hacks 13.0 SpacetimeDB winner, https://pacilio.vercel.app), UI only, no copied code |
-| Agents panel | One panel: one tint per agent, the live task board, the action log, and a chain view per survivor | Stochastic's agent tints and Agents page (`../Stochastic/docs/design/README.md`) |
+| Coordinator dashboard (Assess, a desktop app) | The real block as a full-screen map with floating cards: who needs help first, the headline "critical unattended over 60 s: 0", rescuers and robots, houses; night-purple top bar; status always labelled, not color only (built 2026-11-08, `docs/specs/dashboard.md`) | Standard Response (Cal Hacks 13.0), Stochastic, HackUTD Zero Day colors; UI only, no copied code |
+| Agents page | The hand-off chain per survivor, a card per agent with its tornado mascot, the database fallback, and the live task board | Stochastic's agent tints and Agents page (`../Stochastic/docs/design/README.md`) |
 | Glasses (G2) and the fallback page | Green on black (black is see-through), large text, map when far, arrow when close | bluebook and tesla-even-g2 (`docs/research/bluebook-reference.md`) |
 | Slides and video | Same tokens and type as the dashboard, real screenshots, one idea per slide | `docs/DESIGN.md` outline; Cal Hacks deck plan and Stochastic evidence cards |
 
@@ -139,8 +164,8 @@ Design and slides follow design control in `docs/DESIGN.md`.
 | Person | Owns | Notes |
 | --- | --- | --- |
 | Matthew Beck | Electrical system, assembly, legs with Camille, mock rubble set, outdoor test and footage (PROPOSED) | `docs/tasks/matthew.md` |
-| Camille | Robot edge software (robot dog code on the Pi and Pico, the bridge, missions, terrain rules) | `docs/tasks/camille.md`; R1 and the C++ part of R0 moved to Eric (2026-11-07) |
-| Eric Lee | Computer vision and models (breathing, scoring, person confirmation, speech-to-text for rescuer questions, terrain model), and the Nemotron agents (PROPOSED); robot state machine, safety gate, and main loop (R1, from Camille, 2026-11-07) | `docs/tasks/eric.md`, R1 in `docs/tasks/camille.md` |
+| Camille | Robot edge software (robot dog code on the Pi and Pico, the bridge, missions, terrain rules) | `docs/tasks/camille.md`; R1 and the C++ part of R0 moved to Eric (2026-11-07); R3, the bridge, moved to Eric (2026-11-08) |
+| Eric Lee | Computer vision and models (breathing, scoring, person confirmation, speech-to-text for rescuer questions, terrain model), and the Nemotron agents (PROPOSED); robot state machine, safety gate, and main loop (R1, from Camille, 2026-11-07); the bridge to SpacetimeDB (R3, from Camille, 2026-11-08) | `docs/tasks/eric.md`, R1 in `docs/tasks/camille.md` |
 | Cayden Hutcheson | Even Realities G2 glasses, and extra work: SpacetimeDB module, design control, dashboard, simulator, slides, video, Devpost, integration (PROPOSED) | `docs/tasks/cayden.md` |
 
 ## Venue and testing
@@ -167,6 +192,9 @@ Test real GPS and outdoor runs outside beforehand, and show them in the video.
 | Maincloud or internet down | Local SpacetimeDB server on a laptop |
 | Nemotron API slow or failing tool calls | The database's watchdog fallback keeps assigning; the agent uses strict JSON tools and a short timeout |
 | Robot breaks | Simulator robot plus the recorded video |
+
+Since 2026-11-08 the judged demo is hard-coded, so the robot, breathing, glasses, and Nemotron rows above apply to rehearsal and video runs, not to judging.
+For the judged demo the fallbacks are: if the scripted search does not report the find, the timeline runs `robot replay house3`; if Maincloud or the internet is down, point the sim and both clients at the local server; if the glasses view fails on the G2, use the fallback page.
 
 ## Accounts to set up now
 

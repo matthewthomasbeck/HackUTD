@@ -1,0 +1,8 @@
+[
+  { "at": "0:00", "say": "Seeding an in-progress board: searched houses, survivors inside real buildings, and the house 4 family report" },
+  { "cmd": "scene seed" },
+  { "cmd": "rescuers start" },
+  { "cmd": "robot start" },
+  { "say": "The module proposes the nearest free rescuer for each IMMEDIATE survivor nobody has picked up" },
+  { "await": "key", "say": "Press Enter to end the scene timeline" }
+]
