@@ -42,6 +42,8 @@ How to run each part is in `backend/README.md` and `frontend/README.md`; integra
 The robot main program is in `raspberrypi/robot/` (C++17, CMake): the state machine, safety gate, threads (main, movement, vision), control socket, and mocks (task R1).
 Build and test it with `cmake -B build && cmake --build build -j && ctest --test-dir build --output-on-failure` inside `raspberrypi/robot/`, and run it on a laptop with `./build/robot --config config/robot.laptop.yaml`; `raspberrypi/README.md` has the dependencies and the `robotctl` commands.
 Terrain recognition (task R7, `src/terrain/`) runs every tick and the safety gate applies it; `robotctl mock terrain <class>` drives it on a laptop, and its status (built on mocks only, camera advice off) is in `docs/notes/2026-11-08-terrain-integration.md`.
+Drone onboard code (PROPOSED, `docs/specs/drone.md`) is in `drone/`: `drone/pi/` mirrors `raspberrypi/robot/`, `drone/bridge/` mirrors `raspberrypi/bridge/` (robot id `drone1`), and `drone/mcu/` mirrors `pico/`; it has no flight control, and its open questions are in `drone/README.md`.
+Run the drone checks with `cmake -B build && cmake --build build -j && ctest --test-dir build --output-on-failure && python3 tools/check_mock_lifecycle.py` inside `drone/pi/`, and `npm test && npx tsc --noEmit` inside `drone/bridge/`.
 
 Primary perception and agents are in `backend/perception/` and `backend/agent/`.
 Run `.venv/bin/python -m pytest -q` from `backend/perception/`.

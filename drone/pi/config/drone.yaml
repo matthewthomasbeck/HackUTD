@@ -1,0 +1,35 @@
+# Drone config for the drone's own Pi (the drone's copy of robot.yaml).
+# Would be installed at /etc/drone/drone.yaml. Same keys as drone.laptop.yaml.
+# The drone hardware is not confirmed: every "# TBD" value is a placeholder; ask before locking it.
+# With flight_output.mock: false there is no flight output (FAILED), so the drone program never
+# leaves FAULT until the team decides how the drone is flown (drone/README.md, open questions).
+
+drone: { robot_id: drone1, name: "Drone 1" }                          # robot_id is the SpacetimeDB robot.robot_id and the bridge's ROBOT_ID
+loop: { rate_hz: 50, overrun_factor: 2.0, overrun_ticks: 5 }          # TBD: the dog's values; measure tick time on the drone's Pi
+init: { device_timeout_ms: 3000 }                                      # TBD
+fault: { max_retries: 3 }                                              # TBD
+shutdown: { timeout_ms: 2000 }
+flight: { rate_hz: 100, command_timeout_ms: 100 }                      # TBD: flight thread rate, dead-man timeout
+vision: { rate_hz: 30, model_path: "", labels_path: "", min_score: 0.5 }   # TBD: model and labels
+workers: { stall_ms: 500 }                                             # TBD: a thread silent this long is stuck
+devices:
+  required: [mcu, flight_output]                                       # TBD team decision
+  optional: [camera, detector, imu, gps]                               # TBD team decision
+flight_output: { mock: false }                                         # no real flight output: reports FAILED (needs a team decision)
+mcu: { mock: false, path: /dev/drone_mcu, heartbeat_hz: 20, link_timeout_ms: 250, firmware_version: "0.1" }   # TBD: board, udev name (no rule yet), rates
+stale_ms: { imu: 200, camera: 500, gps: 3000 }                         # TBD: the dog's values; measure real rates
+camera: { mock: false, width: 640, height: 480, fps: 30 }              # TBD: which camera, and whether it is on the Pi
+detector: { mock: false }                                              # TBD: model and runtime (the dog plans a Coral)
+gps: { mock: false, host: localhost, port: 2947 }                      # TBD: no GPS confirmed; no driver, reports FAILED
+limits: { max_lin_mps: 0.2, max_ang_dps: 45, max_lin_accel: 0.5, max_ang_accel: 90, reject_factor: 5 }   # TBD: the dog's floor limits, not flight limits
+estop: { sense: none }                                                 # TBD: MCU input id once a sense line is wired
+teleop: { deadman_ms: 300 }                                            # remote control: no command this long and the drone stops (CONTRACTS.md 8.3)
+missions: { auto_start: true }                                         # TBD team, as on the dog
+site: { demo_mode_default: true, center_lat: 32.9861898, center_lon: -96.7516083, radius_m: 350 }   # until the bridge sends `site`; center from backend/sim/demo-site.json
+location: { force_demo: false }
+home: { lat: 32.9861898, lon: -96.7516083 }                            # TBD: no drone home in backend/sim yet; the site center stands in
+heading: { initial_deg: 0, gps_min_speed_mps: 0.5, source: imu, gyro_axis: z, gyro_sign: -1 }   # TBD per IMU model and mounting
+odometry: { scale: 1.0 }                                               # TBD
+paths_file: /etc/drone/scripts/demo_paths.yaml
+bridge: { socket: /run/drone/bridge.sock, heartbeat_hz: 1, position_hz: 1, outbox: /var/lib/drone/outbox.jsonl, test_mission_id: 0 }
+control: { socket: /run/drone/control.sock }

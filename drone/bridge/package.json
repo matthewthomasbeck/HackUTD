@@ -1,0 +1,24 @@
+{
+  "name": "hackutd-drone-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "~5.6.2"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.9",
+    "spacetimedb": "2.14.*",
+    "tsx": "^4.19.2"
+  }
+}

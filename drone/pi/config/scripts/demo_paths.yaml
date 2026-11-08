@@ -1,0 +1,5 @@
+# Demo anchor and waypoints for the drone (the drone's copy of raspberrypi/robot/config/scripts/demo_paths.yaml).
+# TBD: backend/sim has no drone yet, so the anchor is the site center from backend/sim/demo-site.json
+# and there are no waypoints. Copy real ones from backend/sim once the simulator has a drone.
+anchor: { lat: 32.9861898, lon: -96.7516083 }   # site center (2520 Rutford Ave, UT Dallas)
+waypoints: {}

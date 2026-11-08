@@ -9,6 +9,7 @@ Start with `docs/MVP.md` (scope and owners), then `CONTRACTS.md` (shared names a
 | --- | --- | --- | --- |
 | [CONTRACTS.md](CONTRACTS.md) | Shared tables, reducers, roles, message formats (FINAL, version 8.1, SpacetimeDB) | all | everyone |
 | [robot.md](robot.md) | Robot C++ program, Pico firmware, Node.js bridge, terrain rules | `raspberrypi/`, `pico/` | Camille (with Matthew for hardware) |
+| [drone.md](drone.md) | Drone C++ program, MCU firmware, Node.js bridge, mirrored from the dog (PROPOSED) | `drone/` | TBD |
 | [perception.md](perception.md) | Breathing rate, critical score, media server, camera terrain model | `backend/perception/` | Eric |
 | [glasses.md](glasses.md) | Even Hub plugin, glasses service, fallback glasses page | `frontend/glasses/`, `backend/glasses-service/` | Cayden |
 | [spacetimedb.md](spacetimedb.md) | SpacetimeDB module and client bindings (tested on 2.14.1) | `backend/spacetimedb/`, `backend/spacetimedb-bindings/` | Cayden (PROPOSED) |
