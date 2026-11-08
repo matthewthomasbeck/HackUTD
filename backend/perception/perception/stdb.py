@@ -284,9 +284,9 @@ class StdbClient:
         return h
 
     # identity (perception.md section 8.2 step 1)
-    def ensure_identity(self) -> str:
+    def ensure_identity(self, *, retry: bool = True) -> str:
         """Use the configured token, else data/identity.json, else create one and save it.
-        Returns the token."""
+        Returns the token. SQL reads pass retry=False so a down server does not stall the worker."""
         with self._lock:
             if self.token:
                 if self.identity is None and self.identity_path and self.identity_path.is_file():
@@ -299,7 +299,7 @@ class StdbClient:
                 self.token = saved["token"]
                 self.identity = saved.get("identity")
                 return self.token
-            resp = self._send("POST", "/v1/identity")
+            resp = self._send("POST", "/v1/identity", retry=retry)
             body = resp.json()
             self.token = body["token"]
             self.identity = body.get("identity")
@@ -356,7 +356,7 @@ class StdbClient:
     def sql_raw(self, query: str, *, retry: bool = False) -> Any:
         """SQL reads do not retry by default: the poller asks again in 2 s anyway."""
         if not self.token:
-            self.ensure_identity()
+            self.ensure_identity(retry=retry)
         resp = self._send("POST", f"/v1/database/{self.database}/sql", content=query.encode("utf-8"),
                           retry=retry)
         return resp.json()

@@ -96,6 +96,21 @@ def test_network_errors_exhaust_the_schedule(tmp_path):
     assert sleeps == [0.5, 1.0, 2.0, 4.0, 8.0]
 
 
+def test_sql_without_token_does_not_retry_identity(tmp_path):
+    count = []
+
+    def handler(request):
+        count.append(request.url.path)
+        raise httpx.ConnectError("refused", request=request)
+
+    sleeps = []
+    c = make_client(handler, tmp_path, token=None, sleeps=sleeps)
+    with pytest.raises(StdbUnavailable):
+        c.sql("SELECT * FROM survivor")
+    assert count == ["/v1/identity"]
+    assert sleeps == []
+
+
 def test_identity_created_saved_and_reused(tmp_path):
     seen = []
 
