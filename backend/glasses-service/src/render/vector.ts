@@ -1,5 +1,5 @@
 // The demo site drawn from OpenStreetMap outlines instead of map tiles: crisp on the G2, no network, no key.
-// The geometry file is site/worthing.geojson (7716 Worthing St block, Dallas TX). Roads and buildings are
+// The geometry file is site/site.geojson (2520 Rutford Ave, UT Dallas; backend/sim/scripts/build-site.mjs). Roads and buildings are
 // drawn in the same Web Mercator pixels as the markers in render/map.ts, so both line up.
 import { readFileSync } from 'node:fs';
 import type { SKRSContext2D } from '@napi-rs/canvas';
@@ -54,7 +54,8 @@ export function vectorZoom(center: Point, radiusM: number): number {
 }
 
 // Road widths in meters, roughly the real pavement width.
-const ROAD_WIDTH_M: Record<string, number> = { secondary: 14, tertiary: 11, residential: 9, service: 4 };
+// Footways and paths are walkable (render/route.ts) but not drawn, so the small display stays readable.
+const ROAD_WIDTH_M: Record<string, number> = { secondary: 14, tertiary: 11, residential: 9, unclassified: 8, living_street: 7, pedestrian: 6, service: 4 };
 
 export function drawVectorBase(context: SKRSContext2D, geometry: SiteGeometry, center: Point, zoom: number, _metersPerPixel: number): void {
   const origin = worldPixel(center, zoom);
@@ -87,14 +88,29 @@ export function drawVectorBase(context: SKRSContext2D, geometry: SiteGeometry, c
   }
 }
 
-// The house that holds a point, else the nearest one within 25 m (survivor positions are approximate).
+// The building that holds a point, else the one whose outline is nearest within 25 m, so someone in front of a large
+// campus building belongs to it even far from its middle (survivor positions are approximate).
 export function buildingAt(geometry: SiteGeometry, point: Point): SiteBuilding | undefined {
   let best: SiteBuilding | undefined;
   let bestDistance = 25;
   for (const building of geometry.buildings) {
     if (containsPoint(building.ring, point)) return building;
-    const distance = distanceM(point, ringCenter(building.ring));
+    const distance = distanceToRing(building.ring, point);
     if (distance < bestDistance) { best = building; bestDistance = distance; }
+  }
+  return best;
+}
+
+// Meters from a point to the nearest edge of an outline (flat-earth, fine at building scale).
+function distanceToRing(ring: Point[], point: Point): number {
+  const perLon = 111_320 * Math.cos((point.lat * Math.PI) / 180);
+  let best = Infinity;
+  for (let i = 0; i < ring.length - 1; i += 1) {
+    const ax = (ring[i]!.lon - point.lon) * perLon, ay = (ring[i]!.lat - point.lat) * 111_320;
+    const bx = (ring[i + 1]!.lon - point.lon) * perLon, by = (ring[i + 1]!.lat - point.lat) * 111_320;
+    const dx = bx - ax, dy = by - ay;
+    const t = dx || dy ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy))) : 0;
+    best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy));
   }
   return best;
 }

@@ -40,7 +40,7 @@ Items marked UNCONFIRMED are not verified by a spec or a test; check them once a
   Still open: smoke coverage of `spacetimedb.md` 18.2 scenarios 3, 4, 7, 8, 16, 18, and 20, and the negative cases in 1, 5, 6, and 14.
 - Maincloud: database `assess-0hw81`, owned by Cayden's `spacetime login`, published 2026-11-08 from branch `codex/cayden-workstreams-2026-11-07`; scenarios 1 to 5 passed there, then it was republished with `--delete-data=always` and is empty.
 - Simulator (C3): `npm test` passes 20 tests; live `timeline` runs are implemented for `e2e`, `judge`, and `video` (the `stress` timeline has not been run: it needs 120 rescuers and status sampling).
-  The demo site is 7716 Worthing St, Dallas TX 75252 (house 3), with houses on real OSM building footprints and 15 m cells.
+  The demo site is 2520 Rutford Ave, Richardson TX 75080 (UT Dallas) (house 3, since 2026-11-08; before that 7716 Worthing St, Dallas), with houses on real OSM building footprints and 15 m cells.
 - Glasses service (G2): `npm test` passes 47 tests.
   Checked live against a local server: a proposal reaches the glasses, accept moves the survivor to `assigned`, and closing the glasses socket releases the assignment.
 - Glasses plugin (G3): `npm test` passes 26 tests; every check on the real G2 is still HUMAN-ONLY.
@@ -769,7 +769,7 @@ One command dispatcher (`src/dispatch.ts`) serves the console, one-shot commands
 The sim robot claims missions with `claim_next_mission`, walks, reports terrain, marks cells (house 4 `partially_searched`), and finds the `hidden` survivors; `robot replay house3` (`rr`), `imbalance`, and `dupes` work.
 Live `timeline` runs are implemented for `e2e`, `judge`, and `video`; `stress` has not been run (it needs 120 rescuers and status sampling).
 Added 2026-11-08: `search <house>` (`sr`) and `timelines/demo.json` for the hard-coded judged demo; `timeline demo` was verified live on a local server (found at 0:14 with no fallback).
-The site is "Tornado response, Dallas TX", centered on 7716 Worthing St, Dallas TX 75252 (32.9968745, -96.7704708), which is house 3.
+The site is "Tornado response, UT Dallas", centered on 2520 Rutford Ave, Richardson TX 75080 (32.9861898, -96.7516083); house 3 is the search cell on the person in its east side.
 
 Done when: one command runs the whole demo story with no hardware.
 - `npm run sim -- timeline judge`, with no robot, no glasses, and the agents stopped, reaches the end; every `await` either passes or runs its `else` fallback.
@@ -800,7 +800,7 @@ Pitfalls and fixes:
 - 300 survivors must not cause 300 Nemotron calls; tell Eric before the first `scale` so the orchestrator uses its deterministic path for the burst.
 - `reset` deletes every recorded run; screen-record any replay worth keeping first.
 - Never `reset` Maincloud during judging; between judges, end the run and start a new one.
-- The demo center is 7716 Worthing St, Dallas TX (32.9968745, -96.7704708), and every house sits on a real building footprint (see `docs/specs/demo.md`).
+- The demo center is 2520 Rutford Ave, UT Dallas (32.9861898, -96.7516083), and every house is a real building footprint (see `docs/specs/demo.md`).
 
 ## Phase 2: integrate
 
@@ -1102,5 +1102,5 @@ At the booth:
 - [ ] (Original plan) `npm run sim -- preflight` (C7 prompt) or `status`: `dog1` online, agents online, perception online, glasses connected, headline 0.
 - [ ] Previous run ended, new run ready; then `npm run sim -- timeline demo` for each judge group.
 - [ ] (Original plan) Glasses demo walker reset (`R`); `rc`, `h`, `rb` running in the sim console.
-- [ ] (Original plan) Teammate in the pile, booth lights at the rehearsed level, robot at the house 3 front door mark.
+- [ ] (Original plan) Teammate in the pile, booth lights at the rehearsed level, robot at the house 3 southeast door mark.
 - [ ] If the network dies: play the video and use the PDF deck.

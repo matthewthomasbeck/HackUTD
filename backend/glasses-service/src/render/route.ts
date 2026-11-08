@@ -3,18 +3,31 @@
 import { distanceM, type Point } from '../geo.js';
 import type { SiteGeometry } from './vector.js';
 
-const WALKABLE = new Set(['secondary', 'tertiary', 'residential', 'unclassified', 'living_street']);
+// Streets plus the campus's service roads, pedestrian ways, and paths (the UT Dallas site walks on them).
+const WALKABLE = new Set(['secondary', 'tertiary', 'residential', 'unclassified', 'living_street', 'service', 'pedestrian', 'footway', 'path', 'cycleway']);
 const MERGE_M = 1.5; // OSM ways meet at shared nodes; merge vertices this close so intersections connect
 
 interface Graph { nodes: Point[]; edges: Map<number, Array<{ to: number; cost: number }>> }
 
+// Built once per site: the walkable ways as a graph, vertices within MERGE_M merged (found through a grid of
+// MERGE_M cells, since a campus has thousands of path vertices), keeping only the largest connected network, so both
+// ends of a route always snap onto paths that join (stray footway pieces would otherwise strand a route).
+const graphs = new WeakMap<SiteGeometry, Graph>();
 function buildGraph(geometry: SiteGeometry): Graph {
+  const cached = graphs.get(geometry);
+  if (cached) return cached;
   const nodes: Point[] = [];
   const edges = new Map<number, Array<{ to: number; cost: number }>>();
+  const grid = new Map<string, number[]>();
+  const cellOf = (point: Point) => [Math.floor(point.lat * 111_320 / MERGE_M), Math.floor(point.lon * 93_000 / MERGE_M)] as const;
   const nodeFor = (point: Point): number => {
-    const found = nodes.findIndex(node => distanceM(node, point) < MERGE_M);
-    if (found >= 0) return found;
+    const [row, column] = cellOf(point);
+    for (let dr = -1; dr <= 1; dr += 1) for (let dc = -1; dc <= 1; dc += 1) {
+      for (const index of grid.get(`${row + dr}:${column + dc}`) ?? []) if (distanceM(nodes[index]!, point) < MERGE_M) return index;
+    }
     nodes.push(point);
+    const key = `${row}:${column}`;
+    grid.set(key, [...(grid.get(key) ?? []), nodes.length - 1]);
     return nodes.length - 1;
   };
   const link = (a: number, b: number) => {
@@ -34,7 +47,27 @@ function buildGraph(geometry: SiteGeometry): Graph {
       previous = next;
     }
   }
-  return { nodes, edges };
+  // Largest connected network only.
+  const component = new Map<number, number>();
+  const sizes: number[] = [];
+  for (const start of edges.keys()) {
+    if (component.has(start)) continue;
+    const id = sizes.length;
+    let size = 0;
+    const stack = [start];
+    component.set(start, id);
+    while (stack.length) {
+      const node = stack.pop()!;
+      size += 1;
+      for (const { to } of edges.get(node) ?? []) if (!component.has(to)) { component.set(to, id); stack.push(to); }
+    }
+    sizes.push(size);
+  }
+  const largest = sizes.indexOf(Math.max(...sizes));
+  for (const node of [...edges.keys()]) if (component.get(node) !== largest) edges.delete(node);
+  const graph = { nodes, edges };
+  graphs.set(geometry, graph);
+  return graph;
 }
 
 // Nearest point on any street segment, in a local flat frame (fine at block scale).

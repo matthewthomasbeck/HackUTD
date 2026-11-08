@@ -580,8 +580,8 @@ PERCEPTION_URL=http://localhost:8080                 # media server and speech t
 ASK_MAX_S=8                                          # longest voice question
 PRIMARY_GRACE_MS=0                                   # delay before closing the DB connection after the plugin socket closes
 DEMO_SPEED_MPS=3
-DEMO_START_BEARING_DEG=225
-DEMO_START_DISTANCE_M=250
+DEMO_START_BEARING_DEG=158
+DEMO_START_DISTANCE_M=92
 ```
 
 ### 5.4 SpacetimeDB client

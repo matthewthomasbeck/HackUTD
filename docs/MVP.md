@@ -48,8 +48,8 @@ The dashboard and the glasses view (on the G2 or the fallback page) are real cli
 
 The judged story is short and ends at the find:
 
-1. The robot dog enters 7716 Worthing St (house 3) and searches inside.
-2. It finds the hidden person: IMMEDIATE, breathing 8/min, in the front yard under rubble.
+1. The robot dog searches 2520 Rutford Ave on the UT Dallas campus (house 3).
+2. It finds the hidden person: IMMEDIATE, breathing 8/min, in the east side of the building under rubble.
 3. The dashboard and the glasses view show the find, and the demo ends there.
 
 The judged demo has no scale 300 run, no glasses walk, no disconnect beat, and no agent-stop beat.

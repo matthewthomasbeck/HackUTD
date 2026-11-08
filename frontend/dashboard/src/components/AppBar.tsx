@@ -21,7 +21,7 @@ export function AppBar({ page, onPage, chips, demo, run }: Props) {
       <img className="wordmark-logo" src={`${import.meta.env.BASE_URL}brand/underdog-logo.png`} alt="" width={40} height={40} />
       <span className="wordmark-name">UnderDog</span>
     </div>
-    <span className="site">Worthing St block, Dallas</span>
+    <span className="site">UT Dallas, 2520 Rutford Ave</span>
     <nav className="tabs" role="tablist" aria-label="Pages">
       <button role="tab" aria-selected={page === 'board'} onClick={() => onPage('board')}>Dashboard</button>
       <button role="tab" aria-selected={page === 'agents'} onClick={() => onPage('agents')}>Agents</button>

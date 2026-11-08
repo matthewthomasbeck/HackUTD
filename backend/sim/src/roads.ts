@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import type { DemoSiteConfig, Offset } from './config.ts';
 
 // The same street classes the glasses route uses, so people walk the streets the glasses draw.
-export const WALKABLE_HIGHWAYS = ['secondary', 'tertiary', 'residential', 'unclassified', 'living_street'];
+// Streets plus the campus's service roads, pedestrian ways, and paths (the UT Dallas site walks on them).
+export const WALKABLE_HIGHWAYS = ['secondary', 'tertiary', 'residential', 'unclassified', 'living_street', 'service', 'pedestrian', 'footway', 'path', 'cycleway'];
 // OSM ways meet at shared nodes; vertices this close are one node, so intersections connect.
 const MERGE_M = 1.5;
 

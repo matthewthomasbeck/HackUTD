@@ -1,5 +1,5 @@
-// UnderDog, the coordinator dashboard: a full-bleed map of the Worthing St block with floating cards
-// (who needs help first; the database headline; rescuers and robot; houses) and an Agents page.
+// UnderDog, the coordinator dashboard: a full-bleed map of the buildings around 2520 Rutford Ave (UT Dallas) with
+// floating cards (who needs help first; the database headline; rescuers and robot; buildings) and an Agents page.
 // All data comes live from SpacetimeDB through useBoard(); see src/view/derive.ts for what each card shows.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSpacetimeDB } from 'spacetimedb/react';
@@ -28,7 +28,7 @@ import {
   pendingMissions, robotFrames, systemChips, taskTimeline,
 } from './view/derive';
 
-const DEMO_HOUSE = { lat: 32.9968745, lon: -96.7704708 }; // 7716 Worthing St, until the site row arrives
+const DEMO_HOUSE = { lat: 32.9861898, lon: -96.7516083 }; // 2520 Rutford Ave, until the site row arrives
 // The floating card columns (see .fcol in underdog.css, narrower under 1500 px), so the map frames the block between them.
 // Where Camera View finds the glasses heads-up: the glasses fallback page and the glasses service socket.
 // Set VITE_GLASSES_PAGE_URL and VITE_GLASSES_WS_URL, or ?glassesPage= and ?glassesWs= on the dashboard URL.

@@ -1,9 +1,9 @@
 # Scripted paths and demo waypoints (docs/specs/robot.md sections 8 and 15).
 # Coordinates are copied from backend/sim/demo-site.json (equirectangular offsets from the site center) so the robot and the simulator agree.
-anchor: { lat: 32.996746, lon: -96.7704579 }   # demo_anchor: house 3 front door
+anchor: { lat: 32.9858556, lon: -96.751091 }   # demo_anchor: house 3 southeast door (2520 Rutford Ave, UT Dallas)
 waypoints:
-  home:    { lat: 32.9966948, lon: -96.7704708 }   # sim robot home
-  house_3: { lat: 32.9968808, lon: -96.7704579, label: "house 3" }
+  home:    { lat: 32.9862976, lon: -96.7510086 }   # sim robot home
+  house_3: { lat: 32.9860622, lon: -96.7514391, label: "house 3" }
 paths:
   - name: home_to_house_3
     start: home

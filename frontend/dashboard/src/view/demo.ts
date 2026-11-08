@@ -6,7 +6,8 @@
 import type { BoardState } from '../data/BoardData';
 import { enumTagToContract } from '../stdb/enums';
 
-export const DEMO_HOUSE = 'house 3';
+export const DEMO_HOUSE = 'house 3'; // the sim's name for the demo search cell, in the front plaza of DEMO_PLACE
+export const DEMO_PLACE = '2520 Rutford Ave';
 export const DEMO_ROBOT = 'sim-dog';
 export const DEMO_RESCUER = 'cayden';
 const ARRIVED_M = 8;
@@ -15,11 +16,11 @@ export type DemoStep = 'connecting' | 'searching' | 'assigning' | 'accepting' | 
 
 export const demoStepLabel: Record<DemoStep, string> = {
   connecting: 'Connecting glasses',
-  searching: 'Dog 1 searching house 3',
+  searching: `Dog 1 searching ${DEMO_PLACE}`,
   assigning: 'Assigning Cayden',
   accepting: 'Cayden accepting',
-  walking: 'Cayden walking to house 3',
-  arrived: 'Cayden at house 3',
+  walking: `Cayden walking to ${DEMO_PLACE}`,
+  arrived: `Cayden at ${DEMO_PLACE}`,
 };
 
 export type GlassesDemoCommand = 'reset' | 'start';
@@ -97,13 +98,13 @@ export async function runDemo(deps: DemoDeps): Promise<void> {
   await deps.glasses('reset');
 
   const cell = demoCell(deps.board());
-  if (!cell) throw new Error('House 3 is not on the board. Run the simulator setup.');
+  if (!cell) throw new Error(`The ${DEMO_PLACE} search cell (${DEMO_HOUSE}) is not on the board. Run the simulator setup.`);
   let survivor = demoSurvivor(deps.board(), cell);
   if (!survivor) {
     deps.onStep('searching');
     if (!deps.board().robots.some((row) => row.robotId === DEMO_ROBOT && row.online)) throw new Error('Dog 1 is offline. Start the simulator with `npm run demo`.');
     await deps.createSearch(cell.id, DEMO_ROBOT);
-    survivor = await deps.waitFor(() => demoSurvivor(deps.board(), cell), 120_000, 'Dog 1 did not report a find in house 3.');
+    survivor = await deps.waitFor(() => demoSurvivor(deps.board(), cell), 120_000, `Dog 1 did not report a find at ${DEMO_PLACE}.`);
   }
   const survivorId = survivor.id;
 
@@ -136,6 +137,6 @@ export async function runDemo(deps: DemoDeps): Promise<void> {
   // count as arrived before he starts walking.
   await deps.waitFor(() => ((distance() ?? 0) > ARRIVED_M ? true : undefined), 15_000, 'Cayden’s glasses did not move him back to the start.');
   await deps.glasses('start');
-  await deps.waitFor(() => ((distance() ?? Infinity) <= ARRIVED_M ? true : undefined), 10 * 60_000, 'Cayden did not reach house 3.');
+  await deps.waitFor(() => ((distance() ?? Infinity) <= ARRIVED_M ? true : undefined), 10 * 60_000, `Cayden did not reach ${DEMO_PLACE}.`);
   deps.onStep('arrived');
 }

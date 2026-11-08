@@ -14,7 +14,9 @@ test('scene survivors are repeatable, inside real buildings near the center, and
   assert.deepEqual(plans, planSceneSurvivors(config));
   const count = (level: string) => plans.filter((plan) => plan.level === level).length;
   assert.equal(count('immediate'), config.scene.immediate);
-  assert.ok(count('immediate') >= 2 && count('immediate') <= 3, '2 to 3 IMMEDIATE survivors');
+  // One IMMEDIATE survivor: the crew has one sim rescuer (R1) to take it, so the database's backstop never offers a
+  // leftover one to Cayden in the middle of Play demo.
+  assert.equal(count('immediate'), 1, 'one IMMEDIATE survivor');
   assert.equal(count('delayed'), config.scene.delayed);
   assert.equal(count('minor'), config.scene.minor);
   const lots = new Map(generateScaleLots(config).map((lot) => [lot.label, lot]));

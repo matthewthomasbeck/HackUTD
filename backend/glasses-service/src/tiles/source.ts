@@ -16,7 +16,7 @@ export const MAP_SIZE = 288;
 
 export function createTileSource(name: TileSourceName = 'esri-dark', cartoKey?: string, userAgent = 'HackUTD-GlassesService/1.0'): TileSource {
   if (name === 'none') return { name, extension: 'png', attribution: '', lensText: '', invert: false, url: () => null };
-  // Drawn from site/worthing.geojson in render/vector.ts; no tiles are fetched.
+  // Drawn from site/site.geojson in render/vector.ts; no tiles are fetched.
   if (name === 'vector') return { name, extension: 'png', attribution: '(c) OpenStreetMap contributors', lensText: '(c) OSM', invert: false, url: () => null };
   if (name === 'esri-dark') return {
     name, extension: 'jpg', attribution: 'Esri, HERE, Garmin, (c) OpenStreetMap contributors', lensText: '(c) Esri, OSM', invert: false,
