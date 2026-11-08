@@ -54,7 +54,7 @@ Resolved by version 8 and 8.1 (no longer open):
 
 | Thing | Value |
 | --- | --- |
-| Maincloud database | `hackutd-rubble` at `https://maincloud.spacetimedb.com` (UNCONFIRMED that the name is free; if taken, add a suffix and update every `.env`) |
+| Maincloud database | `assess-0hw81` at `https://maincloud.spacetimedb.com` (UNCONFIRMED that the name is free; if taken, add a suffix and update every `.env`) |
 | Local fallback server | `spacetime start --listen-addr 0.0.0.0:3000` on Laptop A, clients use `ws://<laptop-a-ip>:3000` |
 | Test server | `http://127.0.0.1:3917`, database `rubble-test` |
 | Glasses service | `0.0.0.0:8787` (`/glasses`, `/view`, `/phone`, `/healthz`) |
@@ -95,7 +95,7 @@ Announcement to paste in the team chat (fill the two IPs):
 
 ```text
 SpacetimeDB skeleton is up (bindings v1).
-Maincloud: https://maincloud.spacetimedb.com, database hackutd-rubble.
+Maincloud: https://maincloud.spacetimedb.com, database assess-0hw81.
 Local fallback: ws://<laptop-a-ip>:3000, same database name.
 Bindings: backend/spacetimedb-bindings/ on main. Import from there; do not run spacetime generate yourself.
 Tables now: participant, site, search_cell, robot, detection, survivor, assignment, briefing, agent_task, event_log (columns per docs/specs/spacetimedb.md section 4).
@@ -280,21 +280,21 @@ cd backend/spacetimedb && npx tsc --noEmit -p . && spacetime build
 
 # local fallback server on Laptop A, then publish
 spacetime start --listen-addr 0.0.0.0:3000
-spacetime publish hackutd-rubble -p backend/spacetimedb --server local --yes
+spacetime publish assess-0hw81 -p backend/spacetimedb --server local --yes
 
 # Maincloud
-spacetime publish hackutd-rubble -p backend/spacetimedb --server maincloud --yes
+spacetime publish assess-0hw81 -p backend/spacetimedb --server maincloud --yes
 
 # breaking schema change (new column without .default(), type change)
-spacetime publish hackutd-rubble -p backend/spacetimedb --server maincloud --delete-data=always --yes
+spacetime publish assess-0hw81 -p backend/spacetimedb --server maincloud --delete-data=always --yes
 
 # bindings (commit the output)
 spacetime generate --lang typescript --out-dir backend/spacetimedb-bindings --module-path backend/spacetimedb
 
 # logs, quick checks
-spacetime logs hackutd-rubble --server maincloud -f
-spacetime describe hackutd-rubble --json
-spacetime sql hackutd-rubble "SELECT * FROM survivor" --server local
+spacetime logs assess-0hw81 --server maincloud -f
+spacetime describe assess-0hw81 --json
+spacetime sql assess-0hw81 "SELECT * FROM survivor" --server local
 
 # smoke tests (in-memory server on 3917)
 cd backend/spacetimedb && npm test
@@ -327,7 +327,7 @@ Read docs/specs/spacetimedb.md sections 0, 1, 3, 4.1, 4.2, and 8.1, and docs/spe
 Scope cuts that are final: no search agent (robot_agent), no beacon missions, no drone fields, no robot audio, no outcome table, no occupancy estimates, no robot_track, participant_track, or terrain_observation tables, no stale_cell_timer.
 Steps: run the init commands in section 1.2; add the package.json scripts in section 1.6; in src/schema.ts define every enum in section 3 and these tables with every column and index in section 4: participant, site, search_cell, robot, detection, survivor, assignment, briefing, agent_task, event_log; pass { CASE_CONVERSION_POLICY: CaseConversionPolicy.None } to schema(); in src/index.ts export default the schema, add init, onConnect, onDisconnect stubs, and register_participant exactly as section 8.1 describes.
 Follow the rules in section 1.7: id: 0n for autoInc inserts, ctx.timestamp and ctx.random only (never Date.now or Math.random), every export lives in src/index.ts.
-Then run npx tsc --noEmit -p . and spacetime build, publish to the local server (spacetime publish hackutd-rubble -p backend/spacetimedb --server local --yes), and generate bindings into backend/spacetimedb-bindings with the command in section 1.6.
+Then run npx tsc --noEmit -p . and spacetime build, publish to the local server (spacetime publish assess-0hw81 -p backend/spacetimedb --server local --yes), and generate bindings into backend/spacetimedb-bindings with the command in section 1.6.
 Do not publish to Maincloud and do not log in; I do that.
 Do not edit CONTRACTS.md; if a name in a spec seems wrong, list it for me instead.
 Show me schema.ts and the generated table list when done.
@@ -454,7 +454,7 @@ Config (`glasses.md` 5.3):
 ```
 PORT=8787
 STDB_URI=https://maincloud.spacetimedb.com   # or ws://<laptop-a-ip>:3000 for the local fallback
-STDB_DATABASE=hackutd-rubble
+STDB_DATABASE=assess-0hw81
 TILE_SOURCE=esri-dark
 PERCEPTION_URL=http://localhost:8080
 PRIMARY_GRACE_MS=0
@@ -615,7 +615,7 @@ Config (`.env.example`):
 
 ```
 VITE_STDB_URI=https://maincloud.spacetimedb.com
-VITE_STDB_DATABASE=hackutd-rubble
+VITE_STDB_DATABASE=assess-0hw81
 VITE_STDB_URI_LOCAL=ws://<laptop A LAN IP>:3000
 VITE_TILE_SOURCE=esri-light
 VITE_CARTO_KEY=
@@ -771,9 +771,9 @@ Outputs and who uses them:
 Commands (measure from the record, not by stopwatch):
 
 ```bash
-spacetime sql hackutd-rubble "SELECT * FROM run" --server maincloud
-spacetime sql hackutd-rubble "SELECT * FROM event_log WHERE run_id = <id>" --server maincloud
-spacetime sql hackutd-rubble "SELECT * FROM agent_action WHERE run_id = <id>" --server maincloud
+spacetime sql assess-0hw81 "SELECT * FROM run" --server maincloud
+spacetime sql assess-0hw81 "SELECT * FROM event_log WHERE run_id = <id>" --server maincloud
+spacetime sql assess-0hw81 "SELECT * FROM agent_action WHERE run_id = <id>" --server maincloud
 npm run sim -- status
 ```
 
@@ -976,7 +976,7 @@ Rules from `docs/DESIGN.md`: one idea per slide, at most one sentence plus a vis
   Needs: the headline at 0 after `scale 300`, and the measured disconnect release and watchdog seconds.
   For: State Farm.
 - [ ] 8. Built on SpacetimeDB: reducers as the whole backend, schedule tables as countdowns, lifecycle reducers, two screens in sync.
-  Needs: table, reducer, schedule table, and view counts from `spacetime describe hackutd-rubble --json`; the Timers tab screenshot; a photo of both screens.
+  Needs: table, reducer, schedule table, and view counts from `spacetime describe assess-0hw81 --json`; the Timers tab screenshot; a photo of both screens.
   For: SpacetimeDB.
 - [ ] 9. Results: measured numbers only.
   Needs: time from find to acknowledgement (C4 measure), breathing accuracy on our clips (Eric), thermal range (Matthew and Eric's range test); `TBD` until measured.

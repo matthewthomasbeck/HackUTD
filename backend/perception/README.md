@@ -82,7 +82,7 @@ Until then the log shows the identity hex, the service retries every 2, 4, 8, 15
 If a later write is rejected with `not registered` or `role not granted`, the service registers again.
 Argument order follows `docs/specs/spacetimedb.md` section 8.5:
 `report_breathing(survivor_id, breathing, rate_bpm, confidence, visibility_pct, display_url)` and `set_critical_score(survivor_id, level, score, confidence, reasons)`.
-Check it against `spacetime describe hackutd-rubble reducers --json` before the first real call.
+Check it against `spacetime describe assess-0hw81 reducers --json` before the first real call.
 
 `tests/fixtures/sql_sample_not_captured.json` is hand-written from the spec, not captured from a real server.
 Run `python scripts/smoke_stdb.py --save-fixture` once the module is published, and point `tests/test_stdb.py` at the captured file.

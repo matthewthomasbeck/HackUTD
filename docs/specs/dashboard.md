@@ -802,7 +802,7 @@ Fidelity check: folding all of a finished run's events must give the same `statu
 
 ```
 VITE_STDB_URI=https://maincloud.spacetimedb.com
-VITE_STDB_DATABASE=hackutd-rubble
+VITE_STDB_DATABASE=assess-0hw81
 VITE_STDB_URI_LOCAL=ws://<laptop A LAN IP>:3000
 VITE_TILE_SOURCE=esri-light
 VITE_CARTO_KEY=

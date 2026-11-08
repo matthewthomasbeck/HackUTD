@@ -14,7 +14,7 @@ from perception.stdb import (StdbClient, StdbRejected, StdbUnavailable, decode_r
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "sql_sample_not_captured.json").read_text())
 URI = "http://stdb.test"
-DB = "hackutd-rubble"
+DB = "assess-0hw81"
 T0 = 1794107722000000
 
 

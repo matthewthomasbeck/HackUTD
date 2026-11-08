@@ -66,7 +66,7 @@ export function dashboardConfigFromSearch(search: string, env: DashboardEnvironm
     view,
     run: params.get('run'),
     uri: db === 'local' ? env.VITE_STDB_URI_LOCAL || '' : env.VITE_STDB_URI || 'https://maincloud.spacetimedb.com',
-    database: env.VITE_STDB_DATABASE || 'hackutd-rubble',
+    database: env.VITE_STDB_DATABASE || 'assess-0hw81',
     tokenKey: tokenStorageKey(db, screen),
   };
 }

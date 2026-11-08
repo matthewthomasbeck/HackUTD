@@ -16,7 +16,7 @@ import * as path from 'path';
 import { DbConnection } from '../../../spacetimedb-bindings';
 
 const uri = process.env.STDB_URI ?? 'https://maincloud.spacetimedb.com';
-const database = process.env.STDB_DATABASE ?? 'hackutd-rubble';
+const database = process.env.STDB_DATABASE ?? 'assess-0hw81';
 
 function loadToken(): string | undefined {
   if (process.env.STDB_TOKEN) return process.env.STDB_TOKEN;

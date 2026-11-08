@@ -117,25 +117,25 @@ Helpers in `lib/` must not be named exports of `index.ts` (named exports are res
 
 | Target | Server flag | Client URI | Database name |
 | --- | --- | --- | --- |
-| Maincloud | `--server maincloud` | `https://maincloud.spacetimedb.com` | `hackutd-rubble` (if taken, add a suffix and update every `.env`) |
-| Local fallback (Laptop A) | `--server local` (`http://127.0.0.1:3000`) | `ws://<laptop-a-lan-ip>:3000` from other machines | `hackutd-rubble` |
+| Maincloud | `--server maincloud` | `https://maincloud.spacetimedb.com` | `assess-0hw81` (if taken, add a suffix and update every `.env`) |
+| Local fallback (Laptop A) | `--server local` (`http://127.0.0.1:3000`) | `ws://<laptop-a-lan-ip>:3000` from other machines | `assess-0hw81` |
 | Tests | `--server http://127.0.0.1:3917` | same | `rubble-test` |
 
 Each client reads `STDB_URI` and `STDB_DATABASE` from its `.env` (browser apps: `VITE_STDB_URI` and `VITE_STDB_DATABASE`, CONTRACTS.md "Conventions"), so switching to the fallback is a change of URI.
-Whether the name `hackutd-rubble` is free on Maincloud is not confirmed.
+Whether the name `assess-0hw81` is free on Maincloud is not confirmed.
 
 ### 1.5 Publish
 
 ```bash
 spacetime build -p backend/spacetimedb
-spacetime publish hackutd-rubble -p backend/spacetimedb --server maincloud --yes
+spacetime publish assess-0hw81 -p backend/spacetimedb --server maincloud --yes
 
 # local fallback: a persistent server on Laptop A, listening on the LAN
 spacetime start --listen-addr 0.0.0.0:3000
-spacetime publish hackutd-rubble -p backend/spacetimedb --server local --yes
+spacetime publish assess-0hw81 -p backend/spacetimedb --server local --yes
 
 # breaking schema change (new column without .default(), type change)
-spacetime publish hackutd-rubble -p backend/spacetimedb --server maincloud --delete-data=always --yes
+spacetime publish assess-0hw81 -p backend/spacetimedb --server maincloud --delete-data=always --yes
 ```
 
 Republishing hot-swaps the module and keeps data.
@@ -159,10 +159,10 @@ Add to `backend/spacetimedb/package.json`:
 ```json
 "scripts": {
   "build": "spacetime build",
-  "publish:cloud": "spacetime publish hackutd-rubble -p . --server maincloud --yes",
-  "publish:local": "spacetime publish hackutd-rubble -p . --server local --yes",
+  "publish:cloud": "spacetime publish assess-0hw81 -p . --server maincloud --yes",
+  "publish:local": "spacetime publish assess-0hw81 -p . --server local --yes",
   "generate": "spacetime generate --lang typescript --out-dir ../spacetimedb-bindings --module-path .",
-  "logs:cloud": "spacetime logs hackutd-rubble --server maincloud -f",
+  "logs:cloud": "spacetime logs assess-0hw81 --server maincloud -f",
   "test": "bash test/smoke.sh"
 }
 ```
@@ -938,7 +938,7 @@ The contract keeps the Node.js bridge as the plan; this path is an option to tes
 | Item | Value | Status |
 | --- | --- | --- |
 | Get a token | `curl -X POST <server>/v1/identity` returns `{"identity","token"}`; register once with `register_participant(["dog1",{"robot":[]}])` (needs demo mode or a grant) | tested |
-| Call | `POST <server>/v1/database/hackutd-rubble/call/robot_heartbeat`, header `Authorization: Bearer <token>`, `Content-Type: application/json`, body `["dog1",{"READY":[]},{"some":87},{"none":[]}]` | tested shape (with a test reducer) |
+| Call | `POST <server>/v1/database/assess-0hw81/call/robot_heartbeat`, header `Authorization: Bearer <token>`, `Content-Type: application/json`, body `["dog1",{"READY":[]},{"some":87},{"none":[]}]` | tested shape (with a test reducer) |
 | Results | 200 ok; 530 with the `SenderError` text; 400 bad arguments; 404 unknown or private reducer | tested |
 | Enum spelling | exactly the contract value (`SAFE_STOP`) because of `CaseConversionPolicy.None` | tested |
 | Lifecycle | each request runs `clientConnected` and `clientDisconnected`; `ROBOT_DISCONNECT_GRACE_S` (5 s) keeps a robot calling at 1 Hz online | tested (lifecycle), grace logic not yet run |
@@ -1076,11 +1076,11 @@ Scenarios, in order:
 ### 18.3 Maincloud check
 
 After publishing to Maincloud, run scenarios 1 to 5 with throwaway tokens, then republish with `--delete-data=always` before judging.
-Follow logs with `spacetime logs hackutd-rubble --server maincloud -f`.
+Follow logs with `spacetime logs assess-0hw81 --server maincloud -f`.
 
 ## 19. Showcase for SpacetimeDB judges
 
-1. The module is the whole backend: one TypeScript module, N tables, M reducers, 5 schedule tables, 4 views, no other server (count with `spacetime describe hackutd-rubble --json`).
+1. The module is the whole backend: one TypeScript module, N tables, M reducers, 5 schedule tables, 4 views, no other server (count with `spacetime describe assess-0hw81 --json`).
 2. Every timer on screen: the dashboard's countdowns are rows in schedule tables; a renewal jumps a countdown back live.
 3. Rules in reducers: the agent tries `resolve_survivor` and the module refuses; the survivor state machine rejects a skipped step.
 4. Lease-based job queues: the robot's missions and the agents' `agent_task` board; kill an agent mid-task and its task returns to `open` at the lease.
