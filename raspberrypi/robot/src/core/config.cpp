@@ -230,6 +230,9 @@ Config parse(const YAML::Node& root) {
   require(th.fov_h_deg > 0 && th.delta_c > 0 && th.min_c < th.max_c, "thermal.fov_h_deg, delta_c, min_c < max_c");
   require(th.persist_frames >= 1 && th.persist_frames <= th.persist_window, "thermal.persist_frames must be 1..persist_window");
 
+  c.teleop_deadman_ms = get_number(root, "teleop.deadman_ms");
+  require(c.teleop_deadman_ms >= 100 && c.teleop_deadman_ms <= 2000, "teleop.deadman_ms must be 100..2000");
+
   SeekConfig& sk = c.seek;
   sk.scan_wz_dps = get_number(root, "scan.rotate_wz_dps");
   sk.standoff_m = get_number(root, "inspect.standoff_m");

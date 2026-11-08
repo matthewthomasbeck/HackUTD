@@ -171,6 +171,19 @@ Each leg has 3 servos on Maestro A (abduction, hip, knee). Each servo maps an an
 `legcal` per joint: which channel it is on, jog to the zero pose, jog to a known reference angle (90 degrees is easiest; it measures `us_per_rad` and `direction`), then jog to each end and stop short of hitting (`min_us` / `max_us`, kept 20 us inside). Every jog is ramped at 400 us/s, so a typo cannot slam a leg.
 When all 12 are pasted in, set `legs.impl: two_link`, `legs.stance_height_m`, and `servos.max_rate_us_per_s`. The IK then rejects (never clamps) any goal the leg cannot reach or that would pass a limit, and the movement thread moves each servo no faster than that rate. While a leg is lifted, the safety gate holds translation at zero.
 
+## Remote driving (`robotctl start teleop`)
+
+A person drives the robot. The website side (a dashboard joystick through SpacetimeDB and the bridge) is PROPOSED in docs/specs/robot.md section 18.1; on the Pi it works today:
+
+```
+./build/robotctl start teleop
+./build/robotctl teleop                 # w/s forward/back, a/d strafe, q/e turn, space stop, x quit
+./build/robotctl drive 0.1 0 0 2        # or one command for 2 s (m/s, m/s, deg/s)
+./build/robotctl stop
+```
+
+The robot stops by itself 300 ms after the last command (`teleop.deadman_ms`), and the safety gate's limits still apply.
+
 ## Autonomous thermal seek (`robotctl start seek_thermal`)
 
 The robot finds a warm, person-sized shape with the thermal camera and drives up to it on its own:
