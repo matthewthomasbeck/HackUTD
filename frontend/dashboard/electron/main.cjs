@@ -7,7 +7,7 @@
 //   1. Command-line flags: --db=cloud|local --local-uri=ws://HOST:3000 --glasses-page=URL --glasses-ws=URL --screen=A
 //   2. The saved file <userData>/assess-settings.json (written by the Server menu)
 //   3. Defaults: Maincloud (the address baked in at build time from .env), local server ws://127.0.0.1:3000
-const { app, BrowserWindow, Menu, shell } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -36,6 +36,39 @@ function readFlags(argv) {
 
 let settings = { ...DEFAULTS };
 let window = null;
+let splashWindow = null;
+let dashboardReady = false;
+let splashAnimationFinished = false;
+let handoffStarted = false;
+
+const APP_READY_FALLBACK_MS = 10000;
+const SPLASH_FADE_MS = 260;
+
+function revealDashboard() {
+  if (!dashboardReady || !splashAnimationFinished || handoffStarted || !window) return;
+  handoffStarted = true;
+  window.show();
+  window.focus();
+  if (!splashWindow || splashWindow.isDestroyed()) return;
+  void splashWindow.webContents.executeJavaScript('window.fadeSplash()').catch(() => {});
+  const finishingSplash = splashWindow;
+  splashWindow = null;
+  setTimeout(() => { if (!finishingSplash.isDestroyed()) finishingSplash.destroy(); }, SPLASH_FADE_MS);
+}
+
+ipcMain.on('assess:dashboard-ready', (event) => {
+  if (window && event.sender === window.webContents) {
+    dashboardReady = true;
+    revealDashboard();
+  }
+});
+
+ipcMain.on('assess:splash-animation-finished', (event) => {
+  if (splashWindow && event.sender === splashWindow.webContents) {
+    splashAnimationFinished = true;
+    revealDashboard();
+  }
+});
 
 // The dashboard's URL parameters for the current settings.
 function query() {
@@ -88,8 +121,9 @@ function createWindow() {
     minHeight: 760,
     title: 'Assess',
     backgroundColor: '#0A0718', // --night, the launch animation's backdrop, so the window does not flash before it paints
+    show: false,
     icon: path.join(__dirname, 'icon.png'),
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   // Links (OpenStreetMap credits, media) open in the browser; the window never navigates away from the dashboard.
   window.webContents.setWindowOpenHandler(({ url }) => {
@@ -101,14 +135,67 @@ function createWindow() {
     if (!(devUrl && url.startsWith(devUrl)) && !url.startsWith('file:')) event.preventDefault();
   });
   window.on('closed', () => { window = null; });
+  window.webContents.once('did-finish-load', () => {
+    setTimeout(() => {
+      if (!dashboardReady) {
+        dashboardReady = true;
+        revealDashboard();
+      }
+    }, APP_READY_FALLBACK_MS);
+  });
   load();
+}
+
+function createSplashWindow() {
+  splashAnimationFinished = false;
+  dashboardReady = false;
+  handoffStarted = false;
+  splashWindow = new BrowserWindow({
+    width: 520,
+    height: 420,
+    center: true,
+    frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    hasShadow: false,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    show: false,
+    // A transparent, unfocused window can count as hidden, which would throttle the frame timer and freeze the flip.
+    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
+  });
+  const splash = splashWindow;
+  splash.once('ready-to-show', () => {
+    if (splash.isDestroyed()) return;
+    splash.show();
+    splash.webContents.executeJavaScript('window.startSplash()').catch(() => {});
+  });
+  splash.webContents.once('did-fail-load', () => {
+    splashAnimationFinished = true;
+    revealDashboard();
+  });
+  void splash.loadFile(path.join(__dirname, 'splash.html')).catch(() => {
+    splashAnimationFinished = true;
+    revealDashboard();
+  });
 }
 
 app.whenReady().then(() => {
   settings = { ...DEFAULTS, ...readSaved(), ...readFlags(process.argv) };
   buildMenu();
+  createSplashWindow();
   createWindow();
-  app.on('activate', () => { if (!window) createWindow(); });
+  app.on('activate', () => {
+    if (!window) {
+      createSplashWindow();
+      createWindow();
+    }
+  });
 });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

@@ -12,7 +12,12 @@ import '@fontsource/ibm-plex-mono/600.css';
 import './styles/assess.css';
 import { runSplash } from './splash';
 
-runSplash();
+if (window.assessDesktop) {
+  document.getElementById('splash')?.remove();
+  document.body.classList.remove('splashing');
+} else {
+  runSplash();
+}
 const config = dashboardConfigFromSearch(window.location.search, import.meta.env);
 document.documentElement.dataset.theme = config.theme;
 const builder = createConnectionBuilder(config);
