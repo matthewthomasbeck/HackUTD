@@ -70,7 +70,17 @@ else()
   set(CORAL_FOUND OFF)
 endif()
 option(ROBOT_WITH_CORAL "Coral Edge TPU runtime" ${CORAL_FOUND})
-message(STATUS "robot backends: libcamera=${ROBOT_WITH_LIBCAMERA} opencv=${ROBOT_WITH_OPENCV} coral=${ROBOT_WITH_CORAL} systemd=${ROBOT_WITH_SYSTEMD}")
+
+# pigpiod client for the DC motor drivers (sudo apt install pigpio). Without it the drivers report FAILED.
+find_path(PIGPIO_INCLUDE_DIR pigpiod_if2.h)
+find_library(PIGPIOD_IF2_LIBRARY NAMES pigpiod_if2)
+if(PIGPIO_INCLUDE_DIR AND PIGPIOD_IF2_LIBRARY)
+  set(PIGPIO_FOUND ON)
+else()
+  set(PIGPIO_FOUND OFF)
+endif()
+option(ROBOT_WITH_PIGPIO "DC motors through pigpiod" ${PIGPIO_FOUND})
+message(STATUS "robot backends: libcamera=${ROBOT_WITH_LIBCAMERA} opencv=${ROBOT_WITH_OPENCV} coral=${ROBOT_WITH_CORAL} systemd=${ROBOT_WITH_SYSTEMD} pigpio=${ROBOT_WITH_PIGPIO}")
 
 set(ROBOT_WARNINGS -Wall -Wextra -Wpedantic)
 if(ROBOT_WERROR)
@@ -87,9 +97,11 @@ add_library(robot_core STATIC
   src/hal/device_mock.cpp
   src/hal/servo_maestro.cpp
   src/hal/servo_mock.cpp
-  src/hal/dc_driver_tbd.cpp
+  src/hal/dc_driver_gpio.cpp
   src/hal/dc_driver_mock.cpp
+  src/hal/gpio_pigpio.cpp
   src/hal/pico_link_serial.cpp
+  src/hal/pico_text_protocol.cpp
   src/hal/pico_link_mock.cpp
   src/hal/camera_libcamera.cpp
   src/hal/camera_mock.cpp
@@ -118,6 +130,11 @@ endif()
 if(ROBOT_WITH_OPENCV)
   target_compile_definitions(robot_core PRIVATE ROBOT_WITH_OPENCV=1)
   target_link_libraries(robot_core PRIVATE ${OpenCV_LIBS})
+endif()
+if(ROBOT_WITH_PIGPIO)
+  target_compile_definitions(robot_core PRIVATE ROBOT_WITH_PIGPIO=1)
+  target_include_directories(robot_core PRIVATE ${PIGPIO_INCLUDE_DIR})
+  target_link_libraries(robot_core PRIVATE ${PIGPIOD_IF2_LIBRARY})
 endif()
 if(ROBOT_WITH_CORAL)
   target_compile_definitions(robot_core PRIVATE ROBOT_WITH_CORAL=1)
@@ -152,6 +169,9 @@ add_executable(robot_tests
   tests/test_safety_gate.cpp
   tests/test_threads.cpp
   tests/test_log.cpp
+  tests/test_pico_text.cpp
+  tests/test_dc_driver.cpp
+  tests/test_mecanum.cpp
 )
 target_compile_options(robot_tests PRIVATE ${ROBOT_WARNINGS})
 target_compile_definitions(robot_tests PRIVATE ROBOT_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/config")
