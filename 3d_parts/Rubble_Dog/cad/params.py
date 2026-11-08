@@ -30,6 +30,8 @@ M3_CSK_D = 6.6            # countersink head diameter for M3 flat head (DIN 7991
 TAB_PILOT_D = 2.8         # M3 self-tapping pilot for servo tab screws
 M3_CBORE_D = 6.2          # counterbore for an M3 socket or button head
 M3_CBORE_DEPTH = 3.2
+HORN_SCREW_BITE = 3.0     # thread length into a tapped horn
+TIBIA_HUB_SCREW_L = 16.0  # tibia to knee horn screw length; sets the counterbore depth
 FEMUR_SKIN = 1.2          # closed skin left on the femur outer face above each pilot
 FIT = 0.3                 # clearance per side around a servo body
 
@@ -38,26 +40,26 @@ FEMUR_LEN = 110.0         # hip axis to knee axis
 TIBIA_LEN = 140.0         # knee axis to the foot bolt holes
 
 # --- Femur ---
-FEMUR_T = 7.0             # plate thickness
-FEMUR_W = 34.0            # plate width
-FEMUR_HUB_R = 17.0
+FEMUR_T = 12.0             # plate thickness
+FEMUR_W = 40.0            # plate width
+FEMUR_HUB_R = 20.0
 FEMUR_CENTER_HOLE = 7.0   # clears the horn center screw head
 FEMUR_HORN_HOLE = HORN_D + 2.0  # knee horn sits inside this hole
 CRADLE_SIDE = 5.0         # cradle wall beside the servo body
 CRADLE_END = 10.0         # cradle wall at each end, under the tabs
-FEMUR_SLOT = (26.0, 60.0, 12.0)  # lightening slot: from y, to y, width
+FEMUR_SLOT = (30.0, 58.0, 12.0)  # lightening slot: from y, to y, width
 
 # --- Tibia ---
-TIBIA_T = 9.0             # main body thickness
+TIBIA_T = 14.0             # main body thickness
 TIBIA_TIP_T = 6.0         # tip thickness, fits the 6.3 mm slot in the Athena foot
 TIBIA_TIP_LEN = 30.0      # foot holes to the step from TIBIA_TIP_T up to TIBIA_T
-TIBIA_HUB_R = 16.0
+TIBIA_HUB_R = 20.0
 TIBIA_TIP_R = 12.0
-TIBIA_PAD_D = 19.0        # sits on the knee horn face only
+TIBIA_PAD_D = 20.0        # sits on the knee horn face, inside the femur's knee hole
 TIBIA_GAP = 2.0           # tibia inner face to femur outer face
 FOOT_HOLE_D = 4.4
 FOOT_HOLE_SPACING = 15.0  # across the tibia, same as the Athena foot
-TIBIA_SLOT = (30.0, 100.0, 7.0)
+TIBIA_SLOT = (34.0, 100.0, 8.0)
 
 # --- Hip (Athena pelvis cut down to one servo slot) ---
 HIP_H = 20.0              # part thickness
@@ -72,3 +74,4 @@ HIP_TAB_PILOT_DEPTH = 7.0  # blind, so the tab screws stop above the horn screws
 # Derived
 # The pad spans from the knee horn face to the tibia inner face.
 TIBIA_PAD_H = max(0.0, FEMUR_T + TIBIA_GAP - HORN_FACE_ABOVE_TOP)
+TIBIA_CBORE_DEPTH = TIBIA_T + TIBIA_PAD_H - (TIBIA_HUB_SCREW_L - HORN_SCREW_BITE)

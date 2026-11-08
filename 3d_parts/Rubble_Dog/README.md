@@ -31,8 +31,8 @@ The link lengths are the same as Athena, so the inverse kinematics numbers stay 
 | --- | --- | --- |
 | `stl/rubble_hip-left_1.0.stl` | 2 | Fore-left and hind-right legs. Athena pelvis cut down to the one slot on the abduction axis. The pivot holes match Athena. The abduction horn bolts to the outer face of the horn arm |
 | `stl/rubble_hip-right_1.0.stl` | 2 | Fore-right and hind-left legs. Mirror image |
-| `stl/rubble_femur_1.0.stl` | 4 | Same part on all four legs. 7 mm plate, holds the knee servo |
-| `stl/rubble_tibia_1.0.stl` | 4 | Same part on all four legs. 9 mm thick. The last 30 mm steps down to 6 mm with 2 holes 15 mm apart, so the Athena foot (`ares_feet-foot_1.0`) still fits |
+| `stl/rubble_femur_1.0.stl` | 4 | Same part on all four legs. 12 mm plate, 40 mm wide, holds the knee servo |
+| `stl/rubble_tibia_1.0.stl` | 4 | Same part on all four legs. 14 mm thick, 40 mm wide at the knee. An 8 mm pad reaches into the femur's knee hole to sit on the horn. The last 30 mm steps down to 6 mm with 2 holes 15 mm apart, so the Athena foot (`ares_feet-foot_1.0`) still fits |
 
 `step/` has the same parts as STEP for editing in Fusion or Onshape.
 `renders/` has views of each part.
@@ -51,9 +51,9 @@ Start from the settings Matthew used for Athena (PLA, 220 C, 0.2 mm layers, 50% 
 
 - Abduction horn to the hip: 2x M3 x 10 socket head, from the inner face of the horn arm (counterbored), into the tapped horn holes.
 - Hip servo to the hip: 4x M3 x 10, self-tapping into 7 mm deep pilot holes in the top of the arms.
-- Femur to the hip servo horn: 4x M3 x 10 flat head (countersunk), into the tapped horn holes.
-- Knee servo to the femur: 4x M3 x 16, self-tapping into 2.8 mm pilot holes from the servo side.
-- Tibia to the knee servo horn: 4x M3 x 12 socket or button head (counterbored), into the tapped horn holes.
+- Femur to the hip servo horn: 4x M3 x 16 flat head (countersunk), into the tapped horn holes.
+- Knee servo to the femur: 4x M3 x 20, self-tapping into 2.8 mm pilot holes from the servo side.
+- Tibia to the knee servo horn: 4x M3 x 16 socket head, in 9 mm deep counterbores, into the tapped horn holes.
 - Tibia to the Athena foot: 2 screws, same as Athena.
 - 3x 25T aluminum disc horns (20 mm, 4x M3 on a 14 mm circle), with their center screws: abduction, hip, and knee.
 

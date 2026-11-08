@@ -175,8 +175,8 @@ def tibia():
     horn_pts = [(HORN_BOLT_R * math.cos(a), HORN_BOLT_R * math.sin(a)) for a in (0, math.pi / 2, math.pi, 3 * math.pi / 2)]
     through = TIBIA_T + TIBIA_PAD_H + 2
     part = part.cut(cq.Workplane("XY").pushPoints(horn_pts).circle(M3_CLEAR / 2).extrude(through).translate((0, 0, -TIBIA_PAD_H - 1)))
-    part = part.cut(cq.Workplane("XY").pushPoints(horn_pts).circle(M3_CBORE_D / 2).extrude(M3_CBORE_DEPTH + 1)
-                    .translate((0, 0, TIBIA_T - M3_CBORE_DEPTH)))
+    part = part.cut(cq.Workplane("XY").pushPoints(horn_pts).circle(M3_CBORE_D / 2).extrude(TIBIA_CBORE_DEPTH + 1)
+                    .translate((0, 0, TIBIA_T - TIBIA_CBORE_DEPTH)))
     part = part.cut(cq.Workplane("XY").circle(FEMUR_CENTER_HOLE / 2).extrude(through).translate((0, 0, -TIBIA_PAD_H - 1)))
     foot_pts = [(sx * FOOT_HOLE_SPACING / 2, -L) for sx in (-1, 1)]
     part = part.cut(cq.Workplane("XY").pushPoints(foot_pts).circle(FOOT_HOLE_D / 2).extrude(TIBIA_TIP_T + 2).translate((0, 0, -1)))
