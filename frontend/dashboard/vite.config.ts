@@ -6,14 +6,13 @@ const bindingsPath = fileURLToPath(new URL('../../backend/spacetimedb-bindings',
 
 export default defineConfig({
   plugins: [react()],
+  // Relative asset paths, so the same build loads from file:// in the desktop app and from a web server.
+  base: './',
   resolve: {
     alias: { '@bindings': bindingsPath },
     dedupe: ['spacetimedb'],
   },
   server: {
     fs: { allow: [fileURLToPath(new URL('../..', import.meta.url)), bindingsPath] },
-  },
-  build: {
-    rollupOptions: { output: { manualChunks: { leaflet: ['leaflet'] } } },
   },
 });

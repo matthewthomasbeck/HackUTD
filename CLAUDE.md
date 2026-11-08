@@ -32,6 +32,7 @@ Run the simulator checks with `cd backend/sim && npm test && npx tsc --noEmit`.
 Run the glasses service checks with `cd backend/glasses-service && npm test && npx tsc --noEmit`.
 Run the glasses plugin checks with `cd frontend/glasses && npm test && npm run build`.
 Run the dashboard checks with `cd frontend/dashboard && npm test && npm run build`.
+The dashboard is a desktop app: `cd frontend/dashboard && npm run app` (hot reload), `npm run app:pack` (Assess.app); see `docs/specs/dashboard.md`, "Desktop app".
 Run the agent checks with `cd backend/agent && npm test && npx tsc --noEmit`.
 Run the perception checks with `cd backend/perception && python -m pytest`.
 How to run each part is in `backend/README.md` and `frontend/README.md`; integration commands remain in the specs in `docs/specs/`.

@@ -133,8 +133,8 @@ All screens follow design control in `docs/DESIGN.md`: one design file, tokens b
 
 | Surface | Look | Reference |
 | --- | --- | --- |
-| Coordinator dashboard | Light theme for a projector, a pipeline canvas of live cards beside the map, a bottom replay bar, the headline "Critical survivors unattended over 60 s: 0", status always labelled, not color only | Pacioli (Cal Hacks 13.0 SpacetimeDB winner, https://pacilio.vercel.app), UI only, no copied code |
-| Agents panel | One panel: one tint per agent, the live task board, the action log, and a chain view per survivor | Stochastic's agent tints and Agents page (`../Stochastic/docs/design/README.md`) |
+| Coordinator dashboard (Assess, a desktop app) | The real block as a full-screen map with floating cards: who needs help first, the headline "critical unattended over 60 s: 0", rescuers and robots, houses; night-purple top bar; status always labelled, not color only (built 2026-11-08, `docs/specs/dashboard.md`) | Standard Response (Cal Hacks 13.0), Stochastic, HackUTD Zero Day colors; UI only, no copied code |
+| Agents page | The hand-off chain per survivor, a card per agent with its tornado mascot, the database fallback, and the live task board | Stochastic's agent tints and Agents page (`../Stochastic/docs/design/README.md`) |
 | Glasses (G2) and the fallback page | Green on black (black is see-through), large text, map when far, arrow when close | bluebook and tesla-even-g2 (`docs/research/bluebook-reference.md`) |
 | Slides and video | Same tokens and type as the dashboard, real screenshots, one idea per slide | `docs/DESIGN.md` outline; Cal Hacks deck plan and Stochastic evidence cards |
 

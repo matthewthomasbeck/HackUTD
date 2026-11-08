@@ -17,6 +17,11 @@ describe('dashboard connection configuration', () => {
     });
   });
 
+  it('lets ?uri= override the build-time address, for the desktop app server switch', () => {
+    expect(dashboardConfigFromSearch('?db=local&uri=ws%3A%2F%2F127.0.0.1%3A3000', env)).toMatchObject({ db: 'local', uri: 'ws://127.0.0.1:3000' });
+    expect(dashboardConfigFromSearch('?uri=', env)).toMatchObject({ uri: 'wss://example.test' });
+  });
+
   it('scopes tokens by database and screen and treats blocked storage as a fresh identity', () => {
     const storage = new Map<string, string>();
     const local = {

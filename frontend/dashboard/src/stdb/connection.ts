@@ -65,7 +65,8 @@ export function dashboardConfigFromSearch(search: string, env: DashboardEnvironm
     theme,
     view,
     run: params.get('run'),
-    uri: db === 'local' ? env.VITE_STDB_URI_LOCAL || '' : env.VITE_STDB_URI || 'https://maincloud.spacetimedb.com',
+    // ?uri= overrides the build-time address, so the desktop app can switch servers at run time (venue Wi-Fi down).
+    uri: params.get('uri')?.trim() || (db === 'local' ? env.VITE_STDB_URI_LOCAL || '' : env.VITE_STDB_URI || 'https://maincloud.spacetimedb.com'),
     database: env.VITE_STDB_DATABASE || 'assess-0hw81',
     tokenKey: tokenStorageKey(db, screen),
   };
