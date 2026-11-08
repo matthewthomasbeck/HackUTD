@@ -11,7 +11,8 @@ What exists so far (R1 and the C++ part of R0):
 - The fixed-rate main loop (`src/main.cpp`), the local control socket, and `robotctl`.
 - Mock devices. Real device drivers are task R2, so a device with `mock: false` reports FAILED and nothing moves.
 
-Not here yet: the bridge to SpacetimeDB (`bridge/`, R3), systemd and udev files (`system/`, R9), and the Pico firmware (`pico/`, R4).
+Not here yet: the bridge to SpacetimeDB (`bridge/`, R3) and systemd and udev files (`system/`, R9).
+The Pico firmware (`pico/`, R4) has a first version streaming text lines; `pico/README.md` lists what it still lacks.
 
 ## Build
 
