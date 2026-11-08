@@ -47,6 +47,12 @@ Items marked UNCONFIRMED are not verified by a spec or a test; check them once a
 - Dashboard (C2): `npm test` passes 30 tests; the Playwright specs are not written.
 - Agents and perception (Eric): merged locally from `team/eric` into `integration/eric-agents` with 15 integration fixes; the chain (orchestrator proposes, auditor reviews once, comms agent briefs, an idle robot gets a search mission) ran live against the module with `LLM_MODE=mock`, not yet with a real Nemotron key.
 - Robot: the program foundation (state machine, safety gate, threads, mocks) is in `raspberrypi/robot/` (task R1); the bridge to SpacetimeDB and the Pico firmware are not pushed yet, so the sim robot stands in.
+- Judged demo (decision 2026-11-08): hard-coded.
+  Only SpacetimeDB runs live; the simulator scripts the robot (`sim-dog`), the find, the breathing result and critical score, and any rescuer actions.
+  The agents, perception, the real robot, and the real G2 hardware are not live in the judged demo; they are tested separately (agents 109 tests, 8 scenarios, and the Brev validation in `docs/notes/2026-11-08-brev-validation.md`; perception 753 tests).
+  The sim has a new command `search <house>` (short `sr`) and a new timeline `timelines/demo.json`; `npm run sim -- timeline demo` was verified live on a local server (found at 0:14 with no fallback).
+  The run of show is `docs/specs/demo.md`, "Judged demo (hard-coded, 2026-11-08)".
+  The sim crew is minimal (`demo-site.json`, 2026-11-08): two robot dogs (`sim-dog`, `sim-dog-2`), Cayden plus R1 (sim) and R2 (sim), and `extra_sim_rescuers` 0, so the `scale 300` and `stress` runs would need extra helper rescuers.
 
 ### Known mismatches between specs (resolve in C4, announce the result)
 
@@ -133,7 +139,7 @@ What everyone waits on from Cayden, and what Cayden waits on in return.
 | 2. Whole flow, no robot | Simulator `setup`, `scale`, `rescuers`, `spawn`, failures (C3); dashboard live board and Agents panel (C2); fallback glasses page (G1) | Eric (agents need survivors and rescuers to act on), the team (to see the flow) | Eric: perception scores a sim detection; orchestrator proposes; auditor reviews; comms briefs |
 | 3. Robot on the board | Dashboard robot health and map marker; mission approval on the dashboard; checkpoint run lead (C4) | Camille, Matthew | Camille and Matthew: real robot heartbeats, a scripted path, a real breathing clip |
 | 4. End to end | Real G2 plugin (G3) and glasses service (G2) against live data; replay working; measured seconds for the slides | everyone | everyone: their part running at the same time |
-| 5. Demo ready | Slides (C5), video and Devpost (C6), rehearsal runs (C7), `judge.json` timeline | everyone | Matthew: outdoor and robot footage (his M8); every owner: one fallback each tried in rehearsal |
+| 5. Demo ready | Slides (C5), video and Devpost (C6), rehearsal runs (C7), `demo.json` timeline for judging (`judge.json` superseded for judging on 2026-11-08) | everyone | Matthew: outdoor and robot footage (his M8); every owner: one fallback each tried in rehearsal |
 
 ## Phase 0: setup
 
@@ -728,6 +734,7 @@ Outputs and who uses them:
 - `backend/sim/demo-site.json`, committed first: Camille's bridge reads `demo_anchor` (`DEMO_SITE_CONFIG`), the glasses service reads the rescuer start, the dashboard e2e tests read the houses.
 - Sim identities and data on the board: Eric's agents, C2, G2.
 - Timelines `judge.json`, `video.json`, `e2e.json`, `stress.json`: C6, C7, the C2 e2e tests.
+- Timeline `demo.json` (added 2026-11-08): the judged hard-coded demo, used by C7 and on demo day; `judge.json` is superseded for judging and stays as rehearsal and video material.
 
 Files (`demo.md` "Stack and layout"): `backend/sim/{package.json,.env.example,demo-site.json}`, `timelines/*.json`, `assets/rehearsal/`, `assets/sim-thermal/`, `.tokens/` (git-ignored), `src/{cli,config,geo,rng,pool,guard,inject,setup,run,scale,simrobot,rescuers,failures,timeline,status}.ts`, `tests/`.
 
@@ -740,7 +747,9 @@ cd backend/sim
 npm run sim -- coords
 npm run sim -- setup
 npm run sim -- console           # long-running; then type: rs, s 300, rc, rb, h, sp immediate house 8, f4 r2, ok, ?
-npm run sim -- timeline judge    # the whole demo story
+npm run sim -- timeline demo     # the judged demo (hard-coded, 2026-11-08): sim-dog searches house 3 and finds the hidden person
+npm run sim -- search house 3    # short: sr; queue a sim-dog search mission for one house
+npm run sim -- timeline judge    # the original longer demo story (rehearsal and video material since 2026-11-08)
 npm run sim -- timeline judge --dry
 npm run reset                    # republish with --delete-data=always, then setup (never on Maincloud during judging)
 npx vitest run
@@ -759,6 +768,7 @@ Status (2026-11-08): C3.1 to C3.6 are done, and `npm test` passes 20 tests.
 One command dispatcher (`src/dispatch.ts`) serves the console, one-shot commands (`npm run sim -- <command>`), and timelines; `npm run sim -- help` prints the full list.
 The sim robot claims missions with `claim_next_mission`, walks, reports terrain, marks cells (house 4 `partially_searched`), and finds the `hidden` survivors; `robot replay house3` (`rr`), `imbalance`, and `dupes` work.
 Live `timeline` runs are implemented for `e2e`, `judge`, and `video`; `stress` has not been run (it needs 120 rescuers and status sampling).
+Added 2026-11-08: `search <house>` (`sr`) and `timelines/demo.json` for the hard-coded judged demo; `timeline demo` was verified live on a local server (found at 0:14 with no fallback).
 The site is "Demo: tornado, Dallas TX (simulated)", centered on 7716 Worthing St, Dallas TX 75252 (32.9968745, -96.7704708), which is house 3.
 
 Done when: one command runs the whole demo story with no hardware.
@@ -904,6 +914,8 @@ Pitfalls and fixes:
 ### C6. Demo video and Devpost
 
 Goal: outdoor GPS scenario and robot footage (with Matthew), glasses overlay recorded from the fallback page and blended with Screen, 2 to 3 minute cut; Devpost with tracks NVIDIA, State Farm, SpacetimeDB, the public repo link, the video, what we built, and what is unconfirmed.
+Update 2026-11-08: the judged demo is hard-coded, so the Devpost "Live and simulated in the demo" section says only SpacetimeDB ran live and the simulator scripted the robot, the find, the breathing result, the score, and rescuer actions (`docs/devpost-draft.md`).
+The video may still use the longer `video` timeline as material, but any shot of the agents, perception, the real robot, or the real G2 must be labelled as a separate test, not the judged demo.
 Why it matters: the backup if the live demo fails, the only place real GPS and outdoor driving appear, and the submission itself; the SpacetimeDB track requires public source on GitHub.
 Estimate with AI: 1.5 h.
 
@@ -931,7 +943,7 @@ Steps:
 - [ ] C6.2 (20 min) Indoor shots 1 to 5 and 7 to 10 from one `video` timeline run, with OBS or QuickTime capturing both screens; keep "DEMO MODE" and the map attribution visible.
 - [ ] C6.3 (15 min) Record the fallback page in record mode during the walk, and blend it over shot 6 with Screen or Add; caption it "glasses view" the first time.
 - [ ] C6.4 (20 min) Cut to 2 to 3 minutes following the pitch beats; lower-thirds in the tokens and type; full map attribution in the credits.
-- [ ] C6.5 (20 min) Devpost: name, one sentence, what we built, how it works per track, what is live and what is simulated, what is unconfirmed, the public repo link, the video, the screenshots; tracks NVIDIA, State Farm, SpacetimeDB.
+- [ ] C6.5 (20 min) Devpost: name, one sentence, what we built, how it works per track, what is live and what is simulated (hard-coded demo since 2026-11-08: only SpacetimeDB live), what is unconfirmed, the public repo link, the video, the screenshots; tracks NVIDIA, State Farm, SpacetimeDB.
 - [ ] C6.6 (10 min) Submit well before the deadline; open the public page logged out and play the video.
 
 Done when: submitted before the deadline, with the video playing from the Devpost page.
@@ -958,6 +970,8 @@ Pitfalls and fixes:
 ### C7. Rehearsals
 
 Goal: two full runs of `specs/demo.md`, trying every fallback once; a 2-minute pitch with the timing in `docs/DESIGN.md`.
+Update 2026-11-08: the judged demo is hard-coded, so rehearse `npm run sim -- timeline demo` (`docs/specs/demo.md`, "Judged demo (hard-coded, 2026-11-08)").
+Steps C7.1 to C7.3 below were written for the original `judge.json` story, which is superseded for judging; C7.0 replaces them for the judged run.
 Why it matters: checkpoint 5; every beat crosses hardware, models, and networks, and the fallbacks only work if they were tried once.
 Estimate with AI: 1 h.
 
@@ -970,7 +984,8 @@ Outputs and who uses them:
 - A confirmed role per person: presenter, sim operator, robot handler, Cayden on the glasses.
 
 Steps:
-- [ ] C7.1 (15 min) Run 1 of the `demo.md` script with `npm run sim -- timeline judge`; time each beat against the script table.
+- [ ] C7.0 (15 min, added 2026-11-08) Judged run twice: republish Maincloud clean (`spacetime publish assess-0hw81 -p backend/spacetimedb --server maincloud --delete-data=always --yes`), `npm run sim -- setup`, then `npm run sim -- timeline demo`; confirm the find shows on the dashboard and the glasses view (on the G2 or the fallback page); try the `robot replay house3` fallback and the local server once each.
+- [ ] C7.1 (15 min) Run 1 of the `demo.md` script with `npm run sim -- timeline judge`; time each beat against the script table (original plan, superseded for judging on 2026-11-08).
 - [ ] C7.2 (15 min) Fallback drill: `rr` (robot replay), `?db=local` on both screens, fallback glasses page, `f4` on a sim rescuer, the escalation banner instead of the watchdog, `rp` instead of the form.
 - [ ] C7.3 (15 min) Run 2 with the fixes; close the Even app three times and time the release each time.
 - [ ] C7.4 (15 min) The 2-minute pitch twice with the slide timing; cut beats in the `demo.md` order if over time.
@@ -1064,8 +1079,12 @@ Never cut the fallback page, the heartbeat, the acknowledge view, or the release
 
 ## Demo day checklist
 
+Decision 2026-11-08: the judged demo is hard-coded (`docs/specs/demo.md`, "Judged demo (hard-coded, 2026-11-08)", has its own booth checklist).
+The booth items below that need `dog1`, the agents, perception, the Even app, the ring, or the demo walker are for the original live plan and are not needed for the judged run.
+
 Night before or first thing:
-- [ ] Module republished to Maincloud with `--delete-data=always`, then `npm run sim -- setup`; bindings on `main` match the published module.
+- [ ] Module republished to Maincloud clean: `spacetime publish assess-0hw81 -p backend/spacetimedb --server maincloud --delete-data=always --yes` (repo root), then `npm run sim -- setup` from `backend/sim/`; bindings on `main` match the published module.
+- [ ] `npm run sim -- timeline demo --dry` prints the judged steps, and one full `timeline demo` run on the local server finds the person in house 3.
 - [ ] Local SpacetimeDB fallback on Laptop A: `spacetime start --listen-addr 0.0.0.0:3000`, module published there, `?db=local` tested on both screens once.
 - [ ] Map tiles prefetched for the site (`npm run tiles` in the glasses service) and the dashboard area loaded once on the hotspot.
 - [ ] Video backup on two laptops and a phone; deck PDF on two laptops and a phone.
@@ -1079,7 +1098,9 @@ At the booth:
 - [ ] Two screens: Screen A on the projector (`?screen=A`), Screen B facing the judges (`http://<laptop-a-ip>:5180/?screen=B`), presence shows both.
 - [ ] Glasses charged, R1 ring charged and paired, phone charged and plugged in if possible, Even app open, unlocked, in front, plugin loaded by QR.
 - [ ] Fallback glasses page open in mirror mode on a small screen toward the judges; a second tab ready with `&primary=1` if the glasses fail.
-- [ ] `npm run sim -- preflight` (C7 prompt) or `status`: `dog1` online, agents online, perception online, glasses connected, headline 0.
-- [ ] Previous run ended, new run ready; glasses demo walker reset (`R`); `rc`, `h`, `rb` running in the sim console.
-- [ ] Teammate in the pile, booth lights at the rehearsed level, robot at the house 3 front door mark.
+- [ ] Judged demo: `status` shows the site in demo mode and no active run; dashboard and glasses view live on the same database; the presenter knows the line "only SpacetimeDB is live; the simulator scripts the robot and the find".
+- [ ] (Original plan) `npm run sim -- preflight` (C7 prompt) or `status`: `dog1` online, agents online, perception online, glasses connected, headline 0.
+- [ ] Previous run ended, new run ready; then `npm run sim -- timeline demo` for each judge group.
+- [ ] (Original plan) Glasses demo walker reset (`R`); `rc`, `h`, `rb` running in the sim console.
+- [ ] (Original plan) Teammate in the pile, booth lights at the rehearsed level, robot at the house 3 front door mark.
 - [ ] If the network dies: play the video and use the PDF deck.

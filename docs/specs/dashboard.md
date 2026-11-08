@@ -12,6 +12,7 @@ Backend: SpacetimeDB only (TypeScript SDK, `spacetimedb/react` hooks, subscripti
 ## Purpose
 
 The dashboard is the coordinators' live board and the main screen the judges watch.
+Since 2026-11-08 the judged demo is hard-coded: the dashboard is a live client rendering scripted simulator data from SpacetimeDB, and the run of show is `docs/specs/demo.md`, "Judged demo (hard-coded, 2026-11-08)".
 It must show, at a glance from across a room:
 
 - who needs help most (State Farm: urgent needs),
@@ -647,7 +648,7 @@ Chain per survivor (`ChainView.tsx`, `model/chains.ts`), inside the Agents panel
   - the `event_log` rows, which have no `chain_id`: the row whose `id` is the `chain_id`, plus rows with `entity = survivor` and this survivor's id, or `entity = assignment` for its assignments,
   - ordered by `(created_at, id)`.
   If a survivor has more than one `chain_id`, each chain is a section with its own header, newest first.
-- The steps the demo shows, each as one line with the time from the first step, the actor, and a chip:
+- The steps the demo shows, each as one line with the time from the first step, the actor, and a chip (original live plan; since 2026-11-08 the judged demo is hard-coded with no agents running, so no agent steps appear in its chain):
 
   | Step | Source row | Example line |
   | --- | --- | --- |
@@ -782,7 +783,7 @@ Fidelity check: folding all of a finished run's events must give the same `statu
 3. The transport bar shows "Last change `HH:MM:SS.mmm`, `<table>` #`<id>`" from the insert and update callbacks; both screens show the same row at nearly the same time.
 4. Changed rows, cards, and markers flash for 2 s on both screens; canvas edges animate when items flow.
 5. "Sync test" calls `post_briefing(audience = coordinators, text = "Sync test from SCREEN A at HH:MM:SS.mmm", priority = info, survivor_id = none, kind = none)`; each screen shows the text and "received about `<n>` ms after it was sent" (meaningful only with synced clocks).
-6. Demo move: click "Approve" on Screen A while pointing at Screen B, where the mission flips from `proposed` to `queued` and the Robot search edge starts to animate.
+6. Demo move (original live plan, not in the hard-coded judged demo of 2026-11-08): click "Approve" on Screen A while pointing at Screen B, where the mission flips from `proposed` to `queued` and the Robot search edge starts to animate.
 7. Say what makes it work: both screens are plain SpacetimeDB subscribers, with no API server or polling between them.
 
 ## Accessibility and clarity checklist

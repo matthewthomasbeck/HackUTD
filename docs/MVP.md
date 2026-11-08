@@ -36,6 +36,30 @@ What each sponsor offers and expects:
 
 ## The demo we must be able to show
 
+### Decision 2026-11-08: hard-coded demo
+
+Cayden decided on 2026-11-08 that the judged demo is hard-coded (scripted by the simulator).
+Only SpacetimeDB runs live: the Maincloud database `assess-0hw81` (dashboard https://spacetimedb.com/assess-0hw81), or the local fallback server with the same name.
+Every rule, timer, and subscription in the module is real.
+The simulator scripts everything else in the judged demo: the robot (`sim-dog`), the find, the breathing result and critical score, and any rescuer actions.
+The Nemotron agents, the perception service, the real robot, and the real G2 hardware do not run live in the judged demo.
+They exist and are tested separately: the agents (109 tests, 8 scenarios, and the Brev real-model validation in `docs/notes/2026-11-08-brev-validation.md`), perception (753 tests), the robot foundation in `raspberrypi/robot/`, and the Pico firmware in `pico/`.
+The dashboard and the glasses view (on the G2 or the fallback page) are real clients that render live from SpacetimeDB subscriptions of the scripted data.
+
+The judged story is short and ends at the find:
+
+1. The robot dog enters 7716 Worthing St (house 3) and searches inside.
+2. It finds the hidden person: IMMEDIATE, breathing 8/min, back bedroom under debris.
+3. The dashboard and the glasses view show the find, and the demo ends there.
+
+The judged demo has no scale 300 run, no glasses walk, no disconnect beat, and no agent-stop beat.
+How to run it is in `docs/specs/demo.md` ("Judged demo (hard-coded, 2026-11-08)"): `npm run sim -- setup`, then `npm run sim -- timeline demo` from `backend/sim/`.
+
+### Original plan (2026-11-07, superseded for the judged demo on 2026-11-08)
+
+The list below is the original live demo plan.
+It stays as the plan for rehearsal and video material, not for judging.
+
 1. Dim light, a teammate partly hidden under boxes and blankets (mock rubble).
 2. The robot drives in, finds the warm body with the thermal camera, and stops.
 3. It records about 20 seconds of camera video and measures breathing.
@@ -84,6 +108,7 @@ What each sponsor offers and expects:
 - Map view on the glasses when far, switching to the arrow when close.
 - Replay of a run on the dashboard.
 - Simulator that adds hundreds of survivors across the area to show "at scale", with the unattended headline staying at 0.
+  (This applied to the earlier rehearsal plan; since 2026-11-08 the sim crew is minimal, R1 and R2 only with `extra_sim_rescuers` 0, so it would need extra helper rescuers, and it is not in the judged demo.)
 - Person reports: a coordinator enters what family or neighbors report (2 people live in house 4, or someone is safe); a house with anyone unaccounted for stays open.
 - Blocked or partly covered areas marked partially searched, never clear.
 
@@ -167,6 +192,9 @@ Test real GPS and outdoor runs outside beforehand, and show them in the video.
 | Maincloud or internet down | Local SpacetimeDB server on a laptop |
 | Nemotron API slow or failing tool calls | The database's watchdog fallback keeps assigning; the agent uses strict JSON tools and a short timeout |
 | Robot breaks | Simulator robot plus the recorded video |
+
+Since 2026-11-08 the judged demo is hard-coded, so the robot, breathing, glasses, and Nemotron rows above apply to rehearsal and video runs, not to judging.
+For the judged demo the fallbacks are: if the scripted search does not report the find, the timeline runs `robot replay house3`; if Maincloud or the internet is down, point the sim and both clients at the local server; if the glasses view fails on the G2, use the fallback page.
 
 ## Accounts to set up now
 

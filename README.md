@@ -36,6 +36,7 @@ The team's code repo is https://github.com/matthewthomasbeck/HackUTD.
 | `raspberrypi/`, `pico/` | Robot program, bridge, and firmware (Camille) | Robot program foundation in `raspberrypi/robot/` (state machine, safety gate, mocks); the bridge and Pico firmware are not pushed yet, so the sim robot stands in |
 
 How to run each part is in `backend/README.md` and `frontend/README.md`.
+
 Every client reads `STDB_URI` and `STDB_DATABASE` (`assess-0hw81`); browser apps read `VITE_STDB_URI` and `VITE_STDB_DATABASE`.
 Keys and tokens go in git-ignored `.env` files, because the repo is public.
 
@@ -50,3 +51,20 @@ cd frontend/glasses && npm test && npm run build
 cd backend/agent && npm test && npx tsc --noEmit          # after the integration merge
 cd backend/perception && python -m pytest                 # after the integration merge
 ```
+
+## Run the demo
+
+The judged demo is hard-coded (decision 2026-11-08): only SpacetimeDB runs live, and the simulator scripts the robot, the find, the breathing result and critical score, and any rescuer actions.
+The agents, perception, the real robot, and the real G2 hardware are built and tested separately, and they do not run in the judged demo.
+The dashboard and the glasses view (on the G2 or the fallback page) render the scripted data live from SpacetimeDB.
+The story ends when the robot dog finds the hidden person in 7716 Worthing St (house 3).
+
+```bash
+cd backend/sim
+export STDB_URI=https://maincloud.spacetimedb.com STDB_DATABASE=assess-0hw81   # or the local fallback server
+npm run sim -- setup
+npm run sim -- timeline demo
+```
+
+Before judging, republish Maincloud clean from the repo root with `spacetime publish assess-0hw81 -p backend/spacetimedb --server maincloud --delete-data=always --yes`, then run `setup` again.
+The full run of show is in `docs/specs/demo.md`, "Judged demo (hard-coded, 2026-11-08)".

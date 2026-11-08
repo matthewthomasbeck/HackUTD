@@ -2,6 +2,7 @@
 
 Status: draft for C6, updated 2026-11-08.
 This is not a submission-ready entry; replace each `TBD` only with evidence from an integrated run.
+Decision 2026-11-08: the judged demo is hard-coded; only SpacetimeDB runs live, and the simulator scripts everything else (see "Live and simulated in the demo").
 
 ## Inspiration
 
@@ -14,6 +15,7 @@ One 1980 southern Italy earthquake study found that 87.9% of the rescued casualt
 Rubble Search is a prototype for a robot dog that searches a disaster site, reports possible survivors, and helps a human rescuer reach the most critical people first.
 The planned flow combines thermal confirmation, a camera-based breathing check, a confidence-based critical score, coordinated assignments, and navigation cues on Even Realities G2 glasses.
 The robot does not diagnose a person, and the system does not claim to see through rubble.
+In the judged demo, the simulator scripts the robot's search of one house and the find, and SpacetimeDB, the dashboard, and the glasses view run live on that scripted data.
 
 ## How we built it
 
@@ -24,23 +26,26 @@ The module holds every survivor, search cell, robot, mission, assignment, briefi
 Every timer is a schedule-table row inside the database: assignment and proposal leases, rescuer and robot heartbeats, two-level escalation, the agent watchdog, and a sweep that repairs missing timers.
 If no agent proposes a rescuer in time, the watchdog assigns the nearest one itself, so the "no one overlooked" guarantee holds with every agent down.
 A dropped glasses connection releases its assignment after a 2 s grace, and per-rescuer views (`my_assignment`, `my_briefing`, `my_survivor`) give each pair of glasses only its own rows.
-A 62-check smoke suite runs against a local SpacetimeDB server; Maincloud deployment is still `TBD`.
+A 62-check smoke suite runs against a local SpacetimeDB server, and the module is published on Maincloud as `assess-0hw81` (dashboard https://spacetimedb.com/assess-0hw81).
 
 ### Nemotron agents
 
 The planned orchestrator, auditor, and comms agent hand work to one another through a durable `agent_task` board.
 The model and tool-call flow is `TBD` until the agent implementation and hosted Nemotron smoke test are complete.
+The agents are tested separately (109 tests and 8 scenarios, plus a real-model validation on Brev in `docs/notes/2026-11-08-brev-validation.md`), and they do not run in the judged demo.
 
 ### Robot and perception
 
 The planned robot searches a mock rubble site, sends a detection, and records a camera clip for breathing analysis.
 Robot detection, breathing results, model performance, thermal range, and hardware behavior are `TBD` until measured during an integrated run.
+The perception service (753 tests), the robot program foundation (`raspberrypi/robot/`), and the Pico firmware (`pico/`) are built and tested separately, and they do not run in the judged demo; the simulator's `sim-dog` stands in for the robot.
 
 ### G2 glasses
 
 The glasses show a critical-survivor count, an acknowledgement prompt, and a map or direction arrow for an accepted assignment.
 A glasses service holds one SpacetimeDB connection per rescuer and pushes live changes to the Even Hub plugin and to a fallback web page drawn like the lens.
 Against a local server, a proposal reaches the glasses, an accept moves the survivor to assigned, and closing the glasses connection releases the assignment; real-lens behavior is `TBD`.
+In the judged demo, the glasses view (on the G2 or the fallback page) renders the scripted find live from SpacetimeDB subscriptions.
 
 ## Challenges
 
@@ -69,13 +74,23 @@ Items in this list are planned or in progress unless demonstrated in the final r
 
 ## Live and simulated in the demo
 
-Live components: `TBD` after rehearsal.
-Simulated components: `TBD` after rehearsal, including any extra survivors or rescuers and any injected failures.
+The judged demo is hard-coded (decision 2026-11-08).
+
+Live: SpacetimeDB only, the Maincloud database `assess-0hw81` (or a local SpacetimeDB server with the same name as a fallback).
+Every rule, timer, and subscription in the module is real.
+The dashboard and the glasses view (on the G2 or the fallback page) are real clients that render live from SpacetimeDB subscriptions.
+
+Simulated (scripted by the simulator): the robot (`sim-dog`), its search of 7716 Worthing St (house 3), the find, the breathing result (8 per minute) and critical score (IMMEDIATE), and any rescuer actions.
+
+Not live in the judged demo: the Nemotron agents, the perception service, the real robot, and the real G2 hardware.
+They are built and tested separately: agents 109 tests, 8 scenarios, and a Brev real-model validation; perception 753 tests; the robot foundation in `raspberrypi/robot/` and the Pico firmware in `pico/`.
+
+The story ends at the find; the judged demo has no scale run, no glasses walk, no disconnect, and no agent stop.
 Measured results: `TBD`; no timing, accuracy, range, or scale result is claimed in this draft.
 
 ## Unconfirmed
 
-- Maincloud deployment and database description output.
+- Database description output (`spacetime describe`) for the published Maincloud module.
 - Nemotron hosted tool calls and agent decisions.
 - End-to-end robot detection, breathing analysis, and critical scoring.
 - Thermal detection range and breathing evaluation results.
