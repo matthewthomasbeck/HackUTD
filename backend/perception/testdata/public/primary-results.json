@@ -1,0 +1,2569 @@
+{
+  "checked": "2026-11-08",
+  "pipeline": "primary (perception.breathing.analyze)",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "modes": {
+    "reference": "operator ROI where the reference had one, center ROI for MPSC-RR, YOLO off",
+    "service": "no operator ROI, YOLO as config.toml sets it"
+  },
+  "limitations": [
+    "VRWi: four windows from one seated subject; belt-derived truth; time-zero alignment follows the authors' preprocessing and was not independently verified.",
+    "MPSC-RR has no public rate labels in the pinned release; its rows report coverage and abstentions only, never accuracy.",
+    "Synthetic clips have known rates but are not camera footage.",
+    "No threshold was tuned on these windows for this run."
+  ],
+  "notes": [],
+  "summary": {
+    "synthetic/reference": {
+      "windows": 15,
+      "failures": 0,
+      "detected": 8,
+      "not_detected": 1,
+      "abstained": 6,
+      "abstain_reasons": {
+        "camera or scene moved": 1,
+        "clip too dark, needs light": 1,
+        "clip too noisy (low light)": 1,
+        "clip too short": 1,
+        "lighting or exposure changed": 1,
+        "no texture on chest region": 1
+      },
+      "coverage": 0.533,
+      "median_confidence": 0.4,
+      "labelled_windows": 7,
+      "labelled_with_rate": 7,
+      "mae_bpm": 0.01,
+      "within_3_bpm": "7/7",
+      "confident_within_3_bpm": "7/7",
+      "expect_met": "15/15"
+    },
+    "vrwi/reference": {
+      "windows": 4,
+      "failures": 0,
+      "detected": 3,
+      "not_detected": 0,
+      "abstained": 1,
+      "abstain_reasons": {
+        "lighting or exposure changed": 1
+      },
+      "coverage": 0.75,
+      "median_confidence": 0.34,
+      "labelled_windows": 4,
+      "labelled_with_rate": 3,
+      "mae_bpm": 3.06,
+      "within_3_bpm": "2/4",
+      "confident_within_3_bpm": "1/1"
+    },
+    "mpsc/reference": {
+      "windows": 16,
+      "failures": 0,
+      "detected": 4,
+      "not_detected": 0,
+      "abstained": 12,
+      "abstain_reasons": {
+        "camera or scene moved": 4,
+        "lighting or exposure changed": 8
+      },
+      "coverage": 0.25,
+      "median_confidence": 0.0,
+      "accuracy": "not reported: MPSC-RR has no public rate labels"
+    },
+    "synthetic/service": {
+      "windows": 15,
+      "failures": 0,
+      "detected": 8,
+      "not_detected": 0,
+      "abstained": 7,
+      "abstain_reasons": {
+        "breathing unclear": 2,
+        "camera or scene moved": 1,
+        "clip too dark, needs light": 1,
+        "clip too noisy (low light)": 1,
+        "clip too short": 1,
+        "lighting or exposure changed": 1
+      },
+      "coverage": 0.533,
+      "median_confidence": 0.28,
+      "labelled_windows": 7,
+      "labelled_with_rate": 7,
+      "mae_bpm": 0.01,
+      "within_3_bpm": "7/7",
+      "confident_within_3_bpm": "0/0",
+      "expect_met": "14/15"
+    },
+    "vrwi/service": {
+      "windows": 4,
+      "failures": 0,
+      "detected": 3,
+      "not_detected": 0,
+      "abstained": 1,
+      "abstain_reasons": {
+        "lighting or exposure changed": 1
+      },
+      "coverage": 0.75,
+      "median_confidence": 0.25,
+      "labelled_windows": 4,
+      "labelled_with_rate": 3,
+      "mae_bpm": 0.67,
+      "within_3_bpm": "3/4",
+      "confident_within_3_bpm": "0/0"
+    },
+    "mpsc/service": {
+      "windows": 16,
+      "failures": 0,
+      "detected": 4,
+      "not_detected": 0,
+      "abstained": 12,
+      "abstain_reasons": {
+        "camera or scene moved": 5,
+        "lighting or exposure changed": 7
+      },
+      "coverage": 0.25,
+      "median_confidence": 0.0,
+      "accuracy": "not reported: MPSC-RR has no public rate labels"
+    }
+  },
+  "rows": [
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "f0.15",
+      "truth_bpm": 9.0,
+      "expect": "detected",
+      "file": "backend/perception/data/benchmarks/synthetic/f0.15.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "detected",
+      "rate_bpm": 8.9,
+      "confidence": 0.8,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 2.52,
+      "abs_error_bpm": 0.1,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 75.0,
+        "confidence": 0.4,
+        "reasons": [
+          "breathing 9/min, under 10",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "f0.25",
+      "truth_bpm": 15.0,
+      "expect": "detected",
+      "file": "backend/perception/data/benchmarks/synthetic/f0.25.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "detected",
+      "rate_bpm": 15.0,
+      "confidence": 0.8,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 2.2,
+      "abs_error_bpm": 0.0,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.4,
+        "reasons": [
+          "breathing 15/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "f0.4",
+      "truth_bpm": 24.0,
+      "expect": "detected",
+      "file": "backend/perception/data/benchmarks/synthetic/f0.4.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "detected",
+      "rate_bpm": 24.0,
+      "confidence": 0.8,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 2.18,
+      "abs_error_bpm": 0.0,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.4,
+        "reasons": [
+          "breathing 24/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "f0.6",
+      "truth_bpm": 36.0,
+      "expect": "detected",
+      "file": "backend/perception/data/benchmarks/synthetic/f0.6.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "detected",
+      "rate_bpm": 36.0,
+      "confidence": 0.8,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 2.13,
+      "abs_error_bpm": 0.0,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 75.0,
+        "confidence": 0.4,
+        "reasons": [
+          "breathing 36/min, over 30",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "f0.9",
+      "truth_bpm": 54.0,
+      "expect": "detected",
+      "file": "backend/perception/data/benchmarks/synthetic/f0.9.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "detected",
+      "rate_bpm": 54.0,
+      "confidence": 0.8,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 2.14,
+      "abs_error_bpm": 0.0,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 75.0,
+        "confidence": 0.4,
+        "reasons": [
+          "breathing 54/min, over 30",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "small_amp",
+      "truth_bpm": 15.0,
+      "expect": "detected_or_unknown",
+      "file": "backend/perception/data/benchmarks/synthetic/small_amp.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "detected",
+      "rate_bpm": 15.0,
+      "confidence": 0.8,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 2.0,
+      "abs_error_bpm": 0.0,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.4,
+        "reasons": [
+          "breathing 15/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "short",
+      "truth_bpm": null,
+      "expect": "clip too short",
+      "file": "backend/perception/data/benchmarks/synthetic/short.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "clip too short",
+      "reasons": [
+        "clip too short"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 0.64,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "clip too short",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "still",
+      "truth_bpm": null,
+      "expect": "not_detected",
+      "file": "backend/perception/data/benchmarks/synthetic/still.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "not_detected",
+      "rate_bpm": null,
+      "confidence": 0.24,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 2.16,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "no signs of life detected, low confidence",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "sway",
+      "truth_bpm": null,
+      "expect": "camera or scene moved",
+      "file": "backend/perception/data/benchmarks/synthetic/sway.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "camera or scene moved",
+      "reasons": [
+        "camera or scene moved"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 1.99,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "camera or scene moved",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "flicker",
+      "truth_bpm": null,
+      "expect": "lighting or exposure changed",
+      "file": "backend/perception/data/benchmarks/synthetic/flicker.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 2.0,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "flat_torso",
+      "truth_bpm": null,
+      "expect": "no texture on chest region",
+      "file": "backend/perception/data/benchmarks/synthetic/flat_torso.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "no texture on chest region",
+      "reasons": [
+        "no texture on chest region"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 1.17,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "no texture on chest region",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "dark",
+      "truth_bpm": null,
+      "expect": "clip too dark, needs light",
+      "file": "backend/perception/data/benchmarks/synthetic/dark.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "clip too dark, needs light",
+      "reasons": [
+        "clip too dark, needs light"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 1.39,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "clip too dark, needs light",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "noisy",
+      "truth_bpm": null,
+      "expect": "clip too noisy (low light)",
+      "file": "backend/perception/data/benchmarks/synthetic/noisy.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "clip too noisy (low light)",
+      "reasons": [
+        "clip too noisy (low light)"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 1.23,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "clip too noisy (low light)",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "fan",
+      "truth_bpm": 15.0,
+      "expect": "detected",
+      "file": "backend/perception/data/benchmarks/synthetic/fan.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "detected",
+      "rate_bpm": 15.0,
+      "confidence": 0.8,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 2.02,
+      "abs_error_bpm": 0.0,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.4,
+        "reasons": [
+          "breathing 15/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "irregular",
+      "truth_bpm": null,
+      "expect": "not_confidently_wrong",
+      "file": "backend/perception/data/benchmarks/synthetic/irregular.avi",
+      "mode": "reference",
+      "operator_roi": [
+        210,
+        140,
+        220,
+        200
+      ],
+      "result": "detected",
+      "rate_bpm": 18.0,
+      "confidence": 0.4,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 2.02,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.2,
+        "reasons": [
+          "breathing 18/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "vrwi",
+      "subject": "M14",
+      "window": "030s",
+      "truth_bpm": 14.39,
+      "reference_accepted": true,
+      "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_030s.mp4",
+      "mode": "reference",
+      "operator_roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 2.05,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "vrwi",
+      "subject": "M14",
+      "window": "060s",
+      "truth_bpm": 18.68,
+      "reference_accepted": true,
+      "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_060s.mp4",
+      "mode": "reference",
+      "operator_roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "result": "detected",
+      "rate_bpm": 18.7,
+      "confidence": 0.8,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 1.97,
+      "abs_error_bpm": 0.02,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.4,
+        "reasons": [
+          "breathing 19/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "vrwi",
+      "subject": "M14",
+      "window": "090s",
+      "truth_bpm": 19.12,
+      "reference_accepted": true,
+      "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_090s.mp4",
+      "mode": "reference",
+      "operator_roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "result": "detected",
+      "rate_bpm": 11.1,
+      "confidence": 0.27,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 1.92,
+      "abs_error_bpm": 8.02,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.14,
+        "reasons": [
+          "breathing 11/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "vrwi",
+      "subject": "M14",
+      "window": "120s",
+      "truth_bpm": 17.14,
+      "reference_accepted": true,
+      "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_120s.mp4",
+      "mode": "reference",
+      "operator_roi": [
+        250,
+        550,
+        600,
+        500
+      ],
+      "result": "detected",
+      "rate_bpm": 16.0,
+      "confidence": 0.4,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "operator",
+      "visibility_pct": null,
+      "runtime_s": 2.0,
+      "abs_error_bpm": 1.14,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.2,
+        "reasons": [
+          "breathing 16/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_front_030s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_front_030s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 1.02,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_front_060s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_front_060s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 1.01,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_front_090s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_front_090s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 24.0,
+      "confidence": 0.4,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 1.0,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.2,
+        "reasons": [
+          "breathing 24/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_front_120s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_front_120s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 26.3,
+      "confidence": 0.4,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 1.02,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.2,
+        "reasons": [
+          "breathing 26/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_lying_030s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_lying_030s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "camera or scene moved",
+      "reasons": [
+        "camera or scene moved"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.71,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "camera or scene moved",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_lying_060s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_lying_060s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "camera or scene moved",
+      "reasons": [
+        "camera or scene moved"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.67,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "camera or scene moved",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_lying_090s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_lying_090s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "camera or scene moved",
+      "reasons": [
+        "camera or scene moved"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.67,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "camera or scene moved",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_lying_120s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_lying_120s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "camera or scene moved",
+      "reasons": [
+        "camera or scene moved"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.67,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "camera or scene moved",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_front_030s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_front_030s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.97,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_front_060s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_front_060s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.99,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_front_090s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_front_090s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.97,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_front_120s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_front_120s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.98,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_lying_030s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_lying_030s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 9.1,
+      "confidence": 0.24,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.77,
+      "score": {
+        "level": "immediate",
+        "score": 75.0,
+        "confidence": 0.12,
+        "reasons": [
+          "breathing 9/min, under 10",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_lying_060s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_lying_060s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.73,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_lying_090s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_lying_090s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 11.1,
+      "confidence": 0.4,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.73,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.2,
+        "reasons": [
+          "breathing 11/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_lying_120s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_lying_120s.mp4",
+      "mode": "reference",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.72,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "f0.15",
+      "truth_bpm": 9.0,
+      "expect": "detected",
+      "file": "backend/perception/data/benchmarks/synthetic/f0.15.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 8.9,
+      "confidence": 0.4,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 3.68,
+      "abs_error_bpm": 0.1,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 75.0,
+        "confidence": 0.2,
+        "reasons": [
+          "breathing 9/min, under 10",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "f0.25",
+      "truth_bpm": 15.0,
+      "expect": "detected",
+      "file": "backend/perception/data/benchmarks/synthetic/f0.25.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 15.0,
+      "confidence": 0.4,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 2.14,
+      "abs_error_bpm": 0.0,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.2,
+        "reasons": [
+          "breathing 15/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "f0.4",
+      "truth_bpm": 24.0,
+      "expect": "detected",
+      "file": "backend/perception/data/benchmarks/synthetic/f0.4.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 24.0,
+      "confidence": 0.4,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 2.15,
+      "abs_error_bpm": 0.0,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.2,
+        "reasons": [
+          "breathing 24/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "f0.6",
+      "truth_bpm": 36.0,
+      "expect": "detected",
+      "file": "backend/perception/data/benchmarks/synthetic/f0.6.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 36.0,
+      "confidence": 0.4,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 2.14,
+      "abs_error_bpm": 0.0,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 75.0,
+        "confidence": 0.2,
+        "reasons": [
+          "breathing 36/min, over 30",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "f0.9",
+      "truth_bpm": 54.0,
+      "expect": "detected",
+      "file": "backend/perception/data/benchmarks/synthetic/f0.9.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 54.0,
+      "confidence": 0.4,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 2.15,
+      "abs_error_bpm": 0.0,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 75.0,
+        "confidence": 0.2,
+        "reasons": [
+          "breathing 54/min, over 30",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "small_amp",
+      "truth_bpm": 15.0,
+      "expect": "detected_or_unknown",
+      "file": "backend/perception/data/benchmarks/synthetic/small_amp.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 15.0,
+      "confidence": 0.4,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 2.14,
+      "abs_error_bpm": 0.0,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.2,
+        "reasons": [
+          "breathing 15/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "short",
+      "truth_bpm": null,
+      "expect": "clip too short",
+      "file": "backend/perception/data/benchmarks/synthetic/short.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "clip too short",
+      "reasons": [
+        "clip too short"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.73,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "clip too short",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "still",
+      "truth_bpm": null,
+      "expect": "not_detected",
+      "file": "backend/perception/data/benchmarks/synthetic/still.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.28,
+      "reason": "breathing unclear",
+      "reasons": [
+        "breathing unclear"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 2.19,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "sway",
+      "truth_bpm": null,
+      "expect": "camera or scene moved",
+      "file": "backend/perception/data/benchmarks/synthetic/sway.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "camera or scene moved",
+      "reasons": [
+        "camera or scene moved"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 2.14,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "camera or scene moved",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "flicker",
+      "truth_bpm": null,
+      "expect": "lighting or exposure changed",
+      "file": "backend/perception/data/benchmarks/synthetic/flicker.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 2.15,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "flat_torso",
+      "truth_bpm": null,
+      "expect": "no texture on chest region",
+      "file": "backend/perception/data/benchmarks/synthetic/flat_torso.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.28,
+      "reason": "breathing unclear",
+      "reasons": [
+        "breathing unclear"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 2.18,
+      "expect_met": false,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "dark",
+      "truth_bpm": null,
+      "expect": "clip too dark, needs light",
+      "file": "backend/perception/data/benchmarks/synthetic/dark.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "clip too dark, needs light",
+      "reasons": [
+        "clip too dark, needs light"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 1.47,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "clip too dark, needs light",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "noisy",
+      "truth_bpm": null,
+      "expect": "clip too noisy (low light)",
+      "file": "backend/perception/data/benchmarks/synthetic/noisy.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "clip too noisy (low light)",
+      "reasons": [
+        "clip too noisy (low light)"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 1.34,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "clip too noisy (low light)",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "fan",
+      "truth_bpm": 15.0,
+      "expect": "detected",
+      "file": "backend/perception/data/benchmarks/synthetic/fan.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 15.0,
+      "confidence": 0.4,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 2.23,
+      "abs_error_bpm": 0.0,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.2,
+        "reasons": [
+          "breathing 15/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "synthetic",
+      "subject": "synthetic",
+      "window": "irregular",
+      "truth_bpm": null,
+      "expect": "not_confidently_wrong",
+      "file": "backend/perception/data/benchmarks/synthetic/irregular.avi",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 18.0,
+      "confidence": 0.2,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 2.27,
+      "expect_met": true,
+      "score": {
+        "level": "immediate",
+        "score": 45.0,
+        "confidence": 0.1,
+        "reasons": [
+          "breathing 18/min",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "vrwi",
+      "subject": "M14",
+      "window": "030s",
+      "truth_bpm": 14.39,
+      "reference_accepted": true,
+      "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_030s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 13.7,
+      "confidence": 0.4,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "pose",
+      "visibility_pct": 41.2,
+      "runtime_s": 3.74,
+      "abs_error_bpm": 0.69,
+      "score": {
+        "level": "delayed",
+        "score": 32.6,
+        "confidence": 0.2,
+        "reasons": [
+          "breathing 14/min",
+          "about 41% of body visible (approx.)",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "vrwi",
+      "subject": "M14",
+      "window": "060s",
+      "truth_bpm": 18.68,
+      "reference_accepted": true,
+      "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_060s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 18.5,
+      "confidence": 0.25,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "pose",
+      "visibility_pct": 41.2,
+      "runtime_s": 3.61,
+      "abs_error_bpm": 0.18,
+      "score": {
+        "level": "delayed",
+        "score": 32.6,
+        "confidence": 0.12,
+        "reasons": [
+          "breathing 18/min",
+          "about 41% of body visible (approx.)",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "vrwi",
+      "subject": "M14",
+      "window": "090s",
+      "truth_bpm": 19.12,
+      "reference_accepted": true,
+      "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_090s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "pose",
+      "visibility_pct": 52.9,
+      "runtime_s": 3.61,
+      "score": {
+        "level": "immediate",
+        "score": 64.1,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "about 53% of body visible (approx.)",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "vrwi",
+      "subject": "M14",
+      "window": "120s",
+      "truth_bpm": 17.14,
+      "reference_accepted": true,
+      "file": "backend/perception/codex-reference/data/vrwi/clips/M14_resting_120s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 16.0,
+      "confidence": 0.25,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "pose",
+      "visibility_pct": 47.1,
+      "runtime_s": 3.65,
+      "abs_error_bpm": 1.14,
+      "score": {
+        "level": "delayed",
+        "score": 30.9,
+        "confidence": 0.12,
+        "reasons": [
+          "breathing 16/min",
+          "about 47% of body visible (approx.)",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_front_030s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_front_030s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "camera or scene moved",
+      "reasons": [
+        "camera or scene moved"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "pose",
+      "visibility_pct": 11.8,
+      "runtime_s": 1.04,
+      "score": {
+        "level": "immediate",
+        "score": 76.5,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "camera or scene moved",
+          "about 12% of body visible (approx.)",
+          "mostly buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_front_060s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_front_060s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 22.1,
+      "confidence": 0.5,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "pose",
+      "visibility_pct": 11.8,
+      "runtime_s": 1.09,
+      "score": {
+        "level": "immediate",
+        "score": 41.5,
+        "confidence": 0.25,
+        "reasons": [
+          "breathing 22/min",
+          "about 12% of body visible (approx.)",
+          "mostly buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_front_090s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_front_090s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 24.0,
+      "confidence": 0.5,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "pose",
+      "visibility_pct": 11.8,
+      "runtime_s": 1.01,
+      "score": {
+        "level": "immediate",
+        "score": 41.5,
+        "confidence": 0.25,
+        "reasons": [
+          "breathing 24/min",
+          "about 12% of body visible (approx.)",
+          "mostly buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_front_120s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_front_120s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 26.3,
+      "confidence": 0.5,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "pose",
+      "visibility_pct": 11.8,
+      "runtime_s": 1.0,
+      "score": {
+        "level": "immediate",
+        "score": 41.5,
+        "confidence": 0.25,
+        "reasons": [
+          "breathing 26/min",
+          "about 12% of body visible (approx.)",
+          "mostly buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_lying_030s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_lying_030s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "camera or scene moved",
+      "reasons": [
+        "camera or scene moved"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.74,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "camera or scene moved",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_lying_060s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_lying_060s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "camera or scene moved",
+      "reasons": [
+        "camera or scene moved"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.7,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "camera or scene moved",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_lying_090s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_lying_090s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "camera or scene moved",
+      "reasons": [
+        "camera or scene moved"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.7,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "camera or scene moved",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s1",
+      "window": "s1_lying_120s",
+      "truth_bpm": null,
+      "split": "tune",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s1_lying_120s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "camera or scene moved",
+      "reasons": [
+        "camera or scene moved"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.7,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "camera or scene moved",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_front_030s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_front_030s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "pose",
+      "visibility_pct": 11.8,
+      "runtime_s": 1.22,
+      "score": {
+        "level": "immediate",
+        "score": 76.5,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "about 12% of body visible (approx.)",
+          "mostly buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_front_060s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_front_060s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "pose",
+      "visibility_pct": 11.8,
+      "runtime_s": 1.03,
+      "score": {
+        "level": "immediate",
+        "score": 76.5,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "about 12% of body visible (approx.)",
+          "mostly buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_front_090s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_front_090s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "pose",
+      "visibility_pct": 11.8,
+      "runtime_s": 1.03,
+      "score": {
+        "level": "immediate",
+        "score": 76.5,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "about 12% of body visible (approx.)",
+          "mostly buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_front_120s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_front_120s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [
+        "background gate unavailable"
+      ],
+      "abstained": true,
+      "roi_source": "pose",
+      "visibility_pct": 11.8,
+      "runtime_s": 1.07,
+      "score": {
+        "level": "immediate",
+        "score": 76.5,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "about 12% of body visible (approx.)",
+          "mostly buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_lying_030s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_lying_030s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "detected",
+      "rate_bpm": 9.1,
+      "confidence": 0.24,
+      "reason": null,
+      "reasons": [],
+      "warnings": [],
+      "abstained": false,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.74,
+      "score": {
+        "level": "immediate",
+        "score": 75.0,
+        "confidence": 0.12,
+        "reasons": [
+          "breathing 9/min, under 10",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_lying_060s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_lying_060s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "box",
+      "visibility_pct": null,
+      "runtime_s": 0.76,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_lying_090s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_lying_090s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "box",
+      "visibility_pct": 5.9,
+      "runtime_s": 0.77,
+      "score": {
+        "level": "immediate",
+        "score": 78.2,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "about 6% of body visible (approx.)",
+          "mostly buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    },
+    {
+      "source": "mpsc",
+      "subject": "s2",
+      "window": "s2_lying_120s",
+      "truth_bpm": null,
+      "split": "held_out",
+      "file": "backend/perception/codex-reference/testdata/public/clips/s2_lying_120s.mp4",
+      "mode": "service",
+      "operator_roi": null,
+      "result": "unknown",
+      "rate_bpm": null,
+      "confidence": 0.0,
+      "reason": "lighting or exposure changed",
+      "reasons": [
+        "lighting or exposure changed"
+      ],
+      "warnings": [],
+      "abstained": true,
+      "roi_source": "center",
+      "visibility_pct": null,
+      "runtime_s": 0.76,
+      "score": {
+        "level": "immediate",
+        "score": 80.0,
+        "confidence": 0.3,
+        "reasons": [
+          "breathing unclear, re-scan",
+          "lighting or exposure changed",
+          "visibility unknown, treated as buried",
+          "thermal confidence missing",
+          "needs human triage"
+        ]
+      }
+    }
+  ]
+}
