@@ -44,18 +44,19 @@ legs:
   knee_bend: 1                      # TBD: 1 or -1, which way the knee folds
   joints:                           # robot_diag legcal fills these; channel -1 = not wired, us_per_rad 0 = not calibrated
                                     # abduction servos were removed (2026-11-08): leave them at channel -1, the IK skips them
+                                    # channel map from the wiring (2026-11-08): hips 0 FL, 1 BL, 2 FR, 3 BR; knees 4 FL, 5 BL, 6 FR, 7 BR
     FL_abduction:  { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
-    FL_hip:        { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
-    FL_knee:       { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    FL_hip:        { bus: 0, channel: 0, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    FL_knee:       { bus: 0, channel: 4, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
     FR_abduction:  { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
-    FR_hip:        { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
-    FR_knee:       { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    FR_hip:        { bus: 0, channel: 2, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    FR_knee:       { bus: 0, channel: 6, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
     BL_abduction:  { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
-    BL_hip:        { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
-    BL_knee:       { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    BL_hip:        { bus: 0, channel: 1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    BL_knee:       { bus: 0, channel: 5, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
     BR_abduction:  { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
-    BR_hip:        { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
-    BR_knee:       { bus: 0, channel: -1, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    BR_hip:        { bus: 0, channel: 3, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
+    BR_knee:       { bus: 0, channel: 7, zero_us: 1500, us_per_rad: 0, direction: 1, min_us: 1500, max_us: 1500 }
 servos: { max_rate_us_per_s: 0 }    # TBD: how fast a leg servo may move; must be > 0 for two_link
 limits: { max_lin_mps: 0.2, max_ang_dps: 45, max_lin_accel: 0.5, max_ang_accel: 90, reject_factor: 5 }   # TBD: floor test
 safe_stop: { servo_action: hold }                                      # TBD: hold | release

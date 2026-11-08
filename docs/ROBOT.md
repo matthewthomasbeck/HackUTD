@@ -106,8 +106,17 @@ Updated 2026-11-08 (Camille): the abduction servos were taken out. Each leg now 
   Athena drove the knee from a second servo at the hip through a tie rod; that is gone.
 - No abduction: the leg no longer swings out sideways. In `robot.yaml` the `<LEG>_abduction` joints stay at `channel: -1`, and the leg IK skips them.
 
+Servo channel map on Maestro A (as wired, 2026-11-08):
+
+| Leg | Hip (femur) | Knee |
+| --- | --- | --- |
+| FL (front left) | 0 | 4 |
+| BL (back left) | 1 | 5 |
+| FR (front right) | 2 | 6 |
+| BR (back right) | 3 | 7 |
+
 Link lengths (PROPOSED, from the CAD, same as Athena): hip axis to knee axis 110 mm, knee axis to the foot bolt holes 140 mm.
-The servo channel map and joint limits are TBD.
+The joint limits are TBD (found with `robot_diag legcal`).
 Ask Matthew before writing motion code.
 
 ## Pin map (PROPOSED, verify before wiring)
