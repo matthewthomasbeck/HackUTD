@@ -306,7 +306,7 @@ select, input { border: 1.5px solid var(--hairline-strong); border-radius: 9px; 
 #splash.leaving .splash-bg { opacity: 0; }
 .splash-glow { position: absolute; width: 360px; height: 360px; border-radius: 50%; background: radial-gradient(closest-side, var(--logo-glow), transparent); transition: opacity 300ms ease; }
 #splash.leaving .splash-glow { opacity: 0; }
-.splash-dog { position: relative; width: 240px; height: 240px; background: url("../assets/backflip.png") 0 0 / 1200% 100% no-repeat; opacity: 0; animation: splash-in 260ms ease-out forwards, splash-flip 1200ms steps(11, jump-none) 420ms forwards; will-change: transform; }
+.splash-dog { position: relative; width: 240px; height: 240px; background: url("../assets/backflip.png") 0 0 / 1200% 100% no-repeat; opacity: 0; animation: splash-in 260ms ease-out forwards, splash-flip 1200ms steps(11, end) 420ms forwards; will-change: transform; }
 .splash-dog.waiting { animation: splash-wait 1.6s ease-in-out infinite; background-position: 100% 0; opacity: 1; }
 @keyframes splash-in { to { opacity: 1; } }
 @keyframes splash-flip { from { background-position: 0% 0; } to { background-position: 100% 0; } }

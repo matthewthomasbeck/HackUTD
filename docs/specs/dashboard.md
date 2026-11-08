@@ -103,6 +103,8 @@ No other file reads `.tag` directly.
 The coordinator dashboard is a desktop app (Cayden, 2026-11-08).
 `electron/main.cjs` opens one window that loads the Vite build (`dist/index.html`), passes the run-time settings as URL parameters, and adds a Server menu.
 The page itself is unchanged, so the web dashboard (`npm run dev`) and its tests keep working.
+On desktop launch, a separate centered, transparent splash window (`electron/splash.html`) plays all 12 frames of the backflip (`electron/assets/backflip.png`, `Loading.gif` with its black background removed, 100 ms per frame), then fades to `Logo.png` placed over the last frame's dog, while the dashboard loads hidden.
+The dashboard appears after the GIF and logo hold finish and the map is ready, with a 10 second readiness fallback.
 
 Commands (from `frontend/dashboard/`):
 

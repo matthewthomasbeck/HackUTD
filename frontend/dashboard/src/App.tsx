@@ -77,6 +77,7 @@ export default function App({ config }: { config: DashboardConfig }) {
     if (!site && !siteError) return;
     (window as { assessReady?: boolean }).assessReady = true;
     window.dispatchEvent(new Event('assess:ready'));
+    window.assessDesktop?.dashboardReady();
   }, [site, siteError]);
   useEffect(() => {
     const onResize = () => setInsets(insetsFor(window.innerWidth));
