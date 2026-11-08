@@ -43,13 +43,20 @@ def servo_dummy(with_horn=True):
 def hip(side="L"):
     """Athena pelvis cut down to one servo slot (the slot on the abduction axis).
 
-    The arms, the abduction pivot holes, and the horn bolt holes match Athena,
-    so the hip bolts to the Athena body unchanged. "L" is for fore-left and
-    hind-right legs (horn holes on the -Y arm). "R" is the mirror image.
+    The arms and the abduction pivot holes match Athena, so the hip bolts to the
+    Athena body unchanged. "L" is for fore-left and hind-right legs (horn on the
+    -Y arm). "R" is the mirror image.
+
+    The abduction servo's disc horn bolts to the outer face of the horn arm with
+    2 M3 screws on the horn bolt circle. Their heads sit in counterbores on the
+    inner face, so the hip servo still slides in. Fit the horn screws and the
+    horn center screw (through the pivot hole) before fitting the hip servo.
+    The hip servo tabs take M3 self-tapping screws in blind pilot holes that stop
+    above the horn screws.
     """
     arm_in = HIP_ARM_GAP / 2
     arm_out = arm_in + HIP_ARM_T
-    x_open = SERVO_W / 2 + FIT
+    x_open = SERVO_W / 2 + FIT + HIP_OPEN_EXTRA
     x_back = -(SERVO_W / 2 + FIT) - HIP_WALL_T
     width = x_open - x_back
     xc = (x_open + x_back) / 2
@@ -60,21 +67,25 @@ def hip(side="L"):
     body = body.cut(pocket)
     body = body.edges("|Z").edges(f"<X").fillet(3.0)
 
-    # Servo tab holes, vertical through both arms.
+    # Servo tab screws: blind pilots from the top face.
     tab_pts = [(sx * SERVO_TAB_HOLE_W / 2, sy * SERVO_TAB_HOLE_L / 2) for sx in (-1, 1) for sy in (-1, 1)]
-    body = body.cut(cq.Workplane("XY").pushPoints(tab_pts).circle(HIP_TAB_HOLE_D / 2).extrude(HIP_H + 2).translate((0, 0, -1)))
+    body = body.cut(cq.Workplane("XY").pushPoints(tab_pts).circle(TAB_PILOT_D / 2)
+                    .extrude(HIP_TAB_PILOT_DEPTH + 1).translate((0, 0, HIP_H - HIP_TAB_PILOT_DEPTH)))
 
     # Abduction pivot through both arms, along Y.
     zc = HIP_H / 2
     pivot = cq.Workplane("XZ").center(0, zc).circle(ABD_PIVOT_D / 2).extrude(arm_out + 1, both=True)
     body = body.cut(pivot)
 
-    # Horn bolt holes through the horn arm only.
-    horn_holes = (cq.Workplane("XZ").pushPoints([(-ABD_HORN_HOLE_OFFSET, zc), (ABD_HORN_HOLE_OFFSET, zc)])
-                  .circle(ABD_HORN_HOLE_D / 2).extrude(arm_out + 1, both=True))
+    # Abduction horn screws through the horn arm, counterbored on its inner face.
+    pts = [(-ABD_HORN_HOLE_OFFSET, zc), (ABD_HORN_HOLE_OFFSET, zc)]
+    holes = cq.Workplane("XZ").pushPoints(pts).circle(M3_CLEAR / 2).extrude(arm_out + 1, both=True)
     horn_arm = (cq.Workplane("XY").box(2 * width, HIP_ARM_T + 2, HIP_H + 2, centered=(True, False, False))
                 .translate((xc, -arm_out - 1, -1)))
-    body = body.cut(horn_holes.intersect(horn_arm))
+    body = body.cut(holes.intersect(horn_arm))
+    cbore = (cq.Workplane("XZ").pushPoints(pts).circle(M3_CBORE_D / 2).extrude(M3_CBORE_DEPTH + 1)
+             .translate((0, -arm_in + 1, 0)))  # XZ extrudes toward -Y
+    body = body.cut(cbore)
 
     if side == "R":
         body = body.mirror("XZ")
@@ -156,10 +167,17 @@ def tibia():
     if TIBIA_PAD_H > 0:
         part = part.union(cq.Workplane("XY").circle(TIBIA_PAD_D / 2).extrude(-TIBIA_PAD_H))
 
+    # The tip steps down so it fits the Athena foot slot.
+    tip_y = -L + TIBIA_TIP_LEN
+    part = part.cut(cq.Workplane("XY").box(2 * r1 + 2, L, TIBIA_T, centered=(True, False, False))
+                    .translate((0, tip_y - L, TIBIA_TIP_T)))
+
     horn_pts = [(HORN_BOLT_R * math.cos(a), HORN_BOLT_R * math.sin(a)) for a in (0, math.pi / 2, math.pi, 3 * math.pi / 2)]
     through = TIBIA_T + TIBIA_PAD_H + 2
     part = part.cut(cq.Workplane("XY").pushPoints(horn_pts).circle(M3_CLEAR / 2).extrude(through).translate((0, 0, -TIBIA_PAD_H - 1)))
+    part = part.cut(cq.Workplane("XY").pushPoints(horn_pts).circle(M3_CBORE_D / 2).extrude(M3_CBORE_DEPTH + 1)
+                    .translate((0, 0, TIBIA_T - M3_CBORE_DEPTH)))
     part = part.cut(cq.Workplane("XY").circle(FEMUR_CENTER_HOLE / 2).extrude(through).translate((0, 0, -TIBIA_PAD_H - 1)))
     foot_pts = [(sx * FOOT_HOLE_SPACING / 2, -L) for sx in (-1, 1)]
-    part = part.cut(cq.Workplane("XY").pushPoints(foot_pts).circle(FOOT_HOLE_D / 2).extrude(TIBIA_T + 2).translate((0, 0, -1)))
+    part = part.cut(cq.Workplane("XY").pushPoints(foot_pts).circle(FOOT_HOLE_D / 2).extrude(TIBIA_TIP_T + 2).translate((0, 0, -1)))
     return part

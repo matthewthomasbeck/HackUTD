@@ -29,10 +29,10 @@ The link lengths are the same as Athena, so the inverse kinematics numbers stay 
 
 | File | Print | Notes |
 | --- | --- | --- |
-| `stl/rubble_hip-left_1.0.stl` | 2 | Fore-left and hind-right legs. Athena pelvis cut down to the one slot on the abduction axis. Body-side holes match Athena |
+| `stl/rubble_hip-left_1.0.stl` | 2 | Fore-left and hind-right legs. Athena pelvis cut down to the one slot on the abduction axis. The pivot holes match Athena. The abduction horn bolts to the outer face of the horn arm |
 | `stl/rubble_hip-right_1.0.stl` | 2 | Fore-right and hind-left legs. Mirror image |
-| `stl/rubble_femur_1.0.stl` | 4 | Same part on all four legs. Holds the knee servo |
-| `stl/rubble_tibia_1.0.stl` | 4 | Same part on all four legs. The tip is 6 mm thick with 2 holes 15 mm apart, so the Athena foot (`ares_feet-foot_1.0`) still fits |
+| `stl/rubble_femur_1.0.stl` | 4 | Same part on all four legs. 7 mm plate, holds the knee servo |
+| `stl/rubble_tibia_1.0.stl` | 4 | Same part on all four legs. 9 mm thick. The last 30 mm steps down to 6 mm with 2 holes 15 mm apart, so the Athena foot (`ares_feet-foot_1.0`) still fits |
 
 `step/` has the same parts as STEP for editing in Fusion or Onshape.
 `renders/` has views of each part.
@@ -44,27 +44,29 @@ Start from the settings Matthew used for Athena (PLA, 220 C, 0.2 mm layers, 50% 
 
 - Femur and tibia: 4 perimeters, so the screw holes have solid walls.
 - Femur: print outer face down (the flat face with the 4 countersinks). The cradle builds upward with no supports.
-- Tibia: print the flat outer face down, small round pad up.
+- Tibia: print the outer face down (the face with the 4 counterbores), small round pad up.
 - Hip: print flat, same as the Athena pelvis.
 
 ## Hardware per leg
 
-- Hip servo to the hip: 4 screws through the tabs, same as the Athena pelvis (4.4 mm holes).
-- Femur to the hip servo horn: 4x M3 x 8 flat head (countersunk), into the tapped horn holes.
-- Knee servo to the femur: 4x M3 x 12, self-tapping into 2.8 mm pilot holes from the servo side.
-- Tibia to the knee servo horn: 4x M3 x 10 button or socket head, into the tapped horn holes.
+- Abduction horn to the hip: 2x M3 x 10 socket head, from the inner face of the horn arm (counterbored), into the tapped horn holes.
+- Hip servo to the hip: 4x M3 x 10, self-tapping into 7 mm deep pilot holes in the top of the arms.
+- Femur to the hip servo horn: 4x M3 x 10 flat head (countersunk), into the tapped horn holes.
+- Knee servo to the femur: 4x M3 x 16, self-tapping into 2.8 mm pilot holes from the servo side.
+- Tibia to the knee servo horn: 4x M3 x 12 socket or button head (counterbored), into the tapped horn holes.
 - Tibia to the Athena foot: 2 screws, same as Athena.
-- 2x 25T aluminum disc horns (20 mm, 4x M3 on a 14 mm circle), with their center screws.
+- 3x 25T aluminum disc horns (20 mm, 4x M3 on a 14 mm circle), with their center screws: abduction, hip, and knee.
 
 ## Assembly
 
 1. Set every servo to center (1500 us) before fitting a horn, so the zero position is known.
-2. Fit the hip servo in the hip, spline toward the arm with the horn holes.
-3. Fit the knee servo in the femur cradle from the inner side, top face against the plate, spline in the large hole. Screw the tabs down.
-4. Fit a disc horn on each servo spline and tighten its center screw.
-5. Screw the femur to the hip servo horn, with the femur pointing straight down.
-6. Screw the tibia to the knee servo horn, with the tibia in line with the femur.
-7. Bolt the hip to the Athena body the same way as the Athena pelvis.
+2. Bolt the abduction servo's horn to the outer face of the hip's horn arm (2 screws from inside the hip), push it onto the abduction spline, and fit the horn center screw through the pivot hole. Do this before the hip servo goes in, because the hip servo blocks the screws.
+3. Fit the hip servo in the hip, spline toward the arm with the horn holes, and screw down its tabs.
+4. Fit the knee servo in the femur cradle from the inner side, top face against the plate, spline in the large hole. Screw the tabs down.
+5. Fit a disc horn on the hip and knee servo splines and tighten their center screws.
+6. Screw the femur to the hip servo horn, with the femur pointing straight down.
+7. Screw the tibia to the knee servo horn, with the tibia in line with the femur.
+8. Fit the leg pin through the other arm the same way as the Athena pelvis.
 
 ## Measure before printing
 

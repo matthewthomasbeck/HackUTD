@@ -27,7 +27,9 @@ HORN_FACE_ABOVE_TOP = 6.0  # servo top face to horn outer face, horn seated (MEA
 # --- Fasteners and print fit (PLA on the FlashForge) ---
 M3_CLEAR = 3.4
 M3_CSK_D = 6.6            # countersink head diameter for M3 flat head (DIN 7991)
-TAB_PILOT_D = 2.8         # M3 self-tapping pilot for the knee servo tabs
+TAB_PILOT_D = 2.8         # M3 self-tapping pilot for servo tab screws
+M3_CBORE_D = 6.2          # counterbore for an M3 socket or button head
+M3_CBORE_DEPTH = 3.2
 FEMUR_SKIN = 1.2          # closed skin left on the femur outer face above each pilot
 FIT = 0.3                 # clearance per side around a servo body
 
@@ -36,34 +38,36 @@ FEMUR_LEN = 110.0         # hip axis to knee axis
 TIBIA_LEN = 140.0         # knee axis to the foot bolt holes
 
 # --- Femur ---
-FEMUR_T = 5.0             # plate thickness
-FEMUR_W = 30.0            # plate width
-FEMUR_HUB_R = 15.0
+FEMUR_T = 7.0             # plate thickness
+FEMUR_W = 34.0            # plate width
+FEMUR_HUB_R = 17.0
 FEMUR_CENTER_HOLE = 7.0   # clears the horn center screw head
 FEMUR_HORN_HOLE = HORN_D + 2.0  # knee horn sits inside this hole
-CRADLE_SIDE = 3.5         # cradle wall beside the servo body
-CRADLE_END = 8.5          # cradle wall at each end, under the tabs
-FEMUR_SLOT = (22.0, 62.0, 14.0)  # lightening slot: from y, to y, width
+CRADLE_SIDE = 5.0         # cradle wall beside the servo body
+CRADLE_END = 10.0         # cradle wall at each end, under the tabs
+FEMUR_SLOT = (26.0, 60.0, 12.0)  # lightening slot: from y, to y, width
 
 # --- Tibia ---
-TIBIA_T = 6.0             # matches the 6.3 mm slot in the Athena foot
-TIBIA_HUB_R = 14.0
+TIBIA_T = 9.0             # main body thickness
+TIBIA_TIP_T = 6.0         # tip thickness, fits the 6.3 mm slot in the Athena foot
+TIBIA_TIP_LEN = 30.0      # foot holes to the step from TIBIA_TIP_T up to TIBIA_T
+TIBIA_HUB_R = 16.0
 TIBIA_TIP_R = 12.0
 TIBIA_PAD_D = 19.0        # sits on the knee horn face only
 TIBIA_GAP = 2.0           # tibia inner face to femur outer face
 FOOT_HOLE_D = 4.4
 FOOT_HOLE_SPACING = 15.0  # across the tibia, same as the Athena foot
-TIBIA_SLOT = (28.0, 112.0, 8.0)
+TIBIA_SLOT = (30.0, 100.0, 7.0)
 
 # --- Hip (Athena pelvis cut down to one servo slot) ---
 HIP_H = 20.0              # part thickness
 HIP_ARM_T = 10.0          # arm thickness along the abduction axis
 HIP_ARM_GAP = 40.6        # space between the arms, holds the servo length
 HIP_WALL_T = 3.2          # back wall
+HIP_OPEN_EXTRA = 2.0      # arms run this far past the servo on the open side, for the horn counterbore
 ABD_PIVOT_D = 6.35        # abduction pivot hole (horn center or leg pin)
-ABD_HORN_HOLE_D = 4.4
-ABD_HORN_HOLE_OFFSET = 7.0
-HIP_TAB_HOLE_D = 4.4
+ABD_HORN_HOLE_OFFSET = HORN_BOLT_R  # abduction horn screws, on the horn bolt circle
+HIP_TAB_PILOT_DEPTH = 7.0  # blind, so the tab screws stop above the horn screws
 
 # Derived
 # The pad spans from the knee horn face to the tibia inner face.
