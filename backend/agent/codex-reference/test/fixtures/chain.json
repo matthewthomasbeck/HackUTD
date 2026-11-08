@@ -1,0 +1,10 @@
+{
+  "orchestrator": [
+    {"actions":[
+      {"tool":"propose_assignment","args":{"survivor_id":12,"rescuer_identity":"Rescuer A","reason":"Most urgent unassigned; Rescuer A nearest at 33 m"}},
+      {"tool":"delegate","args":{"to_agent":"comms_agent","kind":"brief_rescuer","priority":"critical","assignment_id":1,"survivor_id":12,"reason":"Brief Rescuer A on the new proposal"}},
+      {"tool":"create_mission","args":{"robot_id":"dog1","kind":"inspect","target_lat":32.9861,"target_lon":-96.7497,"reason":"1 unaccounted at house 3; inspect that location"}}
+    ]},
+    {"done":true,"summary":"Proposal, briefing delegation, and inspect mission complete","actions":[]}
+  ]
+}

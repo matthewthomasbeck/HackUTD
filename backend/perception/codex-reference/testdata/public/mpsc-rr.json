@@ -1,0 +1,37 @@
+{
+  "dataset": "justchugh/MPSC-RR",
+  "revision": "439dddb42f8a95cd4aba6465eb6be3bb3af8a8bf",
+  "license": "CC-BY-4.0",
+  "source": "https://huggingface.co/datasets/justchugh/MPSC-RR",
+  "ground_truth_status": "not_distributed_in_public_files",
+  "files": [
+    {
+      "path": "dataset/s1_front.mov",
+      "bytes": 75433146,
+      "sha256": "0c05a2e9d1ac9234da133ee91010a5bbf503cfc6e9c3d00332efd6ab657664e1",
+      "subject": "s1",
+      "split": "tune"
+    },
+    {
+      "path": "dataset/s1_lying.mov",
+      "bytes": 59918335,
+      "sha256": "fc68fed468d0ec35294a049fb93898849d6f807843aa6fa64453a5ca0e9c02ec",
+      "subject": "s1",
+      "split": "tune"
+    },
+    {
+      "path": "dataset/s2_front.mov",
+      "bytes": 72409465,
+      "sha256": "7a4640b31bd4fc7cee3445d13e1eba5ca4c1ba7dd57e8706ae1e38407dec7e44",
+      "subject": "s2",
+      "split": "held_out"
+    },
+    {
+      "path": "dataset/s2_lying.mov",
+      "bytes": 71051019,
+      "sha256": "9f4eb3b0e77948cb78f1a5bb3e3af04fb5c5ed34a24e32f340c4348d9ebd9a10",
+      "subject": "s2",
+      "split": "held_out"
+    }
+  ]
+}

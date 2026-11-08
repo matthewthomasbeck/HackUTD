@@ -1,0 +1,15 @@
+{
+  "dataset": "VRWiDataset",
+  "source": "https://github.com/fnkslab/VRWiDataset",
+  "license": "CC-BY-NC-4.0",
+  "attribution": "Takao Obi and Kotaro Funakoshi, Video-Based Respiratory Waveform Estimation in Dialogue: A Novel Task and Dataset for Human-Machine Interaction, ICMI 2023, doi:10.1145/3577190.3614154",
+  "archives": [
+    {
+      "name": "M14.tgz",
+      "url": "https://github.com/fnkslab/VRWiDataset/releases/download/data-mp4/M14.tgz",
+      "bytes": 767247205,
+      "sha256": "2cbeab973046ab0c0eed74a9d4e2678fae6e7a7c90cc3e7b20d9a1cc62f8b7f1",
+      "split": "evaluation_only"
+    }
+  ]
+}

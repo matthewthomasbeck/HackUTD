@@ -6,6 +6,49 @@ Overview and checkpoints: `docs/TASKS.md`.
 Also owns robot task R1 (state machine, safety gate, main loop) and the C++ part of R0, taken over from Camille on 2026-11-07; the task text stays in `docs/tasks/camille.md`.
 Total with AI: about 15 h (each task 1 to 2 h with coding agents; hardware tasks are bench time, not typing).
 
+## Current status (2026-11-08)
+
+The primary implementation is `backend/perception/` and `backend/agent/`.
+Checks freshly passed on this branch: **750 perception tests, 87 agent tests,
+and the agent TypeScript check**. The recorded Brev validation also passed
+native and JSON model smoke tests, three consecutive chains in each mode,
+priority ordering, seeded auditor disagreement, and watchdog recovery.
+Those model scenarios use a fake database, not a published SpacetimeDB module.
+
+Upstream update: merged `origin/main` at `93b49a7`, bringing Cayden's module,
+generated bindings, simulator, dashboard and glasses code into this checkout.
+Next, verify Eric's adapters against those sources and confirm the running
+deployment/roles. Do not wait for these components to be written from scratch.
+Live interoperability remains unverified.
+
+A checked implementation step means code and the stated local tests exist.
+It does not complete that task's separate live integration or "Done when"
+acceptance. Steps combining code and an unverified live check are split below.
+
+| Task | Finished | Still open |
+| --- | --- | --- |
+| E0 | Brev setup, both models' tool/JSON smoke tests, configuration and recorded results | Post results to the team; repeat smoke on judging day |
+| E1 | Public data preparation and 140 comparison runs in the reference implementation | Port the public benchmark to the primary pipeline; broaden scene coverage and check robot-camera compatibility |
+| E2 | Media service, storage, job queue, endpoint tests | Primary environment lock; Pi upload over the team network |
+| E3 | Video/ROI/PIC pipeline, quality gates, worker, watcher, HTTP client/helper source, synthetic tests | Live database/helper smoke; primary public-data evaluation and tuning; robot capture |
+| E4 | Score formula, confidence caps, ordered writes and re-score logic | Primary E1 results/score batch; live dashboard and waiting-time demonstration |
+| E5 | Person/pose/box code and still-image output | Live service health, full E1 ROI review and dashboard display; real YOLO smoke currently recorded for the reference version |
+| E6 | Shared runner, schemas/guards, task handling, budgets, dry runs and adapter source | Verify integrated upstream bindings, connect three live identities, verify actual task/log round trip |
+| E7 | Orchestrator, auditor, comms, mock scenarios and real Brev chains | Live database watchdog/leases, two-process integration, dashboard/glasses acknowledgement |
+| E8 | Transcription engines/endpoint/fallback code, question fixtures and template answer path | Model-generated rescuer answers, hosted Riva verification, full glasses voice loop |
+| E9 | CLIP baseline, terrain endpoints, labelling/training tools and safety fusion | Independently labelled hazard data, trained/evaluated probe, enabled advisory path and map integration |
+| E10 | Primary extension points only; reference sitrep prototype exists separately | Primary vision describer, sitrep, model tests and delivery |
+
+Detailed unfinished work, dependencies, and the next build order are in
+[Eric's remaining work](eric-remaining.md). Recorded model evidence is in
+[the Brev validation report](../notes/2026-11-08-brev-validation.md).
+
+The separate `backend/perception/codex-reference/` and
+`backend/agent/codex-reference/` copies preserve additional tested work.
+Their 33/30 tests, public-data comparison, real YOLO smoke, local Whisper smoke,
+and display-only EVM results do not automatically validate the primary code.
+See [the public-data comparison](../research/breathing-repos.md).
+
 ## How to use this file
 
 Work top to bottom inside each part, but do "Start here" first.
@@ -31,29 +74,25 @@ Facts that shape every task:
 
 ## Start here (first 90 minutes)
 
-Do these two things before writing any service code, because they decide the plan for everything else.
+Setup and initial inputs are complete as noted below. Continue with the open integration and primary-evaluation steps.
 
-### 1. Nemotron smoke test (E0, 30 minutes)
+### 1. Model setup and smoke tests (E0)
 
-- [ ] 1. Get the NVIDIA API key from build.nvidia.com ("Get API Key" on a model page) and put it in `backend/agent/.env` as `NVIDIA_API_KEY=` (never commit it; the team repo is public).
-- [ ] 2. Test the key in one line with curl (no tools yet):
+- [x] Configure the primary runner for both models on Brev; no Build API key is needed for this deployment. Local placeholder credentials stay in the ignored `.env`.
+- [x] Verify both models' native tool call, tool-result round trip, reasoning-off and JSON action behavior.
+- [x] Record model names, routing and measured results in `backend/agent/README.md`, `specs/agent.md` and `notes/2026-11-08-brev-validation.md`.
+- [ ] Post the results to the team chat; no teammate message has been sent by this work.
 
-```bash
-curl -s https://integrate.api.nvidia.com/v1/chat/completions \
-  -H "Authorization: Bearer $NVIDIA_API_KEY" -H "Content-Type: application/json" \
-  -d '{"model":"nvidia/nemotron-3-nano-30b-a3b","messages":[{"role":"user","content":"Say OK"}],"max_tokens":16,"stream":false}'
-```
+### 2. Use public breathing inputs first (E1)
 
-- [ ] 3. Run `npm run smoke:llm` (written in E0) for both models, with one native tool call and one strict JSON call each.
-- [ ] 4. Post the result table in the team chat: model, native tool calls yes or no, JSON mode yes or no, latency, any 400 or 429.
+- [x] Prepare 16 MPSC-RR video windows, 15 synthetic cases and four VRWi windows with independent dual-belt reference checks in `backend/perception/codex-reference/`.
+- [x] Compare the reference PIC implementation with the external baseline configurations; retain all 140 runs and the limitations.
+- [ ] Adapt the same dataset/benchmark inputs to the primary `backend/perception/` API and record its results separately.
+- [ ] Confirm the robot's actual image quality, lighting and still-camera behavior during integration with Camille and Matthew.
 
-### 2. Record breathing clips in the demo lighting (E1, 60 minutes)
-
-- [ ] 1. Ask Matthew where the demo set is and what light it will use (room light low, or the robot's white light from M4).
-- [ ] 2. Record the 20 s clips listed in E1 with a teammate, exposure locked, camera still, while a second person counts breaths.
-- [ ] 3. Run the clips through `scripts/analyze_clip.py` as soon as E3 exists; every later tuning step uses them.
-
-Why first: the hosted tool-calling support is UNCONFIRMED in the model schemas, and the breathing pipeline cannot be tuned without real clips in the real light.
+Public inputs replace recording a new development dataset. They do not prove
+performance on the actual robot camera. Do not label unverified scene coverage
+or the reference implementation's accuracy as a primary-pipeline result.
 
 ## Models, endpoints, and identifiers
 
@@ -63,11 +102,11 @@ Anything marked UNCONFIRMED must pass a smoke test before code depends on it.
 | Use | Identifier | Where it is set | Status |
 | --- | --- | --- | --- |
 | NVIDIA base URL | `https://integrate.api.nvidia.com/v1`, `POST /chat/completions` | `NVIDIA_BASE_URL` in `backend/agent/.env` | Confirmed in the API reference (agent.md 4.1) |
-| Orchestrator | `nvidia/nemotron-3-super-120b-a12b` | `MODEL_SUPER` | Model id confirmed; tool calling UNCONFIRMED |
-| Auditor and comms agent | `nvidia/nemotron-3-nano-30b-a3b` | `MODEL_NANO` | Model id confirmed; tool calling UNCONFIRMED |
+| Orchestrator | `nvidia/nemotron-3.5-super-vl-120b-a12b` | `MODEL_SUPER` | Confirmed by the smoke test (2026-11-07): native tool calls; `nemotron-3-super-120b-a12b` returns 404 for our key |
+| Auditor and comms agent | `nvidia/nemotron-3.5-lightning-30b-a3b` | `MODEL_NANO` | Confirmed by the smoke test (2026-11-07): native tool calls with thinking off; `nemotron-3-nano-30b-a3b` reached end of life |
 | Vision describer (could have) | `nvidia/nemotron-nano-12b-v2-vl` | `MODEL_VISION` | UNCONFIRMED until `smoke:vision` passes |
 | Super reasoning | `reasoning_effort: "low"` (values `none`, `low`, `high`) | runner code | Confirmed in the Super schema |
-| Nano thinking off | `chat_template_kwargs: {"enable_thinking": false}` | runner code, only if the smoke test shows it works | UNCONFIRMED that the hosted API honors it |
+| Nano thinking off | `chat_template_kwargs: {"enable_thinking": false}` | `NANO_THINKING_OFF=1` | Confirmed by the smoke test; needed for Lightning's JSON mode |
 | Sampling | `temperature: 0.6`, `top_p: 0.95`, `stream: false` | runner code | From the Nano model card; `stream` defaults to true, so always send false |
 | Rate limit | about 40 requests per minute (forum report) | our cap `RPM_BUDGET=20` | UNCONFIRMED; ask the NVIDIA mentors |
 | Hosted speech-to-text | Parakeet ASR pages: `parakeet-ctc-1.1b-asr`, `parakeet-ctc-0.6b-asr`, `parakeet-tdt-0.6b-v2`, through `nvidia-riva-client` | `STT_ENGINE=nvidia_riva`, `RIVA_SERVER`, `RIVA_FUNCTION_ID` in `backend/perception/.env` | UNCONFIRMED: server `grpc.nvcf.nvidia.com:443`, the function id, and limits; copy them from the model's API page |
@@ -115,7 +154,7 @@ Only `src/stdb/` and `src/world.ts` in the agent runner import from `backend/spa
 ### E0. Smoke tests that decide the plan
 Estimate with AI: 0.5 h.
 
-Goal: one Nemotron tool call through NVIDIA's hosted API with `nvidia/nemotron-3-super-120b-a12b` and `nvidia/nemotron-3-nano-30b-a3b`, and a decision on native tool calls or the strict JSON action format for each model.
+Goal: one Nemotron tool call through NVIDIA's hosted API with `nvidia/nemotron-3.5-super-vl-120b-a12b` and `nvidia/nemotron-3.5-lightning-30b-a3b`, and a decision on native tool calls or the strict JSON action format for each model.
 If native tool calls fail, switch both to the strict JSON action format in `specs/agent.md` (section 4.4).
 
 Why it matters: the NVIDIA track ("Use Nemotron Beyond a Chatbot") wants agents that act through tools; this test decides whether every later agent call is native or JSON, and it is checkpoint 0 in `docs/TASKS.md`.
@@ -145,12 +184,12 @@ Environment variables: `NVIDIA_API_KEY`, `NVIDIA_BASE_URL`, `MODEL_SUPER`, `MODE
 
 Checklist:
 
-- [ ] 1. Scaffold `backend/agent/` (package.json scripts, tsconfig with `"module": "NodeNext"`, `.env.example`, `.gitignore`) and install the dependencies.
-- [ ] 2. Run the curl one-liner for both model ids and note the HTTP status and latency.
-- [ ] 3. Write `smoke-llm.ts` step 1: one request per model with one tool, `compute_bearing` (`{from_lat, from_lon, to_lat, to_lon, reason}`), and the message from agent.md 4.3; pass if `tool_calls[0].function.name === "compute_bearing"` and four numbers parse.
-- [ ] 4. Step 2: send the tool result back as a `role: "tool"` message with `tool_call_id`; pass if the reply has no tool calls and mentions meters.
-- [ ] 5. Step 3: try `reasoning_effort: "none"` on Super and `chat_template_kwargs: {"enable_thinking": false}` on Nano; record whether each is accepted and whether reasoning text disappears.
-- [ ] 6. Write `parse.ts` (strip `<think>` blocks and code fences, take the first balanced `{...}`, accept `{"actions":[...]}`, `{"done":true,...}`, and `{"name","arguments"}`), then step 4: repeat step 1 with no `tools` field and the catalog in the prompt.
+- [x] 1. Scaffold `backend/agent/` (package.json scripts, tsconfig with `"module": "NodeNext"`, `.env.example`, `.gitignore`) and install the dependencies.
+- [x] 2. Run the curl one-liner for both model ids and note the HTTP status and latency.
+- [x] 3. Write `smoke-llm.ts` step 1: one request per model with one tool, `compute_bearing` (`{from_lat, from_lon, to_lat, to_lon, reason}`), and the message from agent.md 4.3; pass if `tool_calls[0].function.name === "compute_bearing"` and four numbers parse.
+- [x] 4. Step 2: send the tool result back as a `role: "tool"` message with `tool_call_id`; pass if the reply has no tool calls and mentions meters.
+- [x] 5. Step 3: try `reasoning_effort: "none"` on Super and `chat_template_kwargs: {"enable_thinking": false}` on Nano; record whether each is accepted and whether reasoning text disappears.
+- [x] 6. Write `parse.ts` (strip `<think>` blocks and code fences, take the first balanced `{...}`, accept `{"actions":[...]}`, `{"done":true,...}`, and `{"name","arguments"}`), then step 4: repeat step 1 with no `tools` field and the catalog in the prompt.
 - [ ] 7. Print a results table (model, mode, status, latency, pass), write it into `backend/agent/README.md`, post it in the team chat, and write the decision into `specs/agent.md` section 4.3.
 
 Done when: the result is posted in the team chat and written into `specs/agent.md`.
@@ -183,10 +222,10 @@ Pitfalls and fixes:
 - `stream` defaults to true; a missing `stream: false` gives a streamed body that the client cannot parse as one reply.
 - 429 in the smoke test: wait 60 s; do not loop; note it as evidence for the rate limit question.
 
-### E1. Record test clips early
+### E1. Public test inputs, then camera integration
 Estimate with AI: 1 h.
 
-Goal: 20 s camera clips of a teammate breathing, in the demo lighting: uncovered, chest visible, partly covered, and fully covered; plus a too-dark clip.
+Goal: use reproducible public RGB breathing inputs and deterministic synthetic failures for development. The original camera/lighting conditions below remain later integration checks; a new teammate dataset is not a prerequisite.
 
 Why it matters: demo beats 3 and 4 (robot records 20 s, dashboard shows IMMEDIATE with a rate, confidence, and why) depend on tuning against real clips in the real light; perception.md section 10 says the hard rule is "no confident wrong answer".
 
@@ -217,7 +256,7 @@ Clip set (from perception.md section 10; do the first five rows now, the rest af
 | Camera moved by hand during the clip | 2 | `unknown` |
 | A fan or moving cloth in view | 2 | correct rate or `unknown` |
 
-Checklist:
+Later camera-integration checklist (not required to start development):
 
 - [ ] 1. Agree the light with Matthew (M4) and set up the mock rubble corner (boxes, blankets) at the distance from the M6 range test, or 1 to 2 m if that test is not done.
 - [ ] 2. Fix the camera on a stand (or the stopped robot); lock exposure, gain, and white balance (on a phone, long-press to lock AE/AF; on the robot, `robot.md` 12.2 locks `AeEnable`, `ExposureTime`, `AnalogueGain`, `AwbEnable`); record at 30 fps.
@@ -227,7 +266,7 @@ Checklist:
 - [ ] 6. Write `truth.csv`, copy everything to the shared drive, and post the folder link in the team chat.
 - [ ] 7. After E3 runs, record the remaining rows (fast, slow, held breath, camera moved, fan) and re-record the core rows on the real robot camera once Camille's inspect mission records clips (checkpoint 3).
 
-Done when: the clips are in the shared drive with labels (who, lighting, coverage, true breathing rate counted by hand).
+Development input preparation/comparison is done in the reference version. Primary benchmark port and broader coverage remain open. Original camera acceptance: verify labelled demo-condition clips once the capture path is available.
 Pass criteria: at least 16 clips covering the first five rows, each 20 s or longer, each with a `truth.csv` row, and `ffprobe` (or OpenCV) reports a frame rate between 25 and 60 fps.
 
 Prompt for your coding agent:
@@ -291,13 +330,14 @@ Environment variables: `STDB_URI`, `STDB_DATABASE`, `STDB_TOKEN`, `PUBLIC_BASE_U
 
 Checklist:
 
-- [ ] 1. Create the venv, `requirements.txt` exactly as perception.md section 1 (use `opencv-python`, not the headless one), install, and commit `requirements.lock` once it works on the demo laptop.
-- [ ] 2. `config.py`: load `config.toml`, then `.env`, then `PERCEPTION_<SECTION>_<KEY>` overrides.
-- [ ] 3. `store.py`: SQLite at `data/perception.db` with the `media` index table (`name, path, kind, robot_id, run_id, original_filename, bytes, sha256, created_at`) and a `jobs` table.
-- [ ] 4. `media.py` and `POST /media`: name format, extension allow list, size limit, never use the client filename on disk.
-- [ ] 5. `GET /media/<name>` with the name regex and index lookup; `GET /health`.
-- [ ] 6. `POST /breathing` that saves the clip like `POST /media` with `kind=clip`, records a queued job, and returns 202 (the worker comes in E3).
-- [ ] 7. CORS for `CORS_ORIGINS`; tests for upload, name format, path traversal (`../etc/passwd` gives 400), bad extension (415).
+- [x] 1a. Create the primary environment and requirements using `opencv-python`; the 750-test primary suite passes.
+- [ ] 1b. Commit a lock generated from the working primary demo environment; the reference environment lock does not replace it.
+- [x] 2. `config.py`: load `config.toml`, then `.env`, then `PERCEPTION_<SECTION>_<KEY>` overrides.
+- [x] 3. `store.py`: SQLite at `data/perception.db` with the `media` index table (`name, path, kind, robot_id, run_id, original_filename, bytes, sha256, created_at`) and a `jobs` table.
+- [x] 4. `media.py` and `POST /media`: name format, extension allow list, size limit, never use the client filename on disk.
+- [x] 5. `GET /media/<name>` with the name regex and index lookup; `GET /health`.
+- [x] 6. `POST /breathing` that saves the clip like `POST /media` with `kind=clip`, records a queued job, and returns 202 (the worker comes in E3).
+- [x] 7. CORS for `CORS_ORIGINS`; tests for upload, name format, path traversal (`../etc/passwd` gives 400), bad extension (415).
 - [ ] 8. Run on `0.0.0.0:8080`, allow Python through the macOS firewall, and have Camille upload one image from the Pi over the team hotspot.
 
 Done when: Camille's bridge uploads an image and gets a URL back.
@@ -376,16 +416,18 @@ pytest -q
 
 Checklist:
 
-- [ ] 1. `video.py`: read frames, fps rule, duration, 5 full-resolution sample frames, downscale, and the darkness and noise gates.
-- [ ] 2. `make_synthetic.py`: 640 by 480, 30 fps, 20 s, textured torso moved by `A * sin(2 pi f t)` with sub-pixel shifts and sigma 2 noise, plus the gate cases in the perception.md 10 table.
-- [ ] 3. `roi.py` with `operator` and `center` ROI, background ROI, ROI checks, and `roi.jpg` drawing (pose and box come in E5).
-- [ ] 4. `breathing.py` steps 3 to 6: PIC with PCA, detrend, band-pass, Hann, zero-padded FFT, parabolic peak.
-- [ ] 5. Step 7 quality measures and step 8 decision and confidence; `analyze_clip.py` prints the result JSON.
-- [ ] 6. `tests/test_breathing_synthetic.py`: every row of the synthetic table passes.
-- [ ] 7. Farneback flow cross-check, background gate, flicker gate; re-run the synthetic tests.
-- [ ] 8. `stdb.py`: identity, register, `call()` with 5 s timeout and retries (0.5, 1, 2, 4, 8 s on network errors and 5xx other than 530; no retry on 4xx or 530), SATS-JSON `encode_enum` and `encode_option`, SQL row decoder; `smoke_stdb.py` against the local module.
-- [ ] 9. `worker.py`: one background thread, job states, writes `report_breathing` then `set_critical_score` (score from E4; until E4, skip it), `pending_write` retry every 10 s.
-- [ ] 10. `stdb-helper` and `watcher.py`: queue detections whose `breathing_clip_url` is set and not yet analyzed; skip `survivor_id = 0`; HTTP SQL polling every 2 s as the fallback.
+- [x] 1. `video.py`: read frames, fps rule, duration, 5 full-resolution sample frames, downscale, and the darkness and noise gates.
+- [x] 2. `make_synthetic.py`: 640 by 480, 30 fps, 20 s, textured torso moved by `A * sin(2 pi f t)` with sub-pixel shifts and sigma 2 noise, plus the gate cases in the perception.md 10 table.
+- [x] 3. `roi.py` with `operator` and `center` ROI, background ROI, ROI checks, and `roi.jpg` drawing (pose and box come in E5).
+- [x] 4. `breathing.py` steps 3 to 6: PIC with PCA, detrend, band-pass, Hann, zero-padded FFT, parabolic peak.
+- [x] 5. Step 7 quality measures and step 8 decision and confidence; `analyze_clip.py` prints the result JSON.
+- [x] 6. `tests/test_breathing_synthetic.py`: every row of the synthetic table passes.
+- [x] 7. Farneback flow cross-check, background gate, flicker gate; re-run the synthetic tests.
+- [x] 8a. Implement the identity/reducer HTTP client, retry policy, SATS encoding/decoding and smoke script; local tests pass.
+- [ ] 8b. Run `smoke_stdb.py` against the published module and capture a real SQL fixture.
+- [x] 9. `worker.py`: one background thread, job states, writes `report_breathing` then `set_critical_score` (score from E4; until E4, skip it), `pending_write` retry every 10 s.
+- [x] 10a. Implement helper source and watcher filtering/deduplication, with HTTP polling fallback.
+- [ ] 10b. Build and run the subscription helper using the actual generated bindings.
 - [ ] 11. Run every E1 clip, fill a results table (clip, truth, result, rate, confidence, reason), and tune `config.toml` on half the clips; check the other half.
 - [ ] 12. Write the tuned values into `config.toml` with a comment naming the clips they were tuned on, and post the results table in the team chat.
 
@@ -459,10 +501,10 @@ python scripts/analyze_clip.py testdata/real/eric_dim_none_lying_1.mp4 --score
 
 Checklist:
 
-- [ ] 1. `score.py` with `breath_term`, level, score, confidence, and reasons; every weight and threshold from `[score]`.
-- [ ] 2. `tests/test_score.py`: each level rule, the hand-checked example (`not_detected`, `v = 0.2`, `t = 15` gives 84.0), the 0.3 cap, never `minor`, reason limits, and the banned-words test.
-- [ ] 3. Call `set_critical_score` right after `report_breathing` in `worker.py`; skip it if `report_breathing` failed.
-- [ ] 4. Re-score timer in `watcher.py` with the meaningful-change rule and the `score_writes` table; new survivors scored at once with `no breathing clip yet`.
+- [x] 1. `score.py` with `breath_term`, level, score, confidence, and reasons; every weight and threshold from `[score]`.
+- [x] 2. `tests/test_score.py`: each level rule, the hand-checked example (`not_detected`, `v = 0.2`, `t = 15` gives 84.0), the 0.3 cap, never `minor`, reason limits, and the banned-words test.
+- [x] 3. Call `set_critical_score` right after `report_breathing` in `worker.py`; skip it if `report_breathing` failed.
+- [x] 4. Re-score timer in `watcher.py` with the meaningful-change rule and the `score_writes` table; new survivors scored at once with `no breathing clip yet`.
 - [ ] 5. Add a `--score` flag to `analyze_clip.py` (assumes `t = 0`, `d = 0.8` unless given) and run every E1 clip.
 - [ ] 6. With the simulator, leave a survivor unassigned for 5 minutes and watch the score rise with `waiting 5 min`.
 
@@ -526,9 +568,9 @@ pytest -q tests/test_roi.py
 Checklist:
 
 - [ ] 1. Download the pose weights on good internet and check that `GET /health` shows `yolo: loaded`.
-- [ ] 2. Pose branch in `roi.py`: run on the 5 sample frames, best box per frame, medians of box and keypoints, chest ROI from shoulders and hips (perception.md 4 step 2).
-- [ ] 3. Box branch (upright, lying, other) and the `k` table; visibility from the keypoint fraction (perception.md 5), none when no person is found.
-- [ ] 4. Still path: when a detection with `camera_image_url` arrives, run YOLO on it, save `det<id>_person.jpg`, and store the result for `GET /breathing/detection/<id>`.
+- [x] 2. Pose branch in `roi.py`: run on the 5 sample frames, best box per frame, medians of box and keypoints, chest ROI from shoulders and hips (perception.md 4 step 2).
+- [x] 3. Box branch (upright, lying, other) and the `k` table; visibility from the keypoint fraction (perception.md 5), none when no person is found.
+- [x] 4. Still path: when a detection with `camera_image_url` arrives, run YOLO on it, save `det<id>_person.jpg`, and store the result for `GET /breathing/detection/<id>`.
 - [ ] 5. Run all E1 clips again; check that `roi.jpg` puts the green chest box on the chest for lying and sitting clips, and fix the factors in config if not.
 - [ ] 6. Send Cayden the image URL fields and confirm where the dashboard's survivor detail shows them.
 
@@ -607,16 +649,17 @@ For the dry-run test with no model calls, add a runner switch that swaps the Ope
 
 Checklist:
 
-- [ ] 1. `config.ts` (typed, fails fast on a missing key unless `LLM_MODE=mock`), `log.ts` (console plus JSONL trace).
-- [ ] 2. `geo.ts` (haversine, R = 6,371,000 m, bearing, 8 compass words) and `priority.ts` (tiers 0, 1, 2; G3), with tests.
-- [ ] 3. `tools/schemas.ts` with every schema from agent.md 7.1 to 7.4 as one source for native and JSON modes, and `guards.ts` G1 to G8 (death-word regex, 120-character briefings, ASCII, no names to models).
-- [ ] 4. `stdb/connect.ts` and `stdb/convert.ts` (camelCase to snake_case, bigint ids to numbers, tagged enums to strings, `Identity` to hex, `Timestamp` to ISO).
-- [ ] 5. `world.ts` (active run filter, rescuer fresh and available, robot idle) and `FakeWorld` with the same interface.
+- [x] 1. `config.ts` (typed, fails fast on a missing key unless `LLM_MODE=mock`), `log.ts` (console plus JSONL trace).
+- [x] 2. `geo.ts` (haversine, R = 6,371,000 m, bearing, 8 compass words) and `priority.ts` (tiers 0, 1, 2; G3), with tests.
+- [x] 3. `tools/schemas.ts` with every schema from agent.md 7.1 to 7.4 as one source for native and JSON modes, and `guards.ts` G1 to G8 (death-word regex, 120-character briefings, ASCII, no names to models).
+- [x] 4. `stdb/connect.ts` and `stdb/convert.ts` (camelCase to snake_case, bigint ids to numbers, tagged enums to strings, `Identity` to hex, `Timestamp` to ISO).
+- [x] 5. `world.ts` (active run filter, rescuer fresh and available, robot idle) and `FakeWorld` with the same interface.
 - [ ] 6. Connect three identities to the local module, register them, and print the active run (needs Cayden's module; else continue on `FakeWorld`).
-- [ ] 7. `chain.ts` (survivor chain is the `survivor_created` event id; tasks carry their chain) and `board.ts` (post, claim, complete; 120 s stale rule).
-- [ ] 8. `dispatch.ts` with ajv, allow list, guards, `log_agent_action`, and the trace; a test task round-trips and appears in `agent_action` with `chain_id`.
-- [ ] 9. `llm/client.ts` and `llm/budget.ts` with the priority queue, 429 backoff, model-down switch, and tests (25 queued in a minute send 20; critical jumps normal).
-- [ ] 10. `loop.ts` with step and tool-call limits, the cycle deadline (lease minus 5 s), `<think>` stripping, and the JSON mode path through `parse.ts`.
+- [x] 7. `chain.ts` (survivor chain is the `survivor_created` event id; tasks carry their chain) and `board.ts` (post, claim, complete; 120 s stale rule).
+- [x] 8a. Implement dispatch validation, guards, action logs and chain IDs; fake-module task/log tests pass.
+- [ ] 8b. Confirm a task round trip and matching `agent_action` in the live database.
+- [x] 9. `llm/client.ts` and `llm/budget.ts` with the priority queue, 429 backoff, model-down switch, and tests (25 queued in a minute send 20; critical jumps normal).
+- [x] 10. `loop.ts` with step and tool-call limits, the cycle deadline (lease minus 5 s), `<think>` stripping, and the JSON mode path through `parse.ts`.
 - [ ] 11. Dry-run modes and `MockLLM`; run one full chain against the local module and the simulator with `DRY_RUN=1 LLM_MODE=mock`.
 
 Done when: dry-run mode logs a full chain against the local SpacetimeDB and the simulator without calling the model.
@@ -711,17 +754,17 @@ TOOL_MODE=json npm run scenario -- chain
 
 Checklist:
 
-- [ ] 1. `orchestrator.ts`: config, the agent.md 7.2 prompt, the wake packet builder (format in agent.md 7.2, including `WATCHDOG: fires in N s`), and wake rules.
-- [ ] 2. Orchestrator guards for `propose_assignment` (survivor unassigned, rescuer available, no higher-tier survivor waiting, lapsed-rescuer rule, 50% closer rule needs a reason) and `delegate`.
-- [ ] 3. `create_mission` and `cancel_own_mission` guards, the continue and inspect decisions, and the `rules.ts` continue rule for an idle robot when the model is down.
-- [ ] 4. Heartbeat policy, model-down switch (stop heartbeat, one `model_down` action), and the "already proposed by watchdog" check.
-- [ ] 5. `auditor.ts`: the agent.md 7.4 prompt, the review wake packet with `RULE CHECKS (code)`, `submit_review` (completes the task; on `disagree` files the flag with `flag_kind`), and the `rules.ts` verdict fallback.
-- [ ] 6. `templates.ts` and `comms.ts` with `ENABLE_COMMS_MODEL=0`: briefing, breathing part, nudge at half of `proposal_lease_s`, navigation hint with terrain, model-down answer; every template at most 120 characters.
-- [ ] 7. `scenario.ts` with the eight scenarios of agent.md 12.3, checking end states and required tool names, not exact order.
-- [ ] 8. Run `chain`, `priority`, `auditor_disagrees`, and `comms_fallback` until they pass.
+- [x] 1. `orchestrator.ts`: config, the agent.md 7.2 prompt, the wake packet builder (format in agent.md 7.2, including `WATCHDOG: fires in N s`), and wake rules.
+- [x] 2. Orchestrator guards for `propose_assignment` (survivor unassigned, rescuer available, no higher-tier survivor waiting, lapsed-rescuer rule, 50% closer rule needs a reason) and `delegate`.
+- [x] 3. `create_mission` and `cancel_own_mission` guards, the continue and inspect decisions, and the `rules.ts` continue rule for an idle robot when the model is down.
+- [x] 4. Heartbeat policy, model-down switch (stop heartbeat, one `model_down` action), and the "already proposed by watchdog" check.
+- [x] 5. `auditor.ts`: the agent.md 7.4 prompt, the review wake packet with `RULE CHECKS (code)`, `submit_review` (completes the task; on `disagree` files the flag with `flag_kind`), and the `rules.ts` verdict fallback.
+- [x] 6. `templates.ts` and `comms.ts` with `ENABLE_COMMS_MODEL=0`: briefing, breathing part, nudge at half of `proposal_lease_s`, navigation hint with terrain, model-down answer; every template at most 120 characters.
+- [x] 7. `scenario.ts` with the eight scenarios of agent.md 12.3, checking end states and required tool names, not exact order.
+- [x] 8. Pass mock scenarios plus the recorded real-Brev chain, priority and seeded auditor-disagreement checks; these use the fake database.
 - [ ] 9. Two-process run; `kill_orchestrator`, `race`, `all_down`, `budget` until they pass.
-- [ ] 10. Once `chain` passes three times with templates (the core demo runs end to end), set `ENABLE_COMMS_MODEL=1` and check real briefings stay under 120 characters and pass the guards.
-- [ ] 11. Run `chain` once with `TOOL_MODE=json` and once with `MockLLM` in `npm test`.
+- [x] 10. Verify modeled briefings and three consecutive native/JSON Brev chains against the fake database; briefing guards remain enforced. The integrated demo is still pending.
+- [x] 11. Pass three recorded real JSON chains and all eight mock scenarios; mock regression tests pass.
 
 Done when: on the simulator, one detection produces a proposal, an auditor verdict, and a briefing, all with the same `chain_id`, and stopping the orchestrator still lets the module's watchdog assign.
 Tests with pass criteria:
@@ -796,12 +839,14 @@ Environment variables: `STT_ENGINE`, `NVIDIA_API_KEY` (perception's own `.env`),
 
 Checklist:
 
-- [ ] 1. Record three test questions as 16 kHz mono 16-bit WAV (for example "is anyone else in house 3") into `testdata/voice/`, plus 2 s of silence.
-- [ ] 2. `stt.py` `whisper_local` engine with resampling to 16 kHz mono (`scipy.signal.resample_poly`) and `tests/test_stt.py`.
-- [ ] 3. `POST /transcribe` (`file` or `audio_url`, optional `rescuer` logged only), synchronous, no database write.
+- [x] 1a. Keep the existing question/silence WAV fixtures; public speech and generated silence also provide reference-version development checks without new recordings.
+- [ ] 1b. Verify the primary engine on the chosen demo question fixtures and noisy rescuer-style audio; keep this separate from a public general-speech smoke.
+- [x] 2. `stt.py` `whisper_local` engine with resampling to 16 kHz mono (`scipy.signal.resample_poly`) and `tests/test_stt.py`.
+- [x] 3. `POST /transcribe` (`file` or `audio_url`, optional `rescuer` logged only), synchronous, no database write.
 - [ ] 4. `nvidia_riva` engine: run the model page's `transcribe_file.py` command once by hand with the key, then wrap the same call in `stt.py`.
-- [ ] 5. Engine selection at startup with fallback, and `engine` in `GET /health` and in every result.
-- [ ] 6. Comms agent `answer_rescuer` path: answer only from the facts in the task payload and the board, at most 120 characters, the model-down template otherwise; the `send_briefing` guard allows an answer to the asking rescuer.
+- [x] 5. Engine selection at startup with fallback, and `engine` in `GET /health` and in every result.
+- [x] 6a. Implement the facts-only template answer path and recipient/briefing guards.
+- [ ] 6b. Implement and test model-generated `answer_rescuer` answers from task/board facts with template fallback.
 - [ ] 7. With Cayden, run the full loop from the glasses (or the fallback page's Ask button) and time it.
 
 Done when: a spoken question on the glasses comes back as an answer on the display.
@@ -860,10 +905,11 @@ curl -F file=@frame.jpg -F robot_id=dog1 -F rule_class=flat http://localhost:808
 Checklist:
 
 - [ ] 1. Record frames over each mock rubble type in full and dim light, at least 50 per class (by hand or from the bridge).
-- [ ] 2. `terrain.py` zero-shot CLIP baseline with one prompt per class (perception.md 9), `unknown` below 0.5.
-- [ ] 3. `POST /terrain` (skip frames older than 5 s, store with `kind=terrain`, at most 1 per second per robot) and `GET /terrain/latest`.
-- [ ] 4. `label_terrain.py`: keys 1 to 6, Enter accepts the rule class, `s` skips; label the disagreements first.
-- [ ] 5. `train_terrain.py`: frozen CLIP embeddings plus `LogisticRegression`, split by run, keep one full run as the test set.
+- [x] 2. `terrain.py` zero-shot CLIP baseline with one prompt per class (perception.md 9), `unknown` below 0.5.
+- [x] 3. `POST /terrain` (skip frames older than 5 s, store with `kind=terrain`, at most 1 per second per robot) and `GET /terrain/latest`.
+- [x] 4. `label_terrain.py`: keys 1 to 6, Enter accepts the rule class, `s` skips; label the disagreements first.
+- [x] 5a. Implement the frozen-CLIP/logistic-regression training script with run-separated evaluation.
+- [ ] 5b. Train it on independent labels and retain a full held-out source/run; no completed training/evaluation is claimed.
 - [ ] 6. Evaluation report: confusion matrix, recall on `gap`, `step`, `blocked`, agreement with the robot's rules, latency p50 and p95, baseline versus probe.
 - [ ] 7. Turn the hint on only if the probe beats the baseline on the held-out run; agree with Camille how the dashboard map shows it (the robot's fused report, or a test with `terrain_write_db = true` and the robot's own reports off).
 
@@ -994,7 +1040,7 @@ Perception ready:
 
 What to show on the Agents panel (full screen with `A`, or `?view=agents&survivor=<id>` for the video):
 
-- [ ] Agent status cards: Orchestrator on Nemotron 3 Super, Auditor and Comms agent on Nemotron 3 Nano, each with its model chip and heartbeat.
+- [ ] Agent status cards: Orchestrator on Nemotron 3.5 Super VL, Auditor and Comms agent on Nemotron 3.5 Lightning, each with its model chip and heartbeat.
 - [ ] The task board: `brief_rescuer` and `review` cards moving from open to claimed to done as the robot finds the teammate.
 - [ ] The chain for the found survivor: detection, score, proposal, auditor verdict, briefing, acknowledgement, with the total "detection to acknowledgement" time.
 - [ ] One auditor objection (the `load_imbalance` example from agent.md section 10) and the orchestrator's response under it.

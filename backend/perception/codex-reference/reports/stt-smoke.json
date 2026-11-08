@@ -1,0 +1,26 @@
+{
+  "engine": "whisper_local:tiny.en",
+  "speech": {
+    "transcript": "And so my fellow Americans ask not what your country can do for you.",
+    "confidence": 0.705,
+    "engine": "whisper_local:tiny.en",
+    "seconds": 0.939
+  },
+  "silence": {
+    "transcript": "",
+    "confidence": 0.0,
+    "engine": "whisper_local:tiny.en",
+    "seconds": 0.0
+  },
+  "source": {
+    "url": "https://raw.githubusercontent.com/SYSTRAN/faster-whisper/master/tests/data/jfk.flac",
+    "sha256": "63a4b1e4c1dc655ac70961ffbf518acd249df237e5a0152faae9a4a836949715",
+    "transformation": "first 8 seconds, resampled to 16 kHz mono WAV",
+    "revision": "846467d436117e44d54ad74f555d85c75834edb0"
+  },
+  "limits": [
+    "Public speech fixture, not rescuer question or venue-noise benchmark",
+    "Model tiny.en, not default small.en",
+    "Hosted Riva and glasses integration not tested"
+  ]
+}

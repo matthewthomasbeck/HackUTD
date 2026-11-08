@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://raw.githubusercontent.com/phuselab/resPyre/16a5cfc18fd97ef9cd1454dbfecabffff4a8d4eb/motion/motion.py",
+    "path": "respyre/motion.py",
+    "sha256": "7a1a514944d9c41cc83364f6ff887ec1cf9d7da5e42bb885fc47f54cbe6b30e7"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/phuselab/resPyre/16a5cfc18fd97ef9cd1454dbfecabffff4a8d4eb/LICENSE",
+    "path": "respyre/LICENSE",
+    "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/phuselab/resPyre/16a5cfc18fd97ef9cd1454dbfecabffff4a8d4eb/README.md",
+    "path": "respyre/README.md",
+    "sha256": "96c43e289deb15656de765980bc81faac838df9b5be7da5db5b0716510e00895"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/ShawnTan86/Lightweight-Video-based-Respiration-Rate-Detection-Algorithm/2013584a8cc872ed1bf71b9c5435148a244f73cb/IOF.py",
+    "path": "lightweight/IOF.py",
+    "sha256": "0e484c727b8b39b6fb9ceeffeb5b82bb790c0b06909f237774c7b054dd3a2a77"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/ShawnTan86/Lightweight-Video-based-Respiration-Rate-Detection-Algorithm/2013584a8cc872ed1bf71b9c5435148a244f73cb/RespirationRateCalculationAlgorithm.py",
+    "path": "lightweight/RespirationRateCalculationAlgorithm.py",
+    "sha256": "01b47afb13c47481b8bdb5830a9f23ef9d3746f92b4474b0201077b0c4dc9b29"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/ShawnTan86/Lightweight-Video-based-Respiration-Rate-Detection-Algorithm/2013584a8cc872ed1bf71b9c5435148a244f73cb/params.py",
+    "path": "lightweight/params.py",
+    "sha256": "e04a2bf0307044edaf7dac4321b01d784828ab1dcba8c07caebdbb0dd120eb90"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/ShawnTan86/Lightweight-Video-based-Respiration-Rate-Detection-Algorithm/2013584a8cc872ed1bf71b9c5435148a244f73cb/LICENSE",
+    "path": "lightweight/LICENSE",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/ShawnTan86/Lightweight-Video-based-Respiration-Rate-Detection-Algorithm/2013584a8cc872ed1bf71b9c5435148a244f73cb/README.md",
+    "path": "lightweight/README.md",
+    "sha256": "392d8b553481885466e859b17c0513542bc7a5edd54bfc5b8ce5a38a64cfd9c3"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/ShawnTan86/Lightweight-Video-based-Respiration-Rate-Detection-Algorithm/2013584a8cc872ed1bf71b9c5435148a244f73cb/test2.mp4",
+    "path": "lightweight/test2.mp4",
+    "sha256": "e31ea8234fed099b3af07bc867a792bd543a744ef832e5780db9776b864e55e3"
+  }
+]

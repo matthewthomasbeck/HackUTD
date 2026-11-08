@@ -23,9 +23,9 @@ Items marked UNCONFIRMED must be checked by the smoke tests in section 4 before 
 
 | Agent | `participant.name` | Role | Model | Status |
 | --- | --- | --- | --- | --- |
-| Orchestrator | `orchestrator` | `agent` | Nemotron 3 Super | Must have, never cut, built first |
-| Auditor | `auditor` | `auditor` | Nemotron 3 Nano | Must have, built first |
-| Comms agent | `comms_agent` | `agent` | Nemotron 3 Nano | Must have; templates first, its model is added once the core demo runs end to end |
+| Orchestrator | `orchestrator` | `agent` | Nemotron 3.5 Super VL | Must have, never cut, built first |
+| Auditor | `auditor` | `auditor` | Nemotron 3.5 Lightning | Must have, built first |
+| Comms agent | `comms_agent` | `agent` | Nemotron 3.5 Lightning | Must have; templates first, its model is added once the core demo runs end to end |
 
 - The orchestrator plans the search and calls `create_mission` and `cancel_own_mission` directly; there is no separate search agent.
 - Two could-have extras: a vision describer tool (`describe_still`, used by the comms agent) and a `sitrep` task (a short situation summary the orchestrator asks the comms agent to post).
@@ -131,9 +131,10 @@ Scripts:
 # NVIDIA (key from build.nvidia.com; one teammate gets it by hand)
 NVIDIA_API_KEY=
 NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
-MODEL_SUPER=nvidia/nemotron-3-super-120b-a12b
-MODEL_NANO=nvidia/nemotron-3-nano-30b-a3b
+MODEL_SUPER=nvidia/nemotron-3.5-super-vl-120b-a12b
+MODEL_NANO=nvidia/nemotron-3.5-lightning-30b-a3b
 MODEL_VISION=nvidia/nemotron-nano-12b-v2-vl
+SUPER_REASONING_EFFORT=low    # none | low | high; use none when Super replies exceed about 10 s
 TOOL_MODE=native              # native | json, chosen by smoke:llm, per model below overrides
 TOOL_MODE_SUPER=
 TOOL_MODE_NANO=
@@ -175,19 +176,19 @@ Getting the key is a manual step for one teammate: "Get API Key" on a model page
 
 ## 4. Model access
 
-### 4.1 Facts (checked 2026-11-07)
+### 4.1 Facts (checked 2026-11-07; model ids changed after the smoke test, see 4.3)
 
 | Item | Value | Source |
 | --- | --- | --- |
 | Base URL and endpoint | `https://integrate.api.nvidia.com/v1`, `POST /chat/completions`, bearer token | [N1][N2] |
-| Orchestrator model | `nvidia/nemotron-3-super-120b-a12b` (the `model` default in its request schema) | [N1] |
-| Comms and auditor model | `nvidia/nemotron-3-nano-30b-a3b` (the `model` default in its request schema) | [N2] |
+| Orchestrator model | `nvidia/nemotron-3.5-super-vl-120b-a12b`; the first choice `nvidia/nemotron-3-super-120b-a12b` returns HTTP 404 for our key | smoke test 2026-11-07, [N1] |
+| Comms and auditor model | `nvidia/nemotron-3.5-lightning-30b-a3b`; the first choice `nvidia/nemotron-3-nano-30b-a3b` returns HTTP 410 (end of life 2026-09-01) | smoke test 2026-11-07, [N2] |
 | Vision model (could have) | `nvidia/nemotron-nano-12b-v2-vl`, same endpoint; images go in a `user` message as `{"type":"image_url","image_url":{"url":"data:image/jpeg;base64,..."}}` or a public URL; `max_tokens` 1 to 8192 | [V1] |
 | `stream` | defaults to `true`; always send `stream: false` | [N1][N2] |
 | `reasoning_effort` | Super only: `none`, `low`, `high`, default `high`; send `low` for the orchestrator | [N1] |
-| Nano thinking off | Not in the Nano schema; NVIDIA's examples send `chat_template_kwargs: {"enable_thinking": false}`; UNCONFIRMED that the hosted API honors it | [N2] |
+| Nano thinking off | `chat_template_kwargs: {"enable_thinking": false}`; confirmed on Lightning by the smoke test (reasoning text gone), and needed for its JSON mode | [N2], smoke test |
 | `temperature`, `top_p` | Nano card recommends 0.6 and 0.95 for tool calling; use those for all text models | [N3] |
-| `tools`, `tool_choice` | UNCONFIRMED: the Super and Nano request schemas do not list them and set `additionalProperties: false`, but NVIDIA's code templates send them | [N1][N2] |
+| `tools`, `tool_choice` | Confirmed on both models by the smoke test (native tool call and tool result both pass) | smoke test 2026-11-07 |
 | Tool format | OpenAI style; results return as `role: "tool"` messages with `tool_call_id`; NIM can put a tool call in `content` when its parser fails | [N4] |
 | Rate limit | About 40 requests per minute from forum reports, UNCONFIRMED; our own cap is 20 | [N7] |
 | HTTP 202 | Result pending; treated as a retryable failure | [N1] |
@@ -213,7 +214,7 @@ const body: any = {
   max_tokens: agent.maxTokens,
   stream: false,
   ...(toolMode === "native" ? { tools: agent.toolDefs, tool_choice: "auto" } : {}),
-  ...(agent.model === cfg.MODEL_SUPER ? { reasoning_effort: "low" } : {}),
+  ...(agent.model === cfg.MODEL_SUPER ? { reasoning_effort: cfg.SUPER_REASONING_EFFORT } : {}),
   ...(agent.model === cfg.MODEL_NANO && cfg.NANO_THINKING_OFF ? { chat_template_kwargs: { enable_thinking: false } } : {}),
 };
 ```
@@ -246,7 +247,24 @@ A `curl` equivalent sits in the top comment of `smoke-llm.ts` so anyone can test
 | Super replies take more than about 10 s | Orchestrator keeps Super with `reasoning_effort: "none"`; if still slow, the team decides whether to use Nano, and says so honestly |
 | Both models fail | All agents run on fallbacks (section 9); the database watchdog assigns |
 
+Result (2026-11-07, Eric's key, full table in `backend/agent/README.md`):
+
+| Model | Native (steps 1, 2) | JSON (step 4) | Thinking off (step 3) | Latency | Decision |
+| --- | --- | --- | --- | --- | --- |
+| `nvidia/nemotron-3-super-120b-a12b` | HTTP 404 | HTTP 404 | HTTP 404 | - | not usable |
+| `nvidia/nemotron-3-nano-30b-a3b` | HTTP 410, end of life | HTTP 410 | HTTP 410 | - | not usable |
+| `nvidia/nemotron-3.5-super-vl-120b-a12b` | pass | pass | `reasoning_effort: "none"` accepted | 0.8 to 2.0 s | `TOOL_MODE_SUPER=native` |
+| `nvidia/nemotron-3.5-lightning-30b-a3b` | pass | pass only with thinking off | `enable_thinking: false` accepted | 0.1 to 1.3 s | `TOOL_MODE_NANO=native`, `NANO_THINKING_OFF=1` |
+
+No 429 was seen. The env names `MODEL_SUPER` and `MODEL_NANO` stay; they now hold the two Nemotron 3.5 models.
+
+Brev-only validation (2026-11-08): Super VL NVFP4 on an RTX PRO 6000 96 GB and Lightning BF16 on an A100 80 GB both pass all four smoke steps.
+The served model ids stay the same. `NVIDIA_BASE_URL` selects the Super server at `http://localhost:18001/v1`; `NANO_BASE_URL` selects Lightning at `http://localhost:18000/v1`. Both keys are the placeholder `none`, so no Build API key is used.
+Use `SUPER_REASONING_EFFORT=none` for this deployment: with `low`, Super sometimes took over 10 s. Native tool calls with reasoning off took 1.56 s (Super) and 1.12 s (Lightning); JSON actions took 1.02 s and 0.58 s. Runtime and tunnel instructions are in `backend/agent/README.md`.
+
 ### 4.4 Strict JSON fallback (`TOOL_MODE=json`)
+
+JSON-mode requests send `response_format: {"type":"json_object"}` so the serving engine constrains output to valid JSON. The runner still parses the action shape and validates every tool's arguments and guards.
 
 The system prompt gets one more section with every allowed tool's name, description, and JSON schema, and these rules:
 
@@ -532,7 +550,7 @@ Returns the `robot` row (including its latest terrain fields), `idle`, seconds s
 
 ### 7.2 Orchestrator
 
-- Model: `nvidia/nemotron-3-super-120b-a12b`, `reasoning_effort: "low"`.
+- Model: `nvidia/nemotron-3.5-super-vl-120b-a12b`, `reasoning_effort: "low"`.
 - Owns triage, rescuer assignments, the search plan and robot missions, and delegation.
 - Plans the search itself: it reads telemetry, terrain, and detections, and decides inspect or continue.
 - Missions start `proposed` when `site.require_mission_approval` is true, otherwise `queued` (contract); the robot's state machine and safety gate decide motion (G4).
@@ -654,7 +672,7 @@ Each time you wake:
 1. Read the wake packet. Use read tools only if something you need is missing.
 2. For each unassigned survivor, most urgent first, propose the best available rescuer (propose_assignment). Usually that is the nearest rescuer with the fewest active assignments. Choose someone else only for a reason you can state, such as a closer rescuer who is about to be free, or the auditor's objection.
 3. Delegate the briefing to the comms agent (delegate, kind brief_rescuer) for every proposal.
-4. Plan the search (create_mission). If a building has people unaccounted for, or a detection was weak, create an inspect mission at that place. If the robot is idle and areas are not yet searched, create a search_cells mission with 1 to 3 cells: cells with people unaccounted for first, then unsearched and partially searched cells, then nearest.
+4. Plan the search (create_mission). If a building has people unaccounted for, or a detection was weak, create an inspect mission at that place. An ACTIVE mission does not prevent queueing this next inspect mission: queue it now if the robot is online and has no proposed or queued mission, even while it finishes its current mission. Do not wait for the robot to become idle. If the robot is idle and areas are not yet searched, create a search_cells mission with 1 to 3 cells: cells with people unaccounted for first, then unsearched and partially searched cells, then nearest.
 5. If the auditor disagreed (a wrong rescuer or an unfair load), decide: act on it (a new proposal), or dismiss it with a reason (set_flag_status).
 6. When everything is handled, reply with a one-line summary and no tool calls.
 
@@ -682,7 +700,7 @@ Be brief. Act, then stop.
 
 ### 7.3 Comms agent
 
-- Model: `nvidia/nemotron-3-nano-30b-a3b`, thinking off if the smoke test allows it.
+- Model: `nvidia/nemotron-3.5-lightning-30b-a3b`, thinking off if the smoke test allows it.
 - Owns the rescuers' glasses text: briefings, navigation hints, acknowledgement nudges, answers to rescuer voice questions (`answer_rescuer` tasks), and the could-have `sitrep` summary briefing.
 - The arrow, distance, critical count, heartbeat, and acknowledgement prompt are plain code in the glasses service, not the comms agent.
 - May write: `post_briefing`; optional `describe_still` (could have) and `get_weather` (optional, cut with the vision tool).
@@ -760,7 +778,7 @@ Rules you must follow. The system rejects text that breaks them:
 
 ### 7.4 Auditor
 
-- Model: `nvidia/nemotron-3-nano-30b-a3b`.
+- Model: `nvidia/nemotron-3.5-lightning-30b-a3b`.
 - Role `auditor`, name `auditor`.
 - An independent verifier, the evaluator in the evaluator pattern [R1]: it reviews every orchestrator proposal through a `review` task and gives a verdict with a reason.
   Using Nano to check Super gives a somewhat more independent second opinion than asking Super twice (inference from `docs/research/agents.md`).

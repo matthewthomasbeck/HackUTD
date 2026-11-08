@@ -1,0 +1,37 @@
+[
+  {
+    "agent": "orchestrator",
+    "contains": ["#1 house 3 IMMEDIATE"],
+    "turn": 0,
+    "delay_ms": 14000,
+    "reply": { "tool_calls": [{ "name": "get_board", "arguments": { "reason": "check the board before proposing" } }] }
+  },
+  {
+    "agent": "orchestrator",
+    "contains": ["#1 house 3 IMMEDIATE"],
+    "turn": 1,
+    "delay_ms": 14000,
+    "reply": {
+      "tool_calls": [
+        {
+          "name": "propose_assignment",
+          "arguments": {
+            "reason": "Most urgent unassigned (IMMEDIATE); Rescuer A nearest at 40 m",
+            "survivor_id": 1,
+            "rescuer_identity": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "delegate",
+          "arguments": {
+            "reason": "Brief the rescuer on #1",
+            "to_agent": "comms_agent",
+            "kind": "brief_rescuer",
+            "priority": "critical",
+            "survivor_id": 1
+          }
+        }
+      ]
+    }
+  }
+]

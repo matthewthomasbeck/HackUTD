@@ -1,0 +1,21 @@
+{
+  "name": "perception-stdb-helper",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Read-only SpacetimeDB subscription for the perception service: detection, survivor, search_cell rows as NDJSON on stdout.",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node18 --packages=external --outfile=dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "spacetimedb": "^2.14.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0"
+  }
+}

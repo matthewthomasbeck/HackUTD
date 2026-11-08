@@ -1,0 +1,4 @@
+.env
+.tokens/
+logs/
+node_modules/
